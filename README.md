@@ -4,12 +4,19 @@ A design sample for a church tracker used **only by leaders**. Members don't log
 
 **This is a mockup only.** It has no backend, login or saving, and all data is sample data.
 
-Open `mockup/index.html` in a browser. A toolbar at the top switches between:
+Open `mockup/index.html` in a browser. It's clickable: click boxes in the team table, or use + and − on the phone, and the totals and plants update. A toolbar at the top switches between:
 - **3 design options:** `1 · 8-Bit`, `2 · Soft 3D` (rounded and friendly, Pixar-like), `3 · Clean` (simple and professional)
 - **Language:** English / Español
 
 ## Structure
 **Region** (Santiago) → **Branches** (Santiago, La Vega, Moca, Puerto Plata, Jarabacoa) → **Teams** (optional) → **Members**
+
+## Accounts
+1. The **Jefe de Templo** (region) creates an account for each branch.
+2. Each **branch leader** creates the team leader accounts (only branches that use teams).
+3. Each **team leader** adds their members. Members don't log in.
+
+The setup is built for the Santiago region only, but it leaves room to add other regions later.
 
 ## 1. Overseer (Jefe de Templo): Santiago Region
 The region tracks General Assembly goals for each branch. Every goal counts **people**:
@@ -26,8 +33,8 @@ Who can do what:
 
 ## 2. Branch
 A branch can join in one of two ways:
-- **Branch only:** it enters its totals and sees results.
-- **Teams:** it sets up member profiles, and each team leader updates their own members.
+- **Branch only:** it updates its 5 numbers once a month and sees results. (For now, every branch except Santiago.)
+- **Teams:** it sets up member profiles, and each team leader updates their own members. (For now, Santiago only.)
 
 The branch splits its **fruit goal** across its teams, and the teams' fruit adds up to the branch total.
 
