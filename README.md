@@ -1,4 +1,4 @@
-# Faithful 7: Member Tracker
+# Church Status
 
 ## Live demo (`demo/`)
 A working demo in the Clean design, published as a claude.ai page with a shared live database. What one person changes shows up on everyone's screen within a second or two.

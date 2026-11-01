@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Faithful 7 Mockup</title>
+<title>Church Status Mockup</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -664,7 +664,7 @@ const DAYS = () => L('12 days left', 'quedan 12 días');
 const drops = (n, done, px) => `<div class="row" style="gap:6px">${Array.from({ length: n }, (_, i) => `<span style="${i < done ? '' : 'opacity:.25;filter:grayscale(1)'}">${icon('drop', px)}</span>`).join('')}</div>`;
 const sideNav = (items, who) => `
   <aside class="side">
-    <div class="brand">${icon('bible', 30)}<span>Faithful 7<br><span style="font-size:.7em;opacity:.7;font-weight:500">${L('La Iglesia', 'La Iglesia')}</span></span></div>
+    <div class="brand">${icon('bible', 30)}<span>Church Status<br><span style="font-size:.7em;opacity:.7;font-weight:500">${L('La Iglesia', 'La Iglesia')}</span></span></div>
     <div class="scope"><div class="input">${icon('pin', 16)}<span class="grow">${L('Region', 'Región')}: Santiago</span>▾</div></div>
     ${items.map(([ic, t, on, ct]) => `<a class="${on ? 'on' : ''}">${icon(ic, 18)}${t}${ct ? `<span class="ct">${ct}</span>` : ''}</a>`).join('')}
     <div class="who">${who}</div>
@@ -789,7 +789,7 @@ function desktopGroup() {
   const rp = REGION_PCT();
   const myB = BRANCHES.find(b => b.name === TEAM.branch);
   return `
-  <div class="browser-top"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><div class="url">faithful7.app/santiago/centro/los-valientes</div></div>
+  <div class="browser-top"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><div class="url">churchstatus.app/santiago/centro/los-valientes</div></div>
   <div class="app">
     ${sideNav([
       ['heart', L('Dashboard', 'Panel'), 1], ['people', L('Members', 'Miembros'), 0, '8'], ['target', L('Month goals', 'Metas del mes')],
@@ -873,7 +873,7 @@ function desktopRegion() {
   const rp = REGION_PCT();
   const editing = BRANCHES[2];
   return `
-  <div class="browser-top"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><div class="url">faithful7.app/santiago/region</div></div>
+  <div class="browser-top"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><div class="url">churchstatus.app/santiago/region</div></div>
   <div class="app">
     ${sideNav([
       ['pin', L('Region overview', 'Resumen regional'), 1], ['chart', L('Branches', 'Sucursales'), 0, '5'], ['people', L('Teams', 'Equipos'), 0, '5'],
@@ -956,7 +956,7 @@ function desktopBranch() {
   const members = TEAMS.reduce((a, t) => a + t.members, 0);
   const tName = t => t.custom || `${L('Team', 'Equipo')} ${t.num}`;
   return `
-  <div class="browser-top"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><div class="url">faithful7.app/santiago/branch/santiago</div></div>
+  <div class="browser-top"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><div class="url">churchstatus.app/santiago/branch/santiago</div></div>
   <div class="app">
     ${sideNav([
       ['pin', L('Region', 'Región')], ['chart', L('Branch: Santiago', 'Sucursal: Santiago'), 1], ['people', L('Teams', 'Equipos'), 0, '5'],
@@ -1024,7 +1024,7 @@ function render() {
   document.getElementById('root').innerHTML = `
   <header class="hero">
     <div class="icons">${icon('bible', 64)}${icon('heart', 58)}${plant(4, 80)}${icon('hands', 64)}${icon('fruit', 58)}</div>
-    <h1>Faithful 7</h1>
+    <h1>Church Status</h1>
     <p>${L('A results dashboard for the Santiago region: General Assembly goals for every branch by month, quarter and year, plus 7 monthly goals for every member of Santiago’s teams.', 'Un panel de resultados para la región Santiago: metas de Asamblea General por sucursal por mes, trimestre y año, y 7 metas mensuales para cada miembro de los equipos de Santiago.')}</p>
     <span class="pill">${L('Design option', 'Opción de diseño')}: ${styleName} · ${L('Only the Jefe de Templo and Santiago team leaders log in', 'Solo entran el Jefe de Templo y los líderes de equipo de Santiago')}</span>
   </header>

@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 </head>
 <body>
-<title>Faithful 7 Live Demo</title>
+<title>Church Status Live Demo</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* Layout: sticky top bar with role + language, then one working view at a time (region, monthly report, Santiago teams, a team). */
+/* One light look on purpose, matching the Clean design option of the mockup. Layout: sticky top bar with role + language, then one working view at a time (region, monthly report, Santiago teams, a team). */
 :root {
   --bg: #f4f6f9; --surface: #ffffff; --surface-2: #f8fafc; --inset: #f1f5f9;
   --ink: #0f172a; --muted: #64748b; --line: #e2e8f0;
@@ -23,26 +23,7 @@
   --shadow: 0 1px 2px rgba(15, 23, 42, .06);
   --overlay: rgba(15, 23, 42, .35);
   --f: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-}
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #0b1220; --surface: #111a2e; --surface-2: #0f1729; --inset: #17223a;
-  --ink: #e5ecf6; --muted: #93a3b8; --line: #22304a;
-  --accent: #6d9bff; --accent-ink: #0b1220; --accent-soft: #16254a;
-  --ok: #34d399; --ok-soft: #0f2a22; --ok-line: #1d4d3c;
-  --warn: #fbbf24; --warn-bar: #f59e0b; --warn-soft: #2a2210; --warn-line: #5a4613;
-  --bad: #fb7185; --bad-soft: #2e1420; --bad-line: #5b2333;
-  --hero: #1b2a4a; --hero-ink: #f8fafc; --hero-muted: #a7b4cc; --gold: #fbbf24;
-  --shadow: none; --overlay: rgba(0, 0, 0, .55); color-scheme: dark;
-} }
-:root[data-theme="dark"] {
-  --bg: #0b1220; --surface: #111a2e; --surface-2: #0f1729; --inset: #17223a;
-  --ink: #e5ecf6; --muted: #93a3b8; --line: #22304a;
-  --accent: #6d9bff; --accent-ink: #0b1220; --accent-soft: #16254a;
-  --ok: #34d399; --ok-soft: #0f2a22; --ok-line: #1d4d3c;
-  --warn: #fbbf24; --warn-bar: #f59e0b; --warn-soft: #2a2210; --warn-line: #5a4613;
-  --bad: #fb7185; --bad-soft: #2e1420; --bad-line: #5b2333;
-  --hero: #1b2a4a; --hero-ink: #f8fafc; --hero-muted: #a7b4cc; --gold: #fbbf24;
-  --shadow: none; --overlay: rgba(0, 0, 0, .55); color-scheme: dark;
+  color-scheme: light;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f); font-size: 14px; line-height: 1.45; }
@@ -562,7 +543,7 @@ function topBar() {
     : [[`team-${ROLE}`, 'people', L('My team', 'Mi equipo')], ['region', 'pin', L('Region', 'Región')]];
   const cur = VIEW === 'team' ? `team-${VIEW_TEAM}` : VIEW;
   return `<header class="top"><div class="wrap">
-    <div class="brand">${icon('bible', 26)}<div>Faithful 7<small>${L('Santiago Region', 'Región Santiago')}</small></div></div>
+    <div class="brand">${icon('bible', 26)}<div>Church Status<small>${L('Santiago Region', 'Región Santiago')}</small></div></div>
     <nav class="tabs">${tabs.map(([h, ic, t]) => `<a href="#${h}" class="${cur === h || (h === 'teams' && VIEW === 'team') ? 'on' : ''}">${icon(ic, 16)}${t}</a>`).join('')}</nav>
     <div class="right">
       <span class="live ${DB ? '' : 'off'}"><i></i>${DB ? L('Live', 'En vivo') : L('Offline demo', 'Demo sin conexión')}</span>
