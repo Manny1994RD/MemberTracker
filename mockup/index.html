@@ -228,6 +228,9 @@ button:focus-visible, .cell:focus-visible { outline: 3px solid var(--primary); o
 .seg { display: inline-flex; border: var(--bw-sm) solid var(--line); border-radius: var(--r-pill); overflow: hidden; background: var(--surface-2); }
 [data-style="pixel"] .seg { border-color: #1d1b2f; }
 [data-style="clean"] .seg { border: 1px solid var(--line); border-radius: 8px; }
+.seg button { font: inherit; border: 0; background: transparent; cursor: pointer; font-family: var(--fh); font-weight: var(--fw-h); font-size: var(--fs-tag); padding: 7px 12px; color: var(--muted); }
+.seg button.on { background: var(--accent); color: var(--accent-ink); }
+[data-style="soft"] .seg button.on { background: var(--primary); color: #fff; border-radius: 999px; }
 .seg span { font-family: var(--fh); font-weight: var(--fw-h); font-size: var(--fs-tag); padding: 7px 12px; color: var(--muted); }
 .seg span.on { background: var(--accent); color: var(--accent-ink); }
 [data-style="soft"] .seg span.on { background: var(--primary); color: #fff; border-radius: 999px; }
@@ -618,7 +621,7 @@ const BRANCHES = [
   B('Puerto Plata', 0, [176, 300], [41, 80],   [118, 160], [39, 60], [5, 11]),
   B('Jarabacoa',    0, [92, 250],  [22, 60],   [97, 140],  [30, 50], [2, 10]),
 ];
-const modeLabel = b => b.teams ? `${b.teams} ${L('teams', 'equipos')}` : L('Branch only · monthly', 'Solo sucursal · mensual');
+const modeLabel = b => b.teams ? `${b.teams} ${L('teams report here', 'equipos reportan aquí')}` : L('Monthly report', 'Reporte mensual');
 // Teams inside the Santiago branch. Their fruit goals add up to the branch fruit goal.
 const T = (custom, num, leader, members, health, fruit, me) => ({ custom, num, leader, members, health, fruit, me });
 const TEAMS = [
@@ -630,8 +633,18 @@ const TEAMS = [
 ];
 const OVERSEER = () => L('Overseer', 'Jefe de Templo');
 const ratio = ([c, g]) => Math.min(1, c / g);
-const branchPct = b => Math.round(METRICS().reduce((a, m) => a + ratio(b.d[m.k]), 0) / 5 * 100);
-const regionTotal = k => BRANCHES.reduce((a, b) => [a[0] + b.d[k][0], a[1] + b.d[k][1]], [0, 0]);
+// Results by period. Sample: yearly numbers are stored; month and quarter are derived for the demo.
+let PERIOD = 'month';
+const D = (b, k) => {
+  const [c, g] = b.d[k];
+  if (PERIOD === 'year') return [c, g];
+  if (PERIOD === 'quarter') return [Math.round(c * .27), Math.ceil(g / 4)];
+  return [Math.round(c * .09), Math.ceil(g / 12)];
+};
+const periodLabel = () => ({ month: L('November 2026', 'Noviembre 2026'), quarter: L('Q4 2026 (Oct–Dec)', 'T4 2026 (oct–dic)'), year: L('GA year 2026', 'Año AG 2026') })[PERIOD];
+const periodSeg = () => `<div class="seg">${[['month', L('Monthly', 'Mensual')], ['quarter', L('Quarterly', 'Trimestral')], ['year', L('Yearly', 'Anual')]].map(([k, t]) => `<button class="${PERIOD === k ? 'on' : ''}" data-act="period" data-p="${k}">${t}</button>`).join('')}</div>`;
+const branchPct = b => Math.round(METRICS().reduce((a, m) => a + ratio(D(b, m.k)), 0) / 5 * 100);
+const regionTotal = k => BRANCHES.reduce((a, b) => { const v = D(b, k); return [a[0] + v[0], a[1] + v[1]]; }, [0, 0]);
 const REGION_PCT = () => Math.round(METRICS().reduce((a, m) => a + ratio(regionTotal(m.k)), 0) / 5 * 100);
 const barCls = r => r >= .8 ? '' : r >= .55 ? 'warn' : 'bad';
 const fmt = n => n.toLocaleString(LANG === 'es' ? 'es-DO' : 'en-US');
@@ -735,9 +748,10 @@ function phoneRegion() {
         <div class="lbl">${L('Region progress', 'Progreso de la región')}</div>
         <div class="big" style="color:var(--hero-accent);margin:6px 0">${rp}%</div>
         ${bar(rp / 100)}
-        <div class="small" style="color:var(--hero-muted);margin-top:6px">${BRANCHES.length} ${L('branches · GA 2026', 'sucursales · AG 2026')}</div>
+        <div class="small" style="color:var(--hero-muted);margin-top:6px">${BRANCHES.length} ${L('branches', 'sucursales')} · ${periodLabel()}</div>
       </div>
     </div>
+    <div style="display:flex;justify-content:center">${periodSeg()}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       ${METRICS().map((m, i) => {
         const [c, g] = regionTotal(m.k), r = c / g;
@@ -867,9 +881,9 @@ function desktopRegion() {
     ], `<div class="avatar" style="background:var(--ok)">PS</div><div><b>${OVERSEER().toUpperCase()}</b>Pastor Samuel R.<br>${L('Santiago Region', 'Región Santiago')}</div>`)}
     <main class="main">
       <div class="topline">
-        <h2>${L('Santiago Region', 'Región Santiago')}<small>${L('General Assembly goals', 'Metas de Asamblea General')} · ${BRANCHES.length} ${L('branches', 'sucursales')} · ${L('updated Nov 18', 'actualizado 18 nov')}</small></h2>
-        <div class="seg"><span>${L('This month', 'Este mes')}</span><span class="on">GA 2026</span></div>
-        <span class="btn">${icon('pencil', 16)} ${L('Edit goals', 'Editar metas')}</span>
+        <h2>${L('Santiago Region', 'Región Santiago')}<small>${L('General Assembly goals', 'Metas de Asamblea General')} · ${BRANCHES.length} ${L('branches', 'sucursales')} · ${periodLabel()}</small></h2>
+        ${periodSeg()}
+        <span class="btn">${icon('pencil', 16)} ${L('Enter monthly report', 'Ingresar reporte mensual')}</span>
       </div>
 
       <div class="kpis" style="grid-template-columns:repeat(5,1fr)">
@@ -884,7 +898,7 @@ function desktopRegion() {
       <div class="grid2" style="grid-template-columns:minmax(0,1fr) 330px">
         <div class="card" style="padding:18px 20px;min-width:0">
           <div class="row" style="justify-content:space-between;margin-bottom:10px">
-            <div><div class="h">${L('Branch progress', 'Progreso por sucursal')}</div><div class="small">${L('Each branch sets its own goals. The overseer can update any branch.', 'Cada sucursal define sus metas. El Jefe de Templo puede actualizar cualquiera.')}</div></div>
+            <div><div class="h">${L('Branch progress', 'Progreso por sucursal')}</div><div class="small">${L('The Jefe de Templo enters each branch’s numbers. Santiago’s numbers come from its teams.', 'El Jefe de Templo ingresa los números de cada sucursal. Los de Santiago vienen de sus equipos.')}</div></div>
           </div>
           <table class="mx">
             <thead><tr><th>${L('BRANCH', 'SUCURSAL')}</th>${METRICS().map(m => `<th><div class="thi">${icon(m.icon, 22)}${m.short}</div></th>`).join('')}<th>${L('OVERALL', 'TOTAL')}</th><th></th></tr></thead>
@@ -892,7 +906,7 @@ function desktopRegion() {
               ${BRANCHES.map(b => {
                 const p = branchPct(b);
                 return `<tr class="${b === editing ? 'hl' : ''}"><td><div class="who-cell">${plant(pctStage(p), 30, p < 45)}<span>${b.name}<br><span class="small">${modeLabel(b)}</span></span></div></td>
-                  ${METRICS().map(m => { const [c, g] = b.d[m.k], r = c / g; return `<td><div class="metric-cell"><div class="nums">${fmt(c)}<span>/ ${fmt(g)}</span></div>${bar(r, 'thin ' + barCls(r))}</div></td>`; }).join('')}
+                  ${METRICS().map(m => { const [c, g] = D(b, m.k), r = c / g; return `<td><div class="metric-cell"><div class="nums">${fmt(c)}<span>/ ${fmt(g)}</span></div>${bar(r, 'thin ' + barCls(r))}</div></td>`; }).join('')}
                   <td><span class="tag ${p >= 80 ? 'ok' : p >= 55 ? 'warn' : 'bad'}">${p}%</span></td>
                   <td>${icon('pencil', 16)}</td></tr>`;
               }).join('')}
@@ -903,17 +917,17 @@ function desktopRegion() {
         </div>
 
         <div class="card">
-          <div class="row" style="justify-content:space-between;margin-bottom:4px"><div class="lbl">${L('Edit goals', 'Editar metas')}</div><span class="chip on">${editing.name}</span></div>
-          <div class="formrow" style="font-family:var(--fh);font-size:var(--fs-tag);color:var(--muted)"><span></span><span></span><span style="text-align:center">${L('CURRENT', 'ACTUAL')}</span><span style="text-align:center">${L('GOAL', 'META')}</span></div>
-          <div class="row" style="justify-content:space-between;margin:8px 0 4px"><span class="small" style="color:var(--ink)">${L('Setup', 'Configuración')}</span><div class="seg"><span class="on">${L('Branch only', 'Solo sucursal')}</span><span>${L('Teams', 'Equipos')}</span></div></div>
-          ${METRICS().map(m => { const [c, g] = editing.d[m.k]; return `<div class="formrow">${icon(m.icon, 20)}<span>${m.name}</span><div class="input num">${fmt(c)}</div><div class="input num">${fmt(g)}</div></div>`; }).join('')}
+          <div class="row" style="justify-content:space-between;margin-bottom:4px"><div class="lbl">${L('Monthly report', 'Reporte mensual')}</div><span class="chip on">${editing.name}</span></div>
+          <div class="small" style="margin-bottom:4px">${L('November 2026 · entered by the Jefe de Templo', 'Noviembre 2026 · lo ingresa el Jefe de Templo')}</div>
+          <div class="formrow" style="font-family:var(--fh);font-size:var(--fs-tag);color:var(--muted)"><span></span><span></span><span style="text-align:center">${L('THIS MONTH', 'ESTE MES')}</span><span style="text-align:center">${L('GOAL', 'META')}</span></div>
+          ${METRICS().map(m => { const pp = PERIOD; PERIOD = 'month'; const [c, g] = D(editing, m.k); PERIOD = pp; return `<div class="formrow">${icon(m.icon, 20)}<span>${m.name}</span><div class="input num">${fmt(c)}</div><div class="input num">${fmt(g)}</div></div>`; }).join('')}
           <div class="row" style="margin-top:14px;gap:10px"><span class="btn ghost grow">${L('Cancel', 'Cancelar')}</span><span class="btn grow">${icon('check', 14)} ${L('Save', 'Guardar')}</span></div>
           <div class="divider" style="margin:16px 0 12px"></div>
           <div class="lbl" style="margin-bottom:8px">${L('Who can do what', 'Quién puede hacer qué')}</div>
           <div class="small" style="line-height:1.5;color:var(--ink)">
-            <div class="row" style="gap:8px">${icon('star', 14)}<span><b>${OVERSEER()}</b>: ${L('edits every branch', 'edita todas las sucursales')}</span></div>
-            <div class="row" style="gap:8px">${icon('pin', 14)}<span><b>${L('Branch leader', 'Líder de sucursal')}</b>: ${L('edits own branch, sets up teams', 'edita su sucursal y arma equipos')}</span></div>
-            <div class="row" style="gap:8px">${icon('people', 14)}<span><b>${L('Team leaders', 'Líderes de equipo')}</b>: ${L('own members; region view only', 'sus miembros; región solo ver')}</span></div>
+            <div class="row" style="gap:8px;align-items:flex-start">${icon('star', 14)}<span><b>${OVERSEER()}</b>: ${L('enters every branch’s report and goals, sets up Santiago’s teams', 'ingresa reportes y metas de cada sucursal, arma los equipos de Santiago')}</span></div>
+            <div class="row" style="gap:8px;align-items:flex-start">${icon('people', 14)}<span><b>${L('Santiago team leaders', 'Líderes de equipo de Santiago')}</b>: ${L('one login each; update their members, view results', 'un usuario cada uno; actualizan a sus miembros, ven resultados')}</span></div>
+            <div class="row" style="gap:8px;align-items:flex-start">${icon('pin', 14)}<span><b>${L('Branch leaders', 'Líderes de sucursal')}</b>: ${L('no login needed', 'no necesitan usuario')}</span></div>
           </div>
         </div>
       </div>
@@ -926,7 +940,7 @@ function desktopRegion() {
         <div class="card hero-card">
           <div class="lbl">${L('Encouragement for the region', 'Ánimo para la región')}</div>
           <div class="verse" style="margin-top:12px;font-size:calc(var(--fs-body) * 1.15)">${L('“The harvest is plentiful but the workers are few. Ask the Lord of the harvest, therefore, to send out workers into his harvest field.”', '“La mies a la verdad es mucha, mas los obreros pocos. Rogad, pues, al Señor de la mies, que envíe obreros a su mies.”')}<cite>${L('MATTHEW 9:37–38', 'MATEO 9:37–38')}</cite></div>
-          <div class="row" style="margin-top:14px;gap:10px">${icon('fruit', 26)}<span>${L(`${regionTotal('fruit')[0]} souls of fruit so far this GA year — ${regionTotal('fruit')[1] - regionTotal('fruit')[0]} to go.`, `${regionTotal('fruit')[0]} almas de fruto en este año de AG — faltan ${regionTotal('fruit')[1] - regionTotal('fruit')[0]}.`)}</span></div>
+          <div class="row" style="margin-top:14px;gap:10px">${icon('fruit', 26)}<span>${L(`${regionTotal('fruit')[0]} of ${regionTotal('fruit')[1]} souls of fruit · ${periodLabel()}.`, `${regionTotal('fruit')[0]} de ${regionTotal('fruit')[1]} almas de fruto · ${periodLabel()}.`)}</span></div>
         </div>
       </div>
     </main>
@@ -947,24 +961,24 @@ function desktopBranch() {
     ${sideNav([
       ['pin', L('Region', 'Región')], ['chart', L('Branch: Santiago', 'Sucursal: Santiago'), 1], ['people', L('Teams', 'Equipos'), 0, '5'],
       ['target', L('GA goals', 'Metas AG')], ['bible', L('Reports', 'Reportes')], ['gear', L('Settings', 'Ajustes')]
-    ], `<div class="avatar" style="background:var(--warn)">JL</div><div><b>${L('BRANCH LEADER', 'LÍDER DE SUCURSAL')}</b>José Luna<br>${L('Santiago branch', 'Sucursal Santiago')}</div>`)}
+    ], `<div class="avatar" style="background:var(--ok)">PS</div><div><b>${OVERSEER().toUpperCase()}</b>Pastor Samuel R.<br>${L('Santiago Region', 'Región Santiago')}</div>`)}
     <main class="main">
       <div class="topline">
-        <h2>${L('Santiago Branch', 'Sucursal Santiago')}<small>${TEAMS.length} ${L('teams', 'equipos')} · ${members} ${L('members', 'miembros')} · ${L('Santiago Region', 'Región Santiago')}</small></h2>
-        <div class="seg"><span>${L('Branch only', 'Solo sucursal')}</span><span class="on">${L('Teams', 'Equipos')}</span></div>
-        <span class="btn">${icon('people', 16)} ${L('Add team', 'Agregar equipo')}</span>
+        <h2>${L('Santiago Teams', 'Equipos de Santiago')}<small>${TEAMS.length} ${L('teams', 'equipos')} · ${members} ${L('members', 'miembros')} · ${periodLabel()}</small></h2>
+        ${periodSeg()}
+        <span class="btn">${icon('people', 16)} ${L('Add team leader', 'Agregar líder de equipo')}</span>
       </div>
 
       <div class="kpis" style="grid-template-columns:repeat(5,1fr)">
-        ${METRICS().map(m => { const [c, g] = b.d[m.k], r = c / g; return `<div class="card"><div class="row" style="gap:10px;margin-bottom:8px"><div class="ic sm">${icon(m.icon, 20)}</div><div><div class="lbl">${m.name}</div><div class="small">${m.desc}</div></div></div><div class="kpi"><div class="v" style="margin:0">${fmt(c)} <small>/ ${fmt(g)}</small></div></div><div style="margin-top:8px">${bar(r, 'thin ' + barCls(r))}</div></div>`; }).join('')}
+        ${METRICS().map(m => { const [c, g] = D(b, m.k), r = c / g; return `<div class="card"><div class="row" style="gap:10px;margin-bottom:8px"><div class="ic sm">${icon(m.icon, 20)}</div><div><div class="lbl">${m.name}</div><div class="small">${m.desc}</div></div></div><div class="kpi"><div class="v" style="margin:0">${fmt(c)} <small>/ ${fmt(g)}</small></div></div><div style="margin-top:8px">${bar(r, 'thin ' + barCls(r))}</div></div>`; }).join('')}
       </div>
 
       <div class="grid2" style="grid-template-columns:minmax(0,1fr) 340px">
         <div class="card" style="padding:18px 20px;min-width:0">
           <div class="h">${L('Teams in Santiago', 'Equipos en Santiago')}</div>
-          <div class="small" style="margin-bottom:8px">${L('Each team leader can open their team, update members and see results.', 'Cada líder de equipo abre su equipo, actualiza a sus miembros y ve resultados.')}</div>
+          <div class="small" style="margin-bottom:8px">${L('Each team leader has one login to update their members. Their results add up to the Santiago branch.', 'Cada líder de equipo tiene un usuario para actualizar a sus miembros. Sus resultados suman a la sucursal Santiago.')}</div>
           <table class="mx">
-            <thead><tr><th>${L('TEAM', 'EQUIPO')}</th><th>${L('LEADER', 'LÍDER')}</th><th>${L('MEMBERS', 'MIEMBROS')}</th><th>${L('7-GOAL HEALTH', 'SALUD 7 METAS')}</th><th>${L('FRUIT', 'FRUTO')}</th><th></th></tr></thead>
+            <thead><tr><th>${L('TEAM', 'EQUIPO')}</th><th>${L('LEADER', 'LÍDER')}</th><th>${L('MEMBERS', 'MIEMBROS')}</th><th>${L('7-GOAL HEALTH', 'SALUD 7 METAS')}</th><th>${L('FRUIT · YEAR', 'FRUTO · AÑO')}</th><th></th></tr></thead>
             <tbody>
               ${TEAMS.map(t => `<tr class="${t.me ? 'hl' : ''}">
                 <td><div class="who-cell">${plant(pctStage(t.health), 30, t.health < 50)}<span>${tName(t)}<br><span class="small">${t.custom ? `${L('Team', 'Equipo')} ${t.num}` : L('no custom name', 'sin nombre propio')}</span></span></div></td>
@@ -976,21 +990,20 @@ function desktopBranch() {
               <tr><td class="h" style="font-size:var(--fs-tag)">${L('BRANCH TOTAL', 'TOTAL SUCURSAL')}</td><td></td><td class="h" style="font-size:var(--fs-tag)">${members}</td><td></td><td><div class="metric-cell"><div class="nums">${fDone}<span>/ ${fGoal}</span></div></div></td><td></td></tr>
             </tbody>
           </table>
-          <div class="legend"><span>${icon('fruit', 16)}</span><span>${L(`Team fruit adds up to the branch: ${fDone} of ${b.d.fruit[1]} souls.`, `El fruto de los equipos suma a la sucursal: ${fDone} de ${b.d.fruit[1]} almas.`)}</span></div>
+          <div class="legend"><span>${icon('fruit', 16)}</span><span>${L(`Team fruit adds up to the branch: ${fDone} of ${b.d.fruit[1]} souls this GA year.`, `El fruto de los equipos suma a la sucursal: ${fDone} de ${b.d.fruit[1]} almas este año de AG.`)}</span></div>
         </div>
 
         <div style="display:flex;flex-direction:column;gap:20px">
           <div class="card">
             <div class="row" style="justify-content:space-between;margin-bottom:6px"><div class="lbl">${L('Split the fruit goal', 'Repartir la meta de fruto')}</div>${icon('fruit', 20)}</div>
-            <div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="small" style="color:var(--ink)">${L('Branch fruit goal', 'Meta de fruto de la sucursal')}</span><div class="input num">${b.d.fruit[1]}</div></div>
+            <div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="small" style="color:var(--ink)">${L('Branch fruit goal (year)', 'Meta de fruto de la sucursal (año)')}</span><div class="input num">${b.d.fruit[1]}</div></div>
             <div class="divider" style="margin-bottom:4px"></div>
             ${TEAMS.map(t => `<div class="row" style="justify-content:space-between;padding:5px 0"><span style="font-size:var(--fs-small)">${tName(t)}</span><div class="input num">${t.fruit[1]}</div></div>`).join('')}
             <div class="row" style="margin-top:10px;gap:8px"><span class="tag ok">${L(`ASSIGNED ${fGoal} OF ${b.d.fruit[1]}`, `ASIGNADO ${fGoal} DE ${b.d.fruit[1]}`)}</span></div>
           </div>
           <div class="card">
-            <div class="lbl" style="margin-bottom:10px">${L('Two ways a branch can join', 'Dos formas de participar')}</div>
-            <div class="row" style="align-items:flex-start;gap:10px;margin-bottom:10px">${icon('chart', 20)}<div class="small" style="color:var(--ink)"><b>${L('Branch only', 'Solo sucursal')}</b><br>${L('The branch enters its totals and sees results.', 'La sucursal ingresa sus totales y ve resultados.')}</div></div>
-            <div class="row" style="align-items:flex-start;gap:10px">${icon('people', 20)}<div class="small" style="color:var(--ink)"><b>${L('Teams', 'Equipos')}</b><br>${L('Member profiles, 7 monthly goals and team leaders who update their own members.', 'Perfiles de miembros, 7 metas mensuales y líderes de equipo que actualizan a sus miembros.')}</div></div>
+            <div class="lbl" style="margin-bottom:6px">${L('Team leader logins', 'Usuarios de líderes de equipo')}</div>
+            ${TEAMS.map(t => `<div class="list-row"><div class="avatar" style="width:30px;height:30px;font-size:10px">${initials(t.leader)}</div><div class="n" style="font-size:var(--fs-small)">${t.leader}<br><span class="small">${tName(t)}</span></div><span class="tag ok">${L('ACTIVE', 'ACTIVO')}</span></div>`).join('')}
           </div>
         </div>
       </div>
@@ -1012,27 +1025,26 @@ function render() {
   <header class="hero">
     <div class="icons">${icon('bible', 64)}${icon('heart', 58)}${plant(4, 80)}${icon('hands', 64)}${icon('fruit', 58)}</div>
     <h1>Faithful 7</h1>
-    <p>${L('A monthly dashboard for overseers, branches and team leaders: General Assembly goals for every branch, and 7 monthly goals for every member.', 'Un panel mensual para el Jefe de Templo, las sucursales y los líderes de equipo: metas de Asamblea General por sucursal y 7 metas mensuales por miembro.')}</p>
-    <span class="pill">${L('Design option', 'Opción de diseño')}: ${styleName} · ${L('Leaders only, members don’t log in', 'Solo líderes, los miembros no inician sesión')}</span>
+    <p>${L('A results dashboard for the Santiago region: General Assembly goals for every branch by month, quarter and year, plus 7 monthly goals for every member of Santiago’s teams.', 'Un panel de resultados para la región Santiago: metas de Asamblea General por sucursal por mes, trimestre y año, y 7 metas mensuales para cada miembro de los equipos de Santiago.')}</p>
+    <span class="pill">${L('Design option', 'Opción de diseño')}: ${styleName} · ${L('Only the Jefe de Templo and Santiago team leaders log in', 'Solo entran el Jefe de Templo y los líderes de equipo de Santiago')}</span>
   </header>
 
   <section class="flow">
-    <div class="card"><span class="step">${L('STEP 1', 'PASO 1')}</span><div class="row">${icon('star', 26)}<div class="h">${L('Jefe de Templo', 'Jefe de Templo')}</div></div><p class="small" style="color:var(--ink)">${L('Sets the General Assembly goals for the Santiago region and creates an account for each branch.', 'Define las metas de Asamblea General de la región Santiago y crea una cuenta para cada sucursal.')}</p></div>
-    <div class="card"><span class="step">${L('STEP 2', 'PASO 2')}</span><div class="row">${icon('pin', 26)}<div class="h">${L('Branch leader', 'Líder de sucursal')}</div></div><p class="small" style="color:var(--ink)">${L('Chooses how the branch joins. Branch only: update the 5 numbers once a month. With teams: create the team leaders and split the fruit goal between them.', 'Elige cómo participa la sucursal. Solo sucursal: actualiza los 5 números una vez al mes. Con equipos: crea a los líderes de equipo y reparte la meta de fruto.')}</p></div>
-    <div class="card"><span class="step">${L('STEP 3', 'PASO 3')}</span><div class="row">${icon('people', 26)}<div class="h">${L('Team leader', 'Líder de equipo')}</div></div><p class="small" style="color:var(--ink)">${L('Adds their members and updates each member’s 7 monthly goals. Members don’t log in.', 'Agrega a sus miembros y actualiza las 7 metas mensuales de cada uno. Los miembros no inician sesión.')}</p></div>
-    <div class="card"><span class="step">${L('RESULT', 'RESULTADO')}</span><div class="row">${plant(4, 30)}<div class="h">${L('Everyone sees progress', 'Todos ven el progreso')}</div></div><p class="small" style="color:var(--ink)">${L('Team results add up to the branch, and branches add up to the region. Plants grow as goals are met.', 'Los equipos suman a la sucursal y las sucursales a la región. Las plantas crecen según se cumplen las metas.')}</p></div>
+    <div class="card"><span class="step">${L('WHO LOGS IN', 'QUIÉN ENTRA')}</span><div class="row">${icon('star', 26)}<div class="h">${L('Jefe de Templo', 'Jefe de Templo')}</div></div><p class="small" style="color:var(--ink)">${L('Sets the General Assembly goals, enters every branch’s monthly report, and creates the logins for Santiago’s team leaders.', 'Define las metas de Asamblea General, ingresa el reporte mensual de cada sucursal y crea los usuarios de los líderes de equipo de Santiago.')}</p></div>
+    <div class="card"><span class="step">${L('WHO LOGS IN', 'QUIÉN ENTRA')}</span><div class="row">${icon('people', 26)}<div class="h">${L('Santiago team leaders', 'Líderes de equipo de Santiago')}</div></div><p class="small" style="color:var(--ink)">${L('One login each. They keep their members’ profiles and update each member’s 7 monthly goals. Members don’t log in.', 'Un usuario cada uno. Mantienen los perfiles de sus miembros y actualizan las 7 metas mensuales de cada uno. Los miembros no inician sesión.')}</p></div>
+    <div class="card"><span class="step">${L('WHAT EVERYONE SEES', 'LO QUE SE VE')}</span><div class="row">${plant(4, 30)}<div class="h">${L('Monthly, quarterly, yearly', 'Mensual, trimestral, anual')}</div></div><p class="small" style="color:var(--ink)">${L('A dashboard of each branch’s results against its goals, by month, quarter and year. Plants grow as goals are met.', 'Un panel con los resultados de cada sucursal contra sus metas, por mes, trimestre y año. Las plantas crecen según se cumplen las metas.')}</p></div>
   </section>
 
   <section class="block">
-    <h2 class="section-title">${L('1 · OVERSEER · SANTIAGO REGION', '1 · JEFE DE TEMPLO · REGIÓN SANTIAGO')}<span>${L('General Assembly goals for every branch. Groups in Santiago can view it, and other regions can get the same setup.', 'Metas de Asamblea General por sucursal. Los grupos de Santiago pueden verlo, y otras regiones pueden tener lo mismo.')}</span></h2>
+    <h2 class="section-title">${L('1 · OVERSEER · SANTIAGO REGION', '1 · JEFE DE TEMPLO · REGIÓN SANTIAGO')}<span>${L('The Jefe de Templo enters every branch’s numbers. Switch between monthly, quarterly and yearly results.', 'El Jefe de Templo ingresa los números de cada sucursal. Cambia entre resultados mensuales, trimestrales y anuales.')}</span></h2>
     <div class="browser" id="desktopRegion">${desktopRegion()}</div>
     <div class="phones" style="margin-top:50px">
-      <div class="phone-wrap"><div class="phone" id="phoneRegion">${phoneRegion()}</div><div class="cap">${L('Phone · region (view only)', 'Teléfono · región (solo ver)')}</div></div>
+      <div class="phone-wrap"><div class="phone" id="phoneRegion">${phoneRegion()}</div><div class="cap">${L('Phone · region results (team leaders view only)', 'Teléfono · resultados de la región (líderes solo ven)')}</div></div>
     </div>
   </section>
 
   <section class="block">
-    <h2 class="section-title">${L('2 · BRANCH · TEAMS & FRUIT', '2 · SUCURSAL · EQUIPOS Y FRUTO')}<span>${L('A branch can join with just its totals, or set up teams. Team fruit goals add up to the branch goal.', 'Una sucursal puede participar solo con sus totales, o armar equipos. Las metas de fruto de los equipos suman a la de la sucursal.')}</span></h2>
+    <h2 class="section-title">${L('2 · SANTIAGO TEAMS', '2 · EQUIPOS DE SANTIAGO')}<span>${L('Santiago reports through its teams. The Jefe de Templo sets up the team leaders and splits the fruit goal between them.', 'Santiago reporta a través de sus equipos. El Jefe de Templo crea a los líderes de equipo y reparte la meta de fruto.')}</span></h2>
     <div class="browser" id="desktopBranch">${desktopBranch()}</div>
   </section>
 
@@ -1060,6 +1072,7 @@ document.getElementById('root').addEventListener('click', e => {
   if (act === 'sel') { SEL = { m: mi, k }; }
   else if (act === 'close') { SEL = null; }
   else if (act === 'pick') { PSEL = mi; }
+  else if (act === 'period') { PERIOD = el.dataset.p; }
   else if (act === 'toggle') { m.v[k] = m.v[k] ? 0 : 1; LAST = { m: mi, k }; }
   else if (act === 'inc') { m.v[k] = Math.min(g.target, m.v[k] + 1); LAST = { m: mi, k }; }
   else if (act === 'dec') { m.v[k] = Math.max(0, m.v[k] - 1); LAST = { m: mi, k }; }

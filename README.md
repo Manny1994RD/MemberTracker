@@ -11,32 +11,25 @@ Open `mockup/index.html` in a browser. It's clickable: click boxes in the team t
 ## Structure
 **Region** (Santiago) → **Branches** (Santiago, La Vega, Moca, Puerto Plata, Jarabacoa) → **Teams** (optional) → **Members**
 
-## Accounts
-1. The **Jefe de Templo** (region) creates an account for each branch.
-2. Each **branch leader** creates the team leader accounts (only branches that use teams).
-3. Each **team leader** adds their members. Members don't log in.
+## Who logs in
+Only two kinds of people have a login:
+- **Jefe de Templo (overseer):** sets the General Assembly goals, enters every branch's monthly report, and creates the logins for Santiago's team leaders.
+- **Santiago team leaders:** one login each. They keep their members' profiles and update each member's 7 monthly goals.
 
-The setup is built for the Santiago region only, but it leaves room to add other regions later.
+Branch leaders and members don't log in. The setup is built for the Santiago region only, but it leaves room to add other regions later.
 
-## 1. Overseer (Jefe de Templo): Santiago Region
-The region tracks General Assembly goals for each branch. Every goal counts **people**:
+## 1. Santiago Region dashboard
+It shows each branch's results against its goals, with a **Monthly / Quarterly / Yearly** switch. Every goal counts **people**:
 - **Simple Preaching:** people preached to
 - **Meaningful Preaching:** people who came to study
 - **Attendance:** people attending
 - **Tithe:** people tithing (not an amount of money)
 - **Fruit:** souls baptized
 
-Who can do what:
-- **Overseer (Jefe de Templo):** edits any branch.
-- **Branch leader:** edits their own branch and sets up its teams.
-- **Team leaders:** edit their own members. They can view the region but not edit it.
+The Jefe de Templo enters the monthly numbers for La Vega, Moca, Puerto Plata and Jarabacoa. Santiago's numbers come from its teams.
 
-## 2. Branch
-A branch can join in one of two ways:
-- **Branch only:** it updates its 5 numbers once a month and sees results. (For now, every branch except Santiago.)
-- **Teams:** it sets up member profiles, and each team leader updates their own members. (For now, Santiago only.)
-
-The branch splits its **fruit goal** across its teams, and the teams' fruit adds up to the branch total.
+## 2. Santiago Teams
+The Jefe de Templo adds team leaders and splits Santiago's yearly fruit goal between the teams. The teams' fruit adds up to the branch total.
 
 ## 3. Team leader
 The team leader fills in each member's month and sees the whole team.
