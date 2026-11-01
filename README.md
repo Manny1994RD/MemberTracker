@@ -1,4 +1,12 @@
-# Faithful 7: Member Tracker (design mockup)
+# Faithful 7: Member Tracker
+
+## Live demo (`demo/`)
+A working demo in the Clean design, published as a claude.ai page with a shared live database. What one person changes shows up on everyone's screen within a second or two.
+- `demo/app.src.html` is the source; run `python3 demo/build.py` to build `demo/app.html` (the published page) and `demo/index.html` (a file you can open in a browser, which runs offline with example data).
+- Roles: switch with **Viewing as** at the top. The Jefe de Templo sees the region, the monthly report and Santiago's teams. A team leader sees only their own team, plus the region as view only.
+- **Reset demo data** (bottom of the page, owner only) puts the example data back.
+
+# Design mockup (`mockup/`)
 
 A design sample for a church tracker used **only by leaders**. Members don't log in.
 

@@ -1,0 +1,912 @@
+<title>Faithful 7 Live Demo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: sticky top bar with role + language, then one working view at a time (region, monthly report, Santiago teams, a team). */
+:root {
+  --bg: #f4f6f9; --surface: #ffffff; --surface-2: #f8fafc; --inset: #f1f5f9;
+  --ink: #0f172a; --muted: #64748b; --line: #e2e8f0;
+  --accent: #1d4ed8; --accent-ink: #ffffff; --accent-soft: #eff4ff;
+  --ok: #16a34a; --ok-soft: #ecfdf3; --ok-line: #bbf7d0;
+  --warn: #b45309; --warn-bar: #f59e0b; --warn-soft: #fffbeb; --warn-line: #fde68a;
+  --bad: #e11d48; --bad-soft: #fff1f2; --bad-line: #fecdd3;
+  --hero: #0f172a; --hero-ink: #f8fafc; --hero-muted: #94a3b8; --gold: #fbbf24;
+  --shadow: 0 1px 2px rgba(15, 23, 42, .06);
+  --overlay: rgba(15, 23, 42, .35);
+  --f: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0b1220; --surface: #111a2e; --surface-2: #0f1729; --inset: #17223a;
+  --ink: #e5ecf6; --muted: #93a3b8; --line: #22304a;
+  --accent: #6d9bff; --accent-ink: #0b1220; --accent-soft: #16254a;
+  --ok: #34d399; --ok-soft: #0f2a22; --ok-line: #1d4d3c;
+  --warn: #fbbf24; --warn-bar: #f59e0b; --warn-soft: #2a2210; --warn-line: #5a4613;
+  --bad: #fb7185; --bad-soft: #2e1420; --bad-line: #5b2333;
+  --hero: #1b2a4a; --hero-ink: #f8fafc; --hero-muted: #a7b4cc; --gold: #fbbf24;
+  --shadow: none; --overlay: rgba(0, 0, 0, .55); color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #0b1220; --surface: #111a2e; --surface-2: #0f1729; --inset: #17223a;
+  --ink: #e5ecf6; --muted: #93a3b8; --line: #22304a;
+  --accent: #6d9bff; --accent-ink: #0b1220; --accent-soft: #16254a;
+  --ok: #34d399; --ok-soft: #0f2a22; --ok-line: #1d4d3c;
+  --warn: #fbbf24; --warn-bar: #f59e0b; --warn-soft: #2a2210; --warn-line: #5a4613;
+  --bad: #fb7185; --bad-soft: #2e1420; --bad-line: #5b2333;
+  --hero: #1b2a4a; --hero-ink: #f8fafc; --hero-muted: #a7b4cc; --gold: #fbbf24;
+  --shadow: none; --overlay: rgba(0, 0, 0, .55); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f); font-size: 14px; line-height: 1.45; }
+svg { display: block; flex-shrink: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* Top bar */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--surface); }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--surface); border-bottom: 1px solid var(--line); }
+.top .wrap { display: flex; align-items: center; gap: 14px; padding-block: 10px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
+.brand small { display: block; font-weight: 500; font-size: 12px; color: var(--muted); }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tabs a { text-decoration: none; color: var(--muted); font-weight: 500; padding: 7px 12px; border-radius: 8px; display: inline-flex; gap: 8px; align-items: center; }
+.tabs a.on { background: var(--accent-soft); color: var(--accent); }
+.tabs a:hover { color: var(--ink); }
+.top .right { margin-left: auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.live { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); font-weight: 500; }
+.live i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+.live.off i { background: var(--warn-bar); box-shadow: 0 0 0 3px var(--warn-soft); }
+select.sel, .input { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 10px; }
+.input { width: 100%; }
+.input:focus, select.sel:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+.input.num { text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* Page */
+main.wrap { padding-block: 22px 60px; display: flex; flex-direction: column; gap: 18px; }
+.head { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+.head h1 { margin: 0; font-size: 24px; line-height: 1.2; text-wrap: balance; }
+.head p { margin: 4px 0 0; color: var(--muted); }
+.head .grow { flex: 1; min-width: 220px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 16px; min-width: 0; }
+.card.hero { background: var(--hero); color: var(--hero-ink); border-color: transparent; }
+.card.hero .lbl { color: var(--hero-muted); }
+.lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.h { font-weight: 600; font-size: 15px; }
+.muted { color: var(--muted); }
+.small { font-size: 12.5px; color: var(--muted); }
+.row { display: flex; align-items: center; gap: 10px; }
+.grow { flex: 1; min-width: 0; }
+.num { font-variant-numeric: tabular-nums; }
+.grid { display: grid; gap: 16px; }
+.kpis { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+@media (max-width: 640px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .kpi .v { font-size: 22px; } }
+.split { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
+@media (max-width: 960px) { .split { grid-template-columns: minmax(0, 1fr); } }
+.kpi .v { font-size: 28px; font-weight: 700; margin: 8px 0 10px; font-variant-numeric: tabular-nums; }
+.kpi .v small { font-size: 15px; color: var(--muted); font-weight: 600; }
+.ic { width: 36px; height: 36px; border-radius: 9px; background: var(--inset); display: grid; place-items: center; flex-shrink: 0; }
+
+.bar { height: 8px; border-radius: 99px; background: var(--inset); overflow: hidden; }
+.bar b { display: block; height: 100%; border-radius: 99px; background: var(--ok); }
+.bar.warn b { background: var(--warn-bar); }
+.bar.bad b { background: var(--bad); }
+.hero .bar { background: rgba(255, 255, 255, .15); }
+
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 7px 12px; font-weight: 500; color: var(--muted); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on { background: var(--accent); color: var(--accent-ink); }
+.btn { border: 1px solid transparent; background: var(--accent); color: var(--accent-ink); font-weight: 600; padding: 8px 14px; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px; justify-content: center; text-decoration: none; white-space: nowrap; }
+.btn.ghost { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.btn.danger { background: var(--bad); color: #fff; }
+.btn.sm { padding: 5px 10px; font-size: 13px; }
+.btn:disabled { opacity: .5; cursor: default; }
+.tag { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 99px; border: 1px solid; white-space: nowrap; display: inline-block; }
+.tag.ok { background: var(--ok-soft); color: var(--ok); border-color: var(--ok-line); }
+.tag.warn { background: var(--warn-soft); color: var(--warn); border-color: var(--warn-line); }
+.tag.bad { background: var(--bad-soft); color: var(--bad); border-color: var(--bad-line); }
+.tag.info { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+
+.tablewrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); text-align: left; padding: 8px 8px 10px; white-space: nowrap; vertical-align: bottom; }
+th.c, td.c { text-align: center; }
+td { border-top: 1px solid var(--line); padding: 9px 8px; vertical-align: middle; }
+tr.click { cursor: pointer; }
+tr.click:hover td { background: var(--surface-2); }
+.thi { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.who { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.who b { font-weight: 600; }
+.mcell { min-width: 104px; }
+.mcell .nums { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 5px; font-size: 13px; }
+.mcell .nums span { color: var(--muted); font-weight: 500; }
+.cell { width: 48px; height: 32px; margin: 0 auto; border-radius: 7px; border: 1px solid var(--line); background: var(--surface-2); display: grid; place-items: center; font-size: 12px; font-weight: 600; padding: 0; }
+.cell.d { background: var(--ok-soft); color: var(--ok); border-color: var(--ok-line); }
+.cell.p { background: var(--warn-soft); color: var(--warn); border-color: var(--warn-line); }
+.cell.m { background: var(--bad-soft); color: var(--bad); border: 1px dashed var(--bad-line); }
+.cell:hover { outline: 2px solid var(--accent); outline-offset: 1px; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 12px; display: grid; place-items: center; flex-shrink: 0; }
+.plantbox { background: var(--ok-soft); border-radius: 10px; padding: 8px 10px 4px; display: flex; justify-content: center; align-items: flex-end; }
+.hero .plantbox { background: rgba(255, 255, 255, .08); }
+.garden { display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; flex-wrap: wrap; padding-top: 8px; }
+.garden .g { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; flex: 1; min-width: 70px; }
+.verse { font-style: italic; font-size: 15px; line-height: 1.5; margin: 10px 0 0; }
+.verse cite { display: block; font-style: normal; font-size: 11px; font-weight: 600; letter-spacing: .06em; color: var(--gold); margin-top: 6px; }
+.list-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
+.list-row:first-of-type { border-top: 0; }
+.stepper { display: inline-flex; align-items: center; gap: 10px; }
+.stepper button { width: 36px; height: 36px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); font-size: 18px; font-weight: 600; }
+.stepper button.plus { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.stepper .val { min-width: 44px; text-align: center; font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; }
+.switch { width: 46px; height: 26px; border-radius: 99px; background: var(--line); border: 0; position: relative; padding: 0; flex-shrink: 0; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); transition: left .15s; }
+.switch.on { background: var(--ok); }
+.switch.on::after { left: 23px; }
+.formrow { display: grid; grid-template-columns: 28px minmax(0, 1fr) 84px 84px; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.formrow.headrow { border-top: 0; padding-bottom: 0; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 6px 12px; font-weight: 500; }
+.chip.on { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.banner { background: var(--accent-soft); color: var(--ink); border-radius: 10px; padding: 10px 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); margin-top: 12px; align-items: center; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; vertical-align: -1px; margin-right: 6px; }
+
+/* Sheet: editor for one goal, and member profile */
+.overlay { position: fixed; inset: 0; background: var(--overlay); z-index: 40; display: flex; align-items: center; justify-content: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.sheet { background: var(--surface); border-radius: 14px; width: min(440px, 100%); max-height: 100%; overflow: auto; padding: 18px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 30px 60px -20px rgba(0, 0, 0, .4); }
+.sheet .x { margin-left: auto; border: 0; background: transparent; font-size: 22px; line-height: 1; color: var(--muted); padding: 2px 6px; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--hero); color: var(--hero-ink); padding: 10px 16px; border-radius: 10px; font-weight: 500; z-index: 50; box-shadow: 0 10px 30px -10px rgba(0, 0, 0, .5); }
+.empty { text-align: center; padding: 50px 16px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+footer.wrap { padding-block: 0 40px; color: var(--muted); font-size: 12.5px; }
+@media (max-width: 640px) {
+  .head h1 { font-size: 20px; }
+  .top .right { margin-left: 0; width: 100%; }
+  .formrow { grid-template-columns: 24px minmax(0, 1fr) 70px 70px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div id="app"></div>
+
+<script>
+/* =====================================================================
+   SETTINGS & LANGUAGE
+   ===================================================================== */
+const THEME = 'clean';
+let LANG = 'es';
+try { LANG = localStorage.getItem('f7-lang') || 'es'; } catch (e) {}
+const L = (en, es) => LANG === 'es' ? es : en;
+const CURRENT_MONTH = '2026-11';
+const MONTH_NAMES = {
+  en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+  es: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+};
+
+/* =====================================================================
+   ICONS: pixel set + smooth set (soft 3D gradients or clean flat)
+   ===================================================================== */
+const PAL = {
+  k:'#1d1b2f', r:'#9a2f3e', D:'#5e1b27', R:'#d0475a', p:'#f19aa4', g:'#e8b04b', G:'#a8761f',
+  w:'#f4e9cf', W:'#ffffff', s:'#e8b088', S:'#c0835c', u:'#3d6fb6', U:'#86bdf0', n:'#2f6b3a',
+  N:'#4f9a5a', l:'#9bd46c', B:'#c0673a', b:'#9a4f2c', o:'#4a3020', c:'#8a8aa0', y:'#d6c46a', Y:'#8f8740'
+};
+function pix(rows, scale) {
+  const h = rows.length, w = Math.max(...rows.map(r => r.length));
+  let out = '';
+  rows.forEach((row, y) => {
+    let x = 0;
+    while (x < row.length) {
+      const ch = row[x];
+      if (!PAL[ch]) { x++; continue; }
+      let x2 = x; while (x2 < row.length && row[x2] === ch) x2++;
+      out += `<rect x="${x}" y="${y}" width="${x2 - x}" height="1" fill="${PAL[ch]}"/>`;
+      x = x2;
+    }
+  });
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w * scale}" height="${h * scale}" shape-rendering="crispEdges" aria-hidden="true">${out}</svg>`;
+}
+const PIX = {
+  heart: [".kk...kk.","kRpk.kRRk","kpRRkRRRk","kRRRRRRRk",".kRRRRRk.","..kRRRk..","...kRk...","....k...."],
+  bible: [".kkkkkkkkk.","kDrrrrrrrrk","kDrrrrgrrrk","kDrrrrgrrrk","kDrrgggggrk","kDrrrrgrrrk","kDrrrrgrrrk","kDrrrrgrrrk","kDrrrrrrrrk","kDrrrrrrrrk","kDwwwwwwwwk",".kkkkkkkkk."],
+  hands: ["....kkk....","...kskSk...","...kskSk...","..ksskSSk..","..ksskSSk..",".kssskSSSk.",".kssskSSSk.",".kssskSSSk.",".kssskSSSk.",".kuuukUUUk.",".kuuukUUUk.",".kkkkkkkkk."],
+  calendar: [".k.....k.","kkkkkkkkk","kRRRRRRRk","kkkkkkkkk","kWWWWWWWk","kWkWWWkWk","kWWWWWWWk","kWWWkWWWk","kkkkkkkkk"],
+  coin: ["..kkkkk..",".kgggggk.","kgggGgggk","kggGGGggk","kgggGgggk","kgggGgggk","kgggggggk",".kgggggk.","..kkkkk.."],
+  laptop: [".kkkkkkk.",".kUUUUUk.",".kUWUUUk.",".kUUUUUk.",".kkkkkkk.","kccccccck","kkkkkkkkk"],
+  sign: [".......kk","......kgk",".....kgk.","....kgk..","...kgk...","..kGk....",".kkk.....",".........","kk.kk.kk."],
+  globe: ["..kkkkk..",".kuNNuuk.","kuNNNuuuk","kuuNuuNNk","kuuuuNNNk","kNuuuuNuk","kNNuuuuuk",".kuNuuuk.","..kkkkk.."],
+  speech: ["kkkkkkkkk","kWWWgWWWk","kWWgggWWk","kWWWgWWWk","kWWWgWWWk","kkkWkkkkk","..kWk....","..kk....."],
+  speechHeart: ["kkkkkkkkk","kWWRWRWWk","kWRRRRRWk","kWWRRRWWk","kWWWRWWWk","kkkWkkkkk","..kWk....","..kk....."],
+  lamp: ["....R....","...RgR...","....g....","...kkk...",".kkBBBkkk","kBBBBBBBk","kbBBBBBbk",".kbbbbbk.","..kkkkk.."],
+  drop: ["....k....","...kUk...","...kUk...","..kUUuk..",".kWUUUuk.",".kWUUUuk.",".kUUUuuk.","..kuuuk..","...kkk..."],
+  fruit: [".....k...","....kNN..",".kkkkkkk.","kRpRRRRRk","kpRRRRRRk","kRRRRRRrk","kRRRRRrrk",".kRRRrrk.","..kkkkk.."],
+  check: ["......W",".....WW","W...WW.","WW.WW..",".WWW...","..W...."],
+  star: ["....k....","...kgk...","kkkkgkkkk","kggggggGk",".kgggGGk.","..kgkGk..",".kgk.kGk.","kkk...kkk"],
+  people: [".kk...kk.","kssk.kSSk","kssk.kSSk",".kk...kk.","kuuk.kRRk","kuuk.kRRk","kuuk.kRRk","kkkk.kkkk"],
+  chart: ["k........","k......g.","k..u..gg.","k..uu.gg.","k.uuu.gg.","k.uuuNgg.","kkkkkkkkk"],
+  gear: ["..kk.kk..",".kcckcck.","kccccccck","kcckkkcck",".kck.kck.","kcckkkcck","kccccccck",".kcckcck.","..kk.kk.."],
+  pin: ["..kkkkk..",".kRRRRRk.","kRRkkkRRk","kRRkWkRRk","kRRkkkRRk",".kRRRRRk.","..kRRRk..","...kRk...","....k...."],
+  target: ["..kkkkk..",".kRRRRRk.","kRWWWWWRk","kRWRRRWRk","kRWRgRWRk","kRWRRRWRk","kRWWWWWRk",".kRRRRRk.","..kkkkk.."],
+};
+function pal() {
+  return THEME === 'soft'
+    ? { red:'url(#sRed)', wine:'url(#sWine)', gold:'url(#sGold)', blue:'url(#sBlue)', sky:'#d8eeff', green:'url(#sGreen)', brown:'url(#sBrown)', cream:'#fffaf0', ink:'#3a3460', gray:'url(#sGray)', purple:'url(#sPurple)', skin:'url(#sSkin)', white:'#ffffff' }
+    : { red:'#e5484d', wine:'#be123c', gold:'#f59e0b', blue:'#3b82f6', sky:'#dbeafe', green:'#22a55a', brown:'#c2703a', cream:'#ffffff', ink:'#334155', gray:'#94a3b8', purple:'#6d5bd0', skin:'#f2b48a', white:'#ffffff' };
+}
+const HL = () => THEME === 'soft'; // highlight shine on soft icons
+const shine = (cx, cy, rx, ry) => HL() ? `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#fff" opacity=".55"/>` : '';
+const SM = {
+  heart: P => `<path d="M12 21.2S3 15.6 3 9.4A4.8 4.8 0 0 1 12 7a4.8 4.8 0 0 1 9 2.4c0 6.2-9 11.8-9 11.8z" fill="${P.red}"/>${shine(8, 9.5, 2.2, 1.3)}`,
+  bible: P => `<rect x="4" y="2.5" width="16" height="19" rx="2.6" fill="${P.wine}"/><rect x="5.5" y="17.6" width="14.5" height="3.9" rx="1.2" fill="${P.cream}"/><rect x="10.9" y="5.6" width="2.2" height="9.4" rx="1" fill="${P.gold}"/><rect x="8" y="8.2" width="8" height="2.2" rx="1" fill="${P.gold}"/>${shine(7.5, 5.5, 1.6, 1)}`,
+  hands: P => `<path d="M11.4 3.2c-.9 0-1.6.7-1.7 1.6L8.6 13l-2.7 4.4V21h5.5V4.4c0-.4.2-1.2 0-1.2z" fill="${P.skin}"/><path d="M12.6 3.2c.9 0 1.6.7 1.7 1.6l1.1 8.2 2.7 4.4V21h-5.5V4.4c0-.4-.2-1.2 0-1.2z" fill="${P.skin}" opacity=".85"/><rect x="5.6" y="18.6" width="12.8" height="3" rx="1.2" fill="${P.blue}"/>`,
+  calendar: P => `<rect x="3" y="4.5" width="18" height="16.5" rx="3.5" fill="${P.cream}" stroke="${THEME === 'clean' ? '#cbd5e1' : 'none'}"/><path d="M3 8a3.5 3.5 0 0 1 3.5-3.5h11A3.5 3.5 0 0 1 21 8v2H3z" fill="${P.red}"/><rect x="7" y="2.5" width="2" height="4" rx="1" fill="${P.ink}"/><rect x="15" y="2.5" width="2" height="4" rx="1" fill="${P.ink}"/><circle cx="8" cy="14" r="1.3" fill="${P.gray}"/><circle cx="12" cy="14" r="1.3" fill="${P.gray}"/><circle cx="16" cy="14" r="1.3" fill="${P.green}"/><circle cx="8" cy="17.6" r="1.3" fill="${P.gray}"/><circle cx="12" cy="17.6" r="1.3" fill="${P.gray}"/>`,
+  coin: P => `<circle cx="12" cy="12" r="9.5" fill="${P.gold}"/><circle cx="12" cy="12" r="6.8" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.2"/><rect x="11" y="7.5" width="2" height="9" rx="1" fill="#fff"/><rect x="8.6" y="10" width="6.8" height="2" rx="1" fill="#fff"/>${shine(8.2, 7.5, 2, 1.1)}`,
+  laptop: P => `<rect x="4" y="4.5" width="16" height="11.5" rx="2" fill="${P.ink}"/><rect x="5.5" y="6" width="13" height="8.5" rx="1" fill="${P.blue}"/><path d="M2 17h20l-1.2 2.6a1.5 1.5 0 0 1-1.4.9H4.6a1.5 1.5 0 0 1-1.4-.9z" fill="${P.gray}"/>${shine(8.5, 8, 2, 1)}`,
+  sign: P => `<path d="M3 19.5c1.6-2.8 2.8-.2 4.3-1.4s1.4-2.4 3-1 2.2 1.2 3.4.2" stroke="${P.ink}" stroke-width="1.7" fill="none" stroke-linecap="round"/><g transform="rotate(42 15 9)"><rect x="12.8" y="1.5" width="4.4" height="13" rx="2.2" fill="${P.purple}"/><path d="M12.8 14.5h4.4L15 18.5z" fill="${P.gold}"/></g>`,
+  globe: P => `<circle cx="12" cy="12" r="9.5" fill="${P.blue}"/><path d="M7 6.5c2 .3 3 1.8 2.4 3.3-.6 1.4-2.4 1.2-2.8 2.9-.3 1.3-1.6 1.6-2.6.8A9.5 9.5 0 0 1 7 6.5zM14 4.6c1.8.4 3.3 1.4 4.4 2.8-1.2 1-2.8.6-3.6 1.8-.7 1-.1 2.6-1.4 3.1-1.2.4-2-1-1.6-2.4.5-1.6 2.4-2.3 2.2-5.3zM15.2 15c1.5-.6 3.4-.4 4.3.2a9.5 9.5 0 0 1-5.3 5.6c-.5-1.2-.4-2.6.2-3.6.3-.6.2-1.8.8-2.2z" fill="${P.green}"/>${shine(8.5, 6.8, 2.2, 1.2)}`,
+  speech: P => `<path d="M5 3.5h14a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-8.5L6 21.5v-4H5a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3z" fill="${P.blue}"/><rect x="11" y="6" width="2" height="9" rx="1" fill="#fff"/><rect x="8.6" y="8.4" width="6.8" height="2" rx="1" fill="#fff"/>${shine(6.5, 5.6, 2, .9)}`,
+  speechHeart: P => `<path d="M5 3.5h14a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-8.5L6 21.5v-4H5a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3z" fill="${P.purple}"/><path d="M12 15.2s-4.2-2.5-4.2-5.4a2.2 2.2 0 0 1 4.2-1 2.2 2.2 0 0 1 4.2 1c0 2.9-4.2 5.4-4.2 5.4z" fill="#fff"/>${shine(6.5, 5.6, 2, .9)}`,
+  lamp: P => `<path d="M12 2.5c2 2.6 3 4.1 3 5.9a3 3 0 0 1-6 0c0-1.8 1-3.3 3-5.9z" fill="${P.gold}"/><rect x="9.5" y="11.5" width="5" height="2.6" rx="1" fill="${P.ink}"/><path d="M3.5 14h17a1 1 0 0 1 .9 1.4l-1.5 3.4a3 3 0 0 1-2.8 1.7H7a3 3 0 0 1-2.8-1.7l-1.6-3.4A1 1 0 0 1 3.5 14z" fill="${P.brown}"/>${shine(8, 15.5, 2.2, .8)}`,
+  drop: P => `<path d="M12 2.5c3 4.4 6.6 8 6.6 12a6.6 6.6 0 0 1-13.2 0c0-4 3.6-7.6 6.6-12z" fill="${P.blue}"/>${HL() ? '<ellipse cx="9.4" cy="13.5" rx="1.6" ry="2.6" fill="#fff" opacity=".6"/>' : '<path d="M9 14.5a3 3 0 0 0 3 3" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round" opacity=".8"/>'}`,
+  fruit: P => `<path d="M12 7.5c-1.4-1-3-1.4-4.6-1C4.6 7.2 3.5 10 3.9 13c.5 4 3.2 8 5.8 8 .9 0 1.4-.4 2.3-.4s1.4.4 2.3.4c2.6 0 5.3-4 5.8-8 .4-3-.7-5.8-3.5-6.5-1.6-.4-3.2 0-4.6 1z" fill="${P.red}"/><path d="M12 7.5c0-2 .6-3.6 2-4.6" stroke="${P.brown}" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M13 4.2c1.5-1.6 3.8-1.6 5-.6-1.2 1.4-3.4 1.8-5 .6z" fill="${P.green}"/>${shine(7.5, 10, 1.6, 2.4)}`,
+  check: P => `<path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+  star: P => `<path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z" fill="${P.gold}" stroke-linejoin="round"/>${shine(10, 8.5, 1.6, 1)}`,
+  people: P => `<circle cx="8.5" cy="8" r="3.4" fill="${P.skin}"/><path d="M2.5 20c0-3.9 2.7-6.6 6-6.6s6 2.7 6 6.6z" fill="${P.blue}"/><circle cx="16.5" cy="9" r="2.9" fill="${P.skin}"/><path d="M12.2 20c.1-3.3 2-5.6 4.4-5.6 2.6 0 4.9 2.3 4.9 5.6z" fill="${P.red}"/>`,
+  chart: P => `<rect x="3" y="13" width="4" height="8" rx="1.4" fill="${P.blue}"/><rect x="10" y="8" width="4" height="13" rx="1.4" fill="${P.green}"/><rect x="17" y="3" width="4" height="18" rx="1.4" fill="${P.gold}"/>`,
+  gear: P => `<path d="M10.3 2.5h3.4l.5 2.6 2 .9 2.2-1.5 2.4 2.4-1.5 2.2.9 2 2.6.5v3.4l-2.6.5-.9 2 1.5 2.2-2.4 2.4-2.2-1.5-2 .9-.5 2.6h-3.4l-.5-2.6-2-.9-2.2 1.5-2.4-2.4 1.5-2.2-.9-2-2.6-.5v-3.4l2.6-.5.9-2-1.5-2.2 2.4-2.4 2.2 1.5 2-.9z" fill="${P.gray}"/><circle cx="12" cy="12" r="3.4" fill="${P.cream}"/>`,
+  pin: P => `<path d="M12 22s-7-6.6-7-12a7 7 0 0 1 14 0c0 5.4-7 12-7 12z" fill="${P.red}"/><circle cx="12" cy="10" r="2.8" fill="#fff"/>${shine(9, 6.4, 1.6, 1)}`,
+  target: P => `<circle cx="12" cy="12" r="9.5" fill="${P.red}"/><circle cx="12" cy="12" r="6.6" fill="#fff"/><circle cx="12" cy="12" r="3.8" fill="${P.red}"/><circle cx="12" cy="12" r="1.4" fill="#fff"/>`,
+  pencil: P => `<g transform="rotate(45 12 12)"><rect x="9.5" y="2" width="5" height="15" rx="1.5" fill="${P.gold}"/><path d="M9.5 17h5L12 22z" fill="${P.ink}"/></g>`,
+};
+PIX.pencil = PIX.sign;
+function icon(name, px) {
+  if (THEME === 'pixel') {
+    const g = PIX[name] || PIX.heart;
+    const w = Math.max(...g.map(r => r.length));
+    return pix(g, Math.max(1, Math.round(px / w)));
+  }
+  return `<svg viewBox="0 0 24 24" width="${px}" height="${px}" aria-hidden="true">${(SM[name] || SM.heart)(pal())}</svg>`;
+}
+
+/* =====================================================================
+   PLANTS: health visual (seed → sprout → young → leafy → full bloom)
+   ===================================================================== */
+function pixelPlantRows(stage, wilt) {
+  const W = 16, H = 19;
+  const g = [...Array(H)].map(() => Array(W).fill('.'));
+  const set = (x, y, c) => { if (y >= 0 && y < H && x >= 0 && x < W) g[y][x] = c; };
+  ["..kooooooooook..","..kkkkkkkkkkkk..","..kBBBBBBBBBBk..","..kkkkkkkkkkkk..","...kbbbbbbbbk...","...kbbbbbbbbk...","....kkkkkkkk...."]
+    .forEach((r, i) => [...r].forEach((c, x) => g[12 + i][x] = c));
+  const S = wilt ? 'Y' : 'n', Lf = wilt ? 'Y' : 'N', HI = wilt ? 'y' : 'l';
+  if (stage === 0) { set(6, 11, 'o'); set(7, 11, 'b'); set(8, 11, 'b'); set(9, 11, 'o'); set(7, 10, 'b'); return g.map(r => r.join('')); }
+  const len = [0, 2, 5, 8, 9][stage], top = 12 - len, d = wilt ? 1 : 0;
+  for (let y = top; y < 12; y++) { set(7, y, S); set(8, y, Lf); }
+  for (let i = 0, y = 10; y > top; y -= 3, i++) {
+    const left = stage >= 3 || i % 2 === 0, right = stage >= 3 || i % 2 === 1;
+    if (left) { set(6, y, Lf); set(5, y, Lf); set(5, y - 1 + d, HI); set(4, y - 1 + d, HI); if (stage >= 3) set(3, y - 1 + d, stage === 4 && i === 1 ? 'p' : HI); }
+    if (right) { set(9, y, Lf); set(10, y, Lf); set(10, y - 1 + d, HI); set(11, y - 1 + d, HI); if (stage >= 3) set(12, y - 1 + d, stage === 4 && i === 1 ? 'p' : HI); }
+  }
+  set(6, top + d, HI); set(5, top - 1 + d * 2, HI); set(9, top + d, HI); set(10, top - 1 + d * 2, HI);
+  if (stage === 4) { set(7, 0, 'p'); set(8, 0, 'p'); set(6, 1, 'p'); set(7, 1, 'g'); set(8, 1, 'g'); set(9, 1, 'p'); set(7, 2, 'p'); set(8, 2, 'p'); }
+  return g.map(r => r.join(''));
+}
+function smoothPlant(stage, w, wilt) {
+  const soft = THEME === 'soft';
+  const leafA = wilt ? (soft ? 'url(#sOlive)' : '#c2b04a') : (soft ? 'url(#sLeaf)' : '#34c26f');
+  const leafB = wilt ? (soft ? 'url(#sOlive)' : '#a99a3c') : (soft ? 'url(#sGreen)' : '#22a55a');
+  const stemC = wilt ? '#9a8f3a' : (soft ? '#3a9a52' : '#1f9150');
+  const pot = soft ? 'url(#sBrown)' : '#d97745', rim = soft ? 'url(#sRim)' : '#e8915e';
+  let s = soft ? `<ellipse cx="32" cy="74" rx="19" ry="2.4" fill="#2e2a4a" opacity=".14"/>` : '';
+  const len = [0, 13, 24, 33, 40][stage], top = 50 - len;
+  const leaf = (cx, cy, sd, rx, ry, fill) => `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" transform="rotate(${sd * (wilt ? 38 : -32)} ${cx} ${cy})"/>`;
+  if (stage === 0) {
+    s += `<ellipse cx="32" cy="47.5" rx="4.5" ry="3.2" fill="${soft ? 'url(#sBrown)' : '#9a5b2e'}"/><path d="M32 45c0-3 2-5 4.5-5.2" stroke="${stemC}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+  } else {
+    const bend = wilt ? 5 : 0;
+    s += `<path d="M32 51 C 32 ${50 - len * .5}, ${32 + bend} ${top + 8}, ${32 + bend} ${top + (wilt ? 3 : 0)}" stroke="${stemC}" stroke-width="3.2" fill="none" stroke-linecap="round"/>`;
+    for (let i = 0, y = 44; y > top + 5; y -= 9, i++) {
+      const sides = stage >= 3 ? [-1, 1] : [i % 2 ? 1 : -1];
+      sides.forEach(sd => { s += leaf(32 + sd * 8.5, y, sd, 8.5, 3.8, sd < 0 ? leafA : leafB); });
+    }
+    const cy = top + (wilt ? 5 : 2), cx = 32 + bend;
+    s += leaf(cx - 6, cy, -1, 6.5, 3.2, leafA) + leaf(cx + 6, cy, 1, 6.5, 3.2, leafB);
+    if (stage === 4) {
+      const flower = (fx, fy, r) => [0, 72, 144, 216, 288].map(a => `<circle cx="${fx + Math.cos(a * Math.PI / 180) * r}" cy="${fy + Math.sin(a * Math.PI / 180) * r}" r="${r * .8}" fill="${soft ? 'url(#sPink)' : '#f472b6'}"/>`).join('') + `<circle cx="${fx}" cy="${fy}" r="${r * .7}" fill="${soft ? 'url(#sGold)' : '#fbbf24'}"/>`;
+      s += flower(32, top - 3, 3.6) + flower(17, 26, 2.6) + flower(47, 26, 2.6);
+    }
+  }
+  s += `<path d="M15 55h34l-3.8 17.4a2.6 2.6 0 0 1-2.5 2H21.3a2.6 2.6 0 0 1-2.5-2z" fill="${pot}"/>`;
+  s += `<rect x="11.5" y="47.5" width="41" height="9" rx="3.5" fill="${rim}"/>`;
+  if (soft) s += `<rect x="15" y="49.5" width="12" height="2.4" rx="1.2" fill="#fff" opacity=".45"/><path d="M19.5 59h3l1.6 12h-2.4z" fill="#fff" opacity=".22"/>`;
+  return `<svg viewBox="0 0 64 76" width="${w}" height="${Math.round(w * 76 / 64)}" aria-hidden="true">${s}</svg>`;
+}
+function plant(stage, w, wilt) {
+  return THEME === 'pixel' ? pix(pixelPlantRows(stage, wilt), Math.max(1, Math.round(w / 16))) : smoothPlant(stage, w, wilt);
+}
+const pctStage = p => p >= 90 ? 4 : p >= 70 ? 3 : p >= 45 ? 2 : p >= 20 ? 1 : 0;
+const cntStage = c => c === 7 ? 4 : c >= 5 ? 3 : c >= 3 ? 2 : c >= 1 ? 1 : 0;
+const healthWord = p => p >= 90 ? L('IN FULL BLOOM', 'EN PLENA FLOR') : p >= 70 ? L('GROWING STRONG', 'CRECIENDO FUERTE') : p >= 45 ? L('GROWING', 'CRECIENDO') : L('NEEDS WATER', 'NECESITA AGUA');
+
+/* =====================================================================
+   SAMPLE DATA (example records used for "Load demo data" and offline mode)
+   ===================================================================== */
+/*@@SAMPLE_START@@*/
+function makeSample() {
+  let seed = 11;
+  const r = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  const months = Array.from({ length: 11 }, (_, i) => `2026-${String(i + 1).padStart(2, '0')}`);
+  const branches = {}, teams = {}, members = {};
+  const B = [
+    ['santiago', 'Santiago', true, { simple: 1200, mean: 300, att: 300, tithe: 95, fruit: 15 }, 1.0],
+    ['la-vega', 'La Vega', false, { simple: 900, mean: 220, att: 220, tithe: 80, fruit: 12 }, .86],
+    ['moca', 'Moca', false, { simple: 800, mean: 200, att: 200, tithe: 70, fruit: 12 }, .78],
+    ['puerto-plata', 'Puerto Plata', false, { simple: 700, mean: 180, att: 160, tithe: 60, fruit: 11 }, .64],
+    ['jarabacoa', 'Jarabacoa', false, { simple: 600, mean: 150, att: 140, tithe: 50, fruit: 10 }, .5],
+  ];
+  B.forEach(([id, name, hasTeams, goals, perf], order) => {
+    const ms = {}; let acc = 0, prev = 0;
+    months.forEach((m, i) => {
+      const part = 1;
+      acc += goals.fruit * perf / 12 * (.6 + r() * .8) * part;
+      const fruit = Math.floor(acc) - prev; prev = Math.floor(acc);
+      const v = {
+        simple: Math.round(goals.simple / 12 * perf * (.85 + r() * .3) * part),
+        mean: Math.round(goals.mean / 12 * perf * (.85 + r() * .3) * part),
+        att: Math.round(goals.att * Math.min(1, perf + .08) * (.9 + r() * .1)),
+        tithe: Math.round(goals.tithe * Math.min(1, perf + .06) * (.9 + r() * .1)),
+      };
+      if (!hasTeams) v.fruit = fruit;
+      ms[m] = v;
+    });
+    branches[id] = { name, order, hasTeams, goals, months: ms };
+  });
+  const T = [
+    ['t1', 'Monte Sion', 1, 'Elena Vargas', 4, .95, 4],
+    ['t2', 'Luz del Mundo', 2, 'Pedro Santos', 3, .88, 4],
+    ['t3', 'Los Valientes', 3, 'Ruben Gómez', 3, .8, 4],
+    ['t4', '', 4, 'Ana Castillo', 3, .7, 2],
+    ['t5', 'Sal de la Tierra', 5, 'Marco Díaz', 2, .55, 4],
+  ];
+  const fruitDone = { t1: 4, t2: 3, t3: 2, t4: 3, t5: 1 };
+  T.forEach(([id, name, num, leader, fruitGoal, perf, attTarget]) => {
+    const fruit = {};
+    const doneMonths = [...months].sort(() => r() - .5).slice(0, fruitDone[id]).sort();
+    doneMonths.forEach(m => { fruit[m] = (fruit[m] || 0) + 1; });
+    teams[id] = { name, num, leader, fruitGoal, attTarget, fruit, perf };
+  });
+  const names = ['Ana Rodríguez', 'María López', 'Sofía Ramírez', 'Miguel Torres', 'Lucía Fernández', 'José Martínez', 'Carlos Méndez', 'Daniel Pérez', 'Rosa Jiménez',
+    'Luis Castillo', 'Carmen Reyes', 'Jorge Herrera', 'Patricia Núñez', 'Andrés Polanco', 'Yolanda Peña', 'Ramón Batista',
+    'Isabel Guzmán', 'Francisco Rosario', 'Teresa Almonte', 'Héctor Cruz', 'Marisol Tavárez', 'Víctor Durán', 'Elena Rojas', 'Pablo Santana',
+    'Gabriela Ureña', 'Samuel Fermín', 'Natalia Abreu', 'Rafael Ventura', 'Diana Cabrera', 'Julio Mejía',
+    'Altagracia Paulino', 'Félix Espinal', 'Ruth Encarnación', 'Manuel Holguín', 'Esther Vásquez', 'Tomás Lantigua', 'Noemí Sosa', 'Ángel Brito', 'Raquel Marte', 'Ismael Frías'];
+  const sizes = { t1: 9, t2: 7, t3: 8, t4: 6, t5: 10 };
+  let n = 0;
+  Object.entries(sizes).forEach(([tid, size]) => {
+    const t = teams[tid];
+    for (let i = 0; i < size; i++) {
+      const name = names[n++];
+      const p = t.perf + (r() - .5) * .35;
+      const hit = () => r() < p;
+      const cnt = target => hit() ? target : Math.floor(r() * target);
+      members['m' + String(n).padStart(2, '0')] = {
+        teamId: tid, name, phone: '', notes: '',
+        months: { [CURRENT_MONTH]: { att: cnt(t.attTarget), tithe: hit() ? 1 : 0, edu: hit() ? 1 : 0, ga: hit() ? 1 : 0, om: cnt(3), pr: cnt(3), prep: hit() ? 1 : 0 } },
+      };
+    }
+  });
+  Object.values(teams).forEach(t => delete t.perf);
+  return { branches, teams, members };
+}
+/*@@SAMPLE_END@@*/
+
+/* =====================================================================
+   GOALS & MATH
+   ===================================================================== */
+const GOALS = () => [
+  { k: 'att',   name: L('Attendance', 'Asistencia'),          short: L('Attend', 'Asist.'),   icon: 'calendar' },
+  { k: 'tithe', name: L('Tithe', 'Diezmo'),                   short: L('Tithe', 'Diezmo'),    icon: 'coin',   target: 1 },
+  { k: 'edu',   name: 'EduLMS',                               short: 'EduLMS',                icon: 'laptop', target: 1 },
+  { k: 'ga',    name: L('GA Signature', 'Firma de AG'),       short: L('GA sign.', 'Firma AG'), icon: 'sign', target: 1 },
+  { k: 'om',    name: L('Online Mission', 'Misión en línea'), short: L('Online', 'En línea'), icon: 'globe',  target: 3 },
+  { k: 'pr',    name: L('Preached', 'Predicó'),               short: L('Preached', 'Predicó'), icon: 'speech', target: 3 },
+  { k: 'prep',  name: L('Preparation Day', 'Día de Preparación'), short: L('Prep. day', 'Día prep.'), icon: 'lamp', target: 1 },
+];
+const METRICS = () => [
+  { k: 'simple', kind: 'sum', name: L('Simple Preaching', 'Predicación Simple'),         desc: L('people preached to', 'personas a quienes se predicó'), icon: 'speech' },
+  { k: 'mean',   kind: 'sum', name: L('Meaningful Preaching', 'Predicación Significativa'), desc: L('people who came to study', 'personas que vinieron a estudiar'), icon: 'speechHeart' },
+  { k: 'att',    kind: 'avg', name: L('Attendance', 'Asistencia'),                        desc: L('people attending (monthly avg.)', 'personas que asisten (prom. mensual)'), icon: 'calendar' },
+  { k: 'tithe',  kind: 'avg', name: L('Tithe', 'Diezmo'),                                 desc: L('people tithing (monthly avg.)', 'personas que diezman (prom. mensual)'), icon: 'coin' },
+  { k: 'fruit',  kind: 'sum', name: L('Fruit', 'Fruto'),                                  desc: L('souls baptized', 'almas bautizadas'), icon: 'fruit' },
+];
+const metric = k => METRICS().find(m => m.k === k);
+const monthLabel = k => { const [y, m] = k.split('-'); return `${MONTH_NAMES[LANG][+m - 1]} ${y}`; };
+const monthsToDate = () => { const [y, m] = CURRENT_MONTH.split('-').map(Number); return Array.from({ length: m }, (_, i) => `${y}-${String(i + 1).padStart(2, '0')}`); };
+let PERIOD = 'month';
+function periodMonths() {
+  const all = monthsToDate();
+  if (PERIOD === 'month') return [CURRENT_MONTH];
+  if (PERIOD === 'quarter') { const m = +CURRENT_MONTH.slice(5), qs = Math.floor((m - 1) / 3) * 3 + 1; return all.filter(k => +k.slice(5) >= qs); }
+  return all;
+}
+const periodLabel = () => {
+  const m = +CURRENT_MONTH.slice(5), y = CURRENT_MONTH.slice(0, 4);
+  if (PERIOD === 'month') return monthLabel(CURRENT_MONTH);
+  if (PERIOD === 'quarter') return `${L('Q', 'T')}${Math.floor((m - 1) / 3) + 1} ${y} · ${L('to date', 'a la fecha')}`;
+  return `${y} · ${L('year to date', 'año a la fecha')}`;
+};
+
+/* =====================================================================
+   STORE: shared database when available, otherwise a local demo copy
+   ===================================================================== */
+const S = { branches: {}, teams: {}, members: {} };
+let DB = null, MODE = 'loading', CAN_WRITE = true, IS_EDITOR = false;
+const loaded = { branches: false, teams: false, members: false };
+const sorted = (col, key) => Object.entries(S[col]).map(([id, d]) => ({ id, ...d })).sort((a, b) => (a[key] ?? 0) > (b[key] ?? 0) ? 1 : -1);
+const BRANCHES = () => sorted('branches', 'order');
+const TEAMS = () => sorted('teams', 'num');
+const teamMembers = tid => sorted('members', 'name').filter(m => m.teamId === tid);
+
+function deepMerge(a, b) {
+  const out = { ...(a || {}) };
+  for (const [k, v] of Object.entries(b)) out[k] = v && typeof v === 'object' && !Array.isArray(v) ? deepMerge(out[k], v) : v;
+  return out;
+}
+const queues = {};
+function save(col, id, patch, mode = 'update') {
+  if (!CAN_WRITE) { toast(L('View only: ask the presenter to make changes.', 'Solo lectura: el presentador hace los cambios.')); return; }
+  if (!DB) {
+    if (mode === 'delete') delete S[col][id];
+    else S[col][id] = mode === 'set' ? patch : deepMerge(S[col][id], patch);
+    render(); return Promise.resolve();
+  }
+  const path = `${col}/${id}`, ref = DB.doc(path);
+  queues[path] = (queues[path] || Promise.resolve()).then(() =>
+    (mode === 'delete' ? ref.delete() : mode === 'set' ? ref.set(patch) : ref.update(patch)).catch(e => {
+      if (e && e.code === 'invalid_argument') { CAN_WRITE = false; render(); toast(L('You have view-only access to this demo.', 'Tienes acceso de solo lectura a esta demo.')); }
+      else if (e && e.code === 'quota_exceeded') toast(L('The demo database is full.', 'La base de datos de la demo está llena.'));
+      else toast(L('Couldn’t save. Check your connection and try again.', 'No se pudo guardar. Revisa la conexión e intenta de nuevo.'));
+    }));
+  return queues[path];
+}
+async function loadSample() {
+  const s = makeSample();
+  if (!DB) { Object.assign(S, s); render(); return; }
+  BUSY = true; render();
+  const jobs = [];
+  for (const col of ['branches', 'teams', 'members']) {
+    for (const id of Object.keys(S[col])) if (!s[col][id]) jobs.push(() => DB.doc(`${col}/${id}`).delete());
+    for (const [id, d] of Object.entries(s[col])) jobs.push(() => DB.doc(`${col}/${id}`).set(d));
+  }
+  try { for (let i = 0; i < jobs.length; i += 6) await Promise.all(jobs.slice(i, i + 6).map(f => f())); toast(L('Demo data loaded.', 'Datos de demo cargados.')); }
+  catch (e) { toast(L('Couldn’t load the demo data.', 'No se pudieron cargar los datos de demo.')); }
+  BUSY = false; render();
+}
+
+/* Branch & team math */
+function teamFruit(t, months) { return months.reduce((a, m) => a + ((t.fruit || {})[m] || 0), 0); }
+function branchVal(b, k) {
+  const ms = periodMonths();
+  if (k === 'fruit' && b.hasTeams) return TEAMS().reduce((a, t) => a + teamFruit(t, ms), 0);
+  const vals = ms.map(m => (b.months || {})[m]?.[k]).filter(v => typeof v === 'number');
+  if (metric(k).kind === 'avg') return vals.length ? Math.round(vals.reduce((a, v) => a + v, 0) / vals.length) : 0;
+  return vals.reduce((a, v) => a + v, 0);
+}
+function branchGoal(b, k) {
+  const g = +(b.goals || {})[k] || 0;
+  if (metric(k).kind === 'avg') return g;
+  return PERIOD === 'month' ? Math.ceil(g / 12) : PERIOD === 'quarter' ? Math.ceil(g / 4) : g;
+}
+const ratio = (c, g) => g ? Math.min(1, c / g) : 0;
+const branchPct = b => Math.round(METRICS().reduce((a, m) => a + ratio(branchVal(b, m.k), branchGoal(b, m.k)), 0) / 5 * 100);
+const regionVal = k => BRANCHES().reduce((a, b) => a + branchVal(b, k), 0);
+const regionGoal = k => BRANCHES().reduce((a, b) => a + branchGoal(b, k), 0);
+const regionPct = () => { const bs = BRANCHES(); return bs.length ? Math.round(bs.reduce((a, b) => a + branchPct(b), 0) / bs.length) : 0; };
+const barCls = r => r >= .8 ? '' : r >= .55 ? 'warn' : 'bad';
+const bar = r => `<div class="bar ${barCls(r)}"><b style="width:${Math.round(Math.min(1, r) * 100)}%"></b></div>`;
+const fmt = n => (+n || 0).toLocaleString(LANG === 'es' ? 'es-DO' : 'en-US');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+const goalTarget = (t, g) => g.k === 'att' ? (t?.attTarget || 4) : g.target;
+const mval = (m, k) => ((m.months || {})[CURRENT_MONTH] || {})[k] || 0;
+const mstatus = (m, t, g) => { const v = mval(m, g.k), tg = goalTarget(t, g); return v >= tg ? 'd' : v > 0 ? 'p' : 'm'; };
+const mdone = (m, t) => GOALS().filter(g => mstatus(m, t, g) === 'd').length;
+const teamHealth = t => { const ms = teamMembers(t.id); return ms.length ? Math.round(ms.reduce((a, m) => a + mdone(m, t), 0) / (ms.length * 7) * 100) : 0; };
+const teamName = t => t.name || `${L('Team', 'Equipo')} ${t.num}`;
+const initials = n => String(n || '?').split(' ').filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase();
+const first = n => String(n || '').split(' ')[0];
+
+/* =====================================================================
+   UI STATE
+   ===================================================================== */
+let ROLE = 'jefe';                // 'jefe' or a team id
+try { ROLE = localStorage.getItem('f7-role') || 'jefe'; } catch (e) {}
+let VIEW = 'region', VIEW_TEAM = null;
+let SHEET = null;                 // {type:'goal', m, k} | {type:'member', m} | {type:'addTeam'}
+let REPORT = { branch: 'la-vega', month: CURRENT_MONTH, draft: {} };
+let CONFIRM = null, BUSY = false;
+function readHash() {
+  const h = location.hash.replace('#', '');
+  if (h.startsWith('team-')) { VIEW = 'team'; VIEW_TEAM = h.slice(5); }
+  else if (['region', 'report', 'teams'].includes(h)) VIEW = h;
+  else VIEW = ROLE === 'jefe' ? 'region' : 'team', VIEW_TEAM = ROLE === 'jefe' ? null : ROLE;
+  if (ROLE !== 'jefe' && (VIEW === 'report' || VIEW === 'teams' || (VIEW === 'team' && VIEW_TEAM !== ROLE))) { VIEW = 'team'; VIEW_TEAM = ROLE; }
+}
+let toastTimer;
+function toast(msg) {
+  let el = document.getElementById('toast');
+  if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+  el.textContent = msg; el.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 2600);
+}
+
+/* =====================================================================
+   VIEWS
+   ===================================================================== */
+const periodSeg = () => `<div class="seg" role="group" aria-label="${L('Period', 'Periodo')}">${[['month', L('Monthly', 'Mensual')], ['quarter', L('Quarterly', 'Trimestral')], ['year', L('Yearly', 'Anual')]]
+  .map(([k, t]) => `<button class="${PERIOD === k ? 'on' : ''}" data-act="period" data-p="${k}">${t}</button>`).join('')}</div>`;
+const canEditGA = () => ROLE === 'jefe' && CAN_WRITE;
+
+function topBar() {
+  const isJefe = ROLE === 'jefe';
+  const tabs = isJefe
+    ? [['region', 'pin', L('Region', 'Región')], ['report', 'pencil', L('Monthly report', 'Reporte mensual')], ['teams', 'people', L('Santiago teams', 'Equipos de Santiago')]]
+    : [[`team-${ROLE}`, 'people', L('My team', 'Mi equipo')], ['region', 'pin', L('Region', 'Región')]];
+  const cur = VIEW === 'team' ? `team-${VIEW_TEAM}` : VIEW;
+  return `<header class="top"><div class="wrap">
+    <div class="brand">${icon('bible', 26)}<div>Faithful 7<small>${L('Santiago Region', 'Región Santiago')}</small></div></div>
+    <nav class="tabs">${tabs.map(([h, ic, t]) => `<a href="#${h}" class="${cur === h || (h === 'teams' && VIEW === 'team') ? 'on' : ''}">${icon(ic, 16)}${t}</a>`).join('')}</nav>
+    <div class="right">
+      <span class="live ${DB ? '' : 'off'}"><i></i>${DB ? L('Live', 'En vivo') : L('Offline demo', 'Demo sin conexión')}</span>
+      <label class="small" for="role">${L('Viewing as', 'Viendo como')}</label>
+      <select id="role" class="sel" data-act="role">
+        <option value="jefe" ${isJefe ? 'selected' : ''}>${L('Jefe de Templo', 'Jefe de Templo')}</option>
+        ${TEAMS().map(t => `<option value="${t.id}" ${ROLE === t.id ? 'selected' : ''}>${L('Team leader', 'Líder de equipo')} · ${esc(teamName(t))}</option>`).join('')}
+      </select>
+      <div class="seg"><button class="${LANG === 'es' ? 'on' : ''}" data-act="lang" data-l="es">ES</button><button class="${LANG === 'en' ? 'on' : ''}" data-act="lang" data-l="en">EN</button></div>
+    </div>
+  </div></header>`;
+}
+
+function viewRegion() {
+  const rp = regionPct(), bs = BRANCHES();
+  return `
+  <div class="head"><div class="grow"><h1>${L('Santiago Region', 'Región Santiago')}</h1><p>${L('General Assembly goals', 'Metas de Asamblea General')} · ${bs.length} ${L('branches', 'sucursales')} · ${periodLabel()}</p></div>
+    ${periodSeg()}
+    ${canEditGA() ? `<a class="btn" href="#report">${icon('pencil', 16)}${L('Enter monthly report', 'Ingresar reporte mensual')}</a>` : `<span class="tag info">${L('View only', 'Solo lectura')}</span>`}
+  </div>
+  <div class="grid kpis">
+    ${METRICS().map(m => { const c = regionVal(m.k), g = regionGoal(m.k); return `<div class="card kpi">
+      <div class="row"><div class="ic">${icon(m.icon, 22)}</div><div class="grow"><div class="lbl">${m.name}</div><div class="small">${m.desc}</div></div></div>
+      <div class="v">${fmt(c)} <small>/ ${fmt(g)}</small></div>${bar(ratio(c, g))}<div class="small" style="margin-top:6px">${Math.round(ratio(c, g) * 100)}% ${L('of goal', 'de la meta')}</div></div>`; }).join('')}
+  </div>
+  <div class="grid split">
+    <div class="card">
+      <div class="h">${L('Branch progress', 'Progreso por sucursal')}</div>
+      <div class="small" style="margin-bottom:8px">${canEditGA() ? L('Click a branch to enter its monthly report.', 'Haz clic en una sucursal para ingresar su reporte mensual.') : L('Updated by the Jefe de Templo.', 'Actualizado por el Jefe de Templo.')}</div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>${L('Branch', 'Sucursal')}</th>${METRICS().map(m => `<th class="c"><div class="thi">${icon(m.icon, 18)}${m.name.split(' ')[0] === 'Predicación' ? m.name.split(' ')[1] : m.name.split(' ')[0]}</div></th>`).join('')}<th class="c">${L('Overall', 'Total')}</th></tr></thead>
+        <tbody>
+          ${bs.map(b => { const p = branchPct(b); return `<tr class="${canEditGA() ? 'click' : ''}" ${canEditGA() ? `data-act="openReport" data-b="${b.id}" tabindex="0"` : ''}>
+            <td><div class="who">${plant(pctStage(p), 28, p < 45)}<div><b>${esc(b.name)}</b><div class="small">${b.hasTeams ? `${TEAMS().length} ${L('teams report here', 'equipos reportan aquí')}` : L('Monthly report', 'Reporte mensual')}</div></div></div></td>
+            ${METRICS().map(m => { const c = branchVal(b, m.k), g = branchGoal(b, m.k); return `<td><div class="mcell"><div class="nums">${fmt(c)}<span>/ ${fmt(g)}</span></div>${bar(ratio(c, g))}</div></td>`; }).join('')}
+            <td class="c"><span class="tag ${p >= 80 ? 'ok' : p >= 55 ? 'warn' : 'bad'}">${p}%</span></td></tr>`; }).join('')}
+          <tr><td><b>${L('Region total', 'Total región')}</b></td>${METRICS().map(m => `<td><div class="mcell"><div class="nums">${fmt(regionVal(m.k))}<span>/ ${fmt(regionGoal(m.k))}</span></div></div></td>`).join('')}<td class="c"><span class="tag ${rp >= 80 ? 'ok' : rp >= 55 ? 'warn' : 'bad'}">${rp}%</span></td></tr>
+        </tbody>
+      </table></div>
+      <div class="legend"><span><i style="background:var(--ok)"></i>${L('On track (80%+)', 'En camino (80%+)')}</span><span><i style="background:var(--warn-bar)"></i>55–79%</span><span><i style="background:var(--bad)"></i>${L('Below 55%', 'Menos de 55%')}</span></div>
+    </div>
+    <div class="grid">
+      <div class="card hero">
+        <div class="lbl">${L('Region health', 'Salud de la región')}</div>
+        <div class="row" style="margin-top:10px;gap:14px"><div class="plantbox">${plant(pctStage(rp), 70)}</div><div class="grow"><div style="font-size:34px;font-weight:700;color:var(--gold)">${rp}%</div>${bar(rp / 100)}<div class="small" style="color:var(--hero-muted);margin-top:6px">${healthWord(rp)}</div></div></div>
+        <p class="verse">${L('“The harvest is plentiful but the workers are few.”', '“La mies a la verdad es mucha, mas los obreros pocos.”')}<cite>${L('MATTHEW 9:37', 'MATEO 9:37')}</cite></p>
+      </div>
+      <div class="card"><div class="lbl">${L('Santiago garden', 'Jardín de Santiago')}</div>
+        <div class="garden">${bs.map(b => { const p = branchPct(b); return `<div class="g">${plant(pctStage(p), 44, p < 45)}<span>${esc(b.name)}</span><span class="muted">${p}%</span></div>`; }).join('')}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function viewReport() {
+  const bs = BRANCHES(), b = S.branches[REPORT.branch] ? { id: REPORT.branch, ...S.branches[REPORT.branch] } : bs[0];
+  if (!b) return emptyState();
+  const m = REPORT.month, cur = (b.months || {})[m] || {}, d = REPORT.draft;
+  const val = k => d[`v-${k}`] ?? (cur[k] ?? '');
+  const gval = k => d[`g-${k}`] ?? ((b.goals || {})[k] ?? '');
+  return `
+  <div class="head"><div class="grow"><h1>${L('Monthly report', 'Reporte mensual')}</h1><p>${L('Enter each branch’s numbers once a month. The dashboard updates for everyone right away.', 'Ingresa los números de cada sucursal una vez al mes. El panel se actualiza para todos de inmediato.')}</p></div></div>
+  <div class="grid split">
+    <div class="card">
+      <div class="lbl" style="margin-bottom:8px">${L('Branch', 'Sucursal')}</div>
+      <div class="chips">${bs.map(x => `<button class="chip ${x.id === b.id ? 'on' : ''}" data-act="pickBranch" data-b="${x.id}">${esc(x.name)}</button>`).join('')}</div>
+      <div class="row" style="margin:16px 0 4px;flex-wrap:wrap">
+        <label class="lbl" for="rep-month">${L('Month', 'Mes')}</label>
+        <select id="rep-month" class="sel" data-act="repMonth">${monthsToDate().slice().reverse().map(k => `<option value="${k}" ${k === m ? 'selected' : ''}>${monthLabel(k)}</option>`).join('')}</select>
+      </div>
+      <div class="formrow headrow"><span></span><span></span><span class="lbl" style="text-align:center">${monthLabel(m).split(' ')[0]}</span><span class="lbl" style="text-align:center">${L('Goal', 'Meta')}</span></div>
+      ${METRICS().map(x => {
+        const fromTeams = x.k === 'fruit' && b.hasTeams;
+        const goalHint = x.kind === 'avg' ? L('per month', 'por mes') : L('per year', 'por año');
+        return `<div class="formrow">${icon(x.icon, 22)}<div><div style="font-weight:500">${x.name}</div><div class="small">${x.desc}${fromTeams ? ` · ${L('comes from the teams', 'viene de los equipos')}` : ''}</div></div>
+          ${fromTeams ? `<div class="input num" style="background:var(--inset)" title="${L('From teams', 'De los equipos')}">${teamFruitMonth(m)}</div>` : `<input class="input num" id="v-${x.k}" type="number" min="0" inputmode="numeric" value="${esc(val(x.k))}" data-act="draft" ${canEditGA() ? '' : 'disabled'} aria-label="${x.name}">`}
+          <div><input class="input num" id="g-${x.k}" type="number" min="0" inputmode="numeric" value="${esc(gval(x.k))}" data-act="draft" ${canEditGA() ? '' : 'disabled'} aria-label="${L('Goal', 'Meta')} ${x.name}"><div class="small" style="text-align:center">${goalHint}</div></div></div>`;
+      }).join('')}
+      <div class="row" style="margin-top:14px;justify-content:flex-end"><button class="btn ghost" data-act="resetDraft">${L('Undo changes', 'Deshacer cambios')}</button><button class="btn" data-act="saveReport" ${canEditGA() ? '' : 'disabled'}>${icon('check', 14)}${L('Save report', 'Guardar reporte')}</button></div>
+    </div>
+    <div class="card">
+      <div class="lbl">${esc(b.name)} · ${monthLabel(m)}</div>
+      ${METRICS().map(x => { const pp = PERIOD; PERIOD = 'month'; const c = monthVal(b, x.k, m), g = branchGoal(b, x.k); PERIOD = pp; return `<div class="list-row">${icon(x.icon, 18)}<div class="grow"><div class="row" style="justify-content:space-between"><span>${x.name}</span><b class="num">${fmt(c)} / ${fmt(g)}</b></div><div style="margin-top:6px">${bar(ratio(c, g))}</div></div></div>`; }).join('')}
+      <p class="small" style="margin:12px 0 0">${L('Attendance and tithe goals are people per month. Preaching and fruit goals are for the whole year; the monthly goal is one twelfth.', 'Las metas de asistencia y diezmo son personas por mes. Las de predicación y fruto son anuales; la meta mensual es una doceava parte.')}</p>
+    </div>
+  </div>`;
+}
+function teamFruitMonth(m) { return TEAMS().reduce((a, t) => a + ((t.fruit || {})[m] || 0), 0); }
+function monthVal(b, k, m) { if (k === 'fruit' && b.hasTeams) return teamFruitMonth(m); return +((b.months || {})[m] || {})[k] || 0; }
+
+function viewTeams() {
+  const ts = TEAMS(), sb = { id: 'santiago', ...(S.branches.santiago || {}) };
+  const yr = monthsToDate();
+  const assigned = ts.reduce((a, t) => a + (+t.fruitGoal || 0), 0), branchFruitGoal = +(sb.goals || {}).fruit || 0;
+  const fruitYear = ts.reduce((a, t) => a + teamFruit(t, yr), 0);
+  const members = ts.reduce((a, t) => a + teamMembers(t.id).length, 0);
+  return `
+  <div class="head"><div class="grow"><h1>${L('Santiago teams', 'Equipos de Santiago')}</h1><p>${ts.length} ${L('teams', 'equipos')} · ${members} ${L('members', 'miembros')} · ${monthLabel(CURRENT_MONTH)}</p></div>
+    ${canEditGA() ? `<button class="btn" data-act="addTeamOpen">${icon('people', 16)}${L('Add team', 'Agregar equipo')}</button>` : ''}</div>
+  <div class="grid split">
+    <div class="card">
+      <div class="h">${L('Teams', 'Equipos')}</div>
+      <div class="small" style="margin-bottom:8px">${L('Each team leader signs in to update their own members. Open a team to see what they see.', 'Cada líder de equipo entra para actualizar a sus miembros. Abre un equipo para ver lo que ellos ven.')}</div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>${L('Team', 'Equipo')}</th><th>${L('Leader', 'Líder')}</th><th class="c">${L('Members', 'Miembros')}</th><th>${L('7 goals this month', '7 metas este mes')}</th><th>${L('Fruit this year', 'Fruto este año')}</th><th></th></tr></thead>
+        <tbody>${ts.map(t => { const h = teamHealth(t), f = teamFruit(t, yr), g = +t.fruitGoal || 0; return `<tr class="click" data-act="openTeam" data-t="${t.id}" tabindex="0">
+          <td><div class="who">${plant(pctStage(h), 28, h < 50)}<div><b>${esc(teamName(t))}</b><div class="small">${L('Team', 'Equipo')} ${t.num}</div></div></div></td>
+          <td>${esc(t.leader)}</td><td class="c num">${teamMembers(t.id).length}</td>
+          <td><div class="mcell"><div class="nums">${h}%<span></span></div>${bar(h / 100)}</div></td>
+          <td><div class="mcell"><div class="nums">${f}<span>/ ${g}</span></div>${bar(ratio(f, g))}</div></td>
+          <td><span class="btn ghost sm">${L('Open', 'Abrir')}</span></td></tr>`; }).join('')}
+          <tr><td><b>${L('Santiago total', 'Total Santiago')}</b></td><td></td><td class="c num"><b>${members}</b></td><td></td><td><div class="mcell"><div class="nums">${fruitYear}<span>/ ${branchFruitGoal}</span></div></div></td><td></td></tr>
+        </tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="lbl">${L('Split the yearly fruit goal', 'Repartir la meta anual de fruto')}</div>
+      <div class="row" style="justify-content:space-between;margin:10px 0"><span>${L('Santiago fruit goal', 'Meta de fruto de Santiago')}</span><b class="num">${branchFruitGoal}</b></div>
+      ${ts.map(t => `<div class="list-row"><span class="grow">${esc(teamName(t))}</span><input class="input num" style="width:80px" type="number" min="0" id="fg-${t.id}" value="${+t.fruitGoal || 0}" data-act="fruitGoal" data-t="${t.id}" ${canEditGA() ? '' : 'disabled'} aria-label="${L('Fruit goal', 'Meta de fruto')} ${esc(teamName(t))}"></div>`).join('')}
+      <div style="margin-top:12px"><span class="tag ${assigned === branchFruitGoal ? 'ok' : 'warn'}">${L(`Assigned ${assigned} of ${branchFruitGoal}`, `Asignado ${assigned} de ${branchFruitGoal}`)}</span></div>
+    </div>
+  </div>`;
+}
+
+function viewTeam() {
+  const t = S.teams[VIEW_TEAM] ? { id: VIEW_TEAM, ...S.teams[VIEW_TEAM] } : null;
+  if (!t) return emptyState();
+  const ms = teamMembers(t.id), h = teamHealth(t), yr = monthsToDate();
+  const fYear = teamFruit(t, yr), fMonth = (t.fruit || {})[CURRENT_MONTH] || 0, fg = +t.fruitGoal || 0;
+  const complete = ms.filter(m => mdone(m, t) === 7).length;
+  const follow = ms.filter(m => mdone(m, t) <= 3);
+  const canTeam = CAN_WRITE;
+  return `
+  <div class="head"><div class="grow">
+      ${ROLE === 'jefe' ? `<a href="#teams" class="small" style="color:var(--accent);text-decoration:none">‹ ${L('All Santiago teams', 'Todos los equipos de Santiago')}</a>` : ''}
+      <h1>${esc(teamName(t))}</h1><p>${L('Team', 'Equipo')} ${t.num} · ${L('Leader', 'Líder')}: ${esc(t.leader)} · ${monthLabel(CURRENT_MONTH)}</p></div>
+    ${canTeam ? `<button class="btn ghost" data-act="teamSettings">${icon('gear', 16)}${L('Team settings', 'Ajustes del equipo')}</button>` : ''}
+  </div>
+  <div class="grid kpis">
+    <div class="card kpi"><div class="row"><div class="plantbox" style="padding:4px 8px 2px">${plant(pctStage(h), 34, h < 45)}</div><div><div class="lbl">${L('Team health', 'Salud del equipo')}</div><div class="v" style="margin:4px 0 0">${h}%</div></div></div></div>
+    <div class="card kpi"><div class="row"><div class="ic">${icon('star', 22)}</div><div><div class="lbl">${L('All 7 reached', 'Las 7 logradas')}</div><div class="v" style="margin:4px 0 0">${complete} <small>/ ${ms.length}</small></div></div></div></div>
+    <div class="card kpi"><div class="row"><div class="ic">${icon('hands', 22)}</div><div class="grow"><div class="lbl">${L('Need follow-up', 'Necesitan seguimiento')}</div><div class="v" style="margin:4px 0 0">${follow.length}</div></div></div><div class="small">${follow.map(m => esc(first(m.name))).join(', ') || L('Nobody right now', 'Nadie por ahora')}</div></div>
+    <div class="card kpi"><div class="row"><div class="ic">${icon('fruit', 22)}</div><div class="grow"><div class="lbl">${L('Fruit this year', 'Fruto este año')}</div><div class="v" style="margin:4px 0 0">${fYear} <small>/ ${fg}</small></div></div></div>
+      <div class="row" style="justify-content:space-between"><span class="small">${monthLabel(CURRENT_MONTH).split(' ')[0]}: <b>${fMonth}</b></span>${canTeam ? `<div class="stepper" style="gap:6px"><button data-act="fruitDec" aria-label="−" style="width:30px;height:30px">−</button><button class="plus" data-act="fruitInc" aria-label="+" style="width:30px;height:30px">+</button></div>` : ''}</div></div>
+  </div>
+  <div class="card">
+    <div class="row" style="flex-wrap:wrap;margin-bottom:6px"><div class="grow" style="min-width:min(260px,100%)"><div class="h">${L('Members · 7 monthly goals', 'Miembros · 7 metas mensuales')}</div><div class="small">${canTeam ? L('Tap any box to update it. Tap a name to edit the member’s profile.', 'Toca una casilla para actualizarla. Toca un nombre para editar el perfil.') : L('View only.', 'Solo lectura.')}</div></div>
+      ${canTeam ? `<form class="row" data-form="addMember" style="gap:8px;flex:1 1 260px;max-width:380px"><input class="input" id="new-member" placeholder="${L('New member name', 'Nombre del nuevo miembro')}" autocomplete="off" aria-label="${L('New member name', 'Nombre del nuevo miembro')}"><button class="btn" type="submit">${L('Add', 'Agregar')}</button></form>` : ''}</div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>${L('Member', 'Miembro')}</th>${GOALS().map(g => `<th class="c"><div class="thi">${icon(g.icon, 18)}${g.short}${goalTarget(t, g) > 1 ? ` ${goalTarget(t, g)}x` : ''}</div></th>`).join('')}<th class="c">${L('Total', 'Total')}</th></tr></thead>
+      <tbody>${ms.map(m => { const c = mdone(m, t); return `<tr>
+        <td><button class="who" data-act="memberOpen" data-m="${m.id}" style="border:0;background:transparent;padding:0;text-align:left">${plant(cntStage(c), 24, c <= 3)}<b>${esc(m.name)}</b></button></td>
+        ${GOALS().map(g => { const s = mstatus(m, t, g), v = mval(m, g.k), tg = goalTarget(t, g); return `<td><button class="cell ${s}" data-act="goalOpen" data-m="${m.id}" data-k="${g.k}" aria-label="${esc(m.name)} · ${g.name}">${s === 'd' ? icon('check', 14).replace('#fff', 'currentColor') : tg > 1 ? `${v}/${tg}` : '—'}</button></td>`; }).join('')}
+        <td class="c"><span class="tag ${c === 7 ? 'ok' : c >= 5 ? 'warn' : 'bad'}">${c}/7</span></td></tr>`; }).join('') || `<tr><td colspan="9" class="muted" style="padding:20px 8px">${L('No members yet. Add the first one above.', 'Aún no hay miembros. Agrega el primero arriba.')}</td></tr>`}</tbody>
+    </table></div>
+    <div class="legend"><span><i style="background:var(--ok)"></i>${L('Done', 'Hecho')}</span><span><i style="background:var(--warn-bar)"></i>${L('In progress', 'En progreso')}</span><span><i style="background:var(--bad-soft);border:1px dashed var(--bad)"></i>${L('Missing', 'Falta')}</span></div>
+  </div>`;
+}
+
+function emptyState() {
+  if (MODE === 'loading') return `<div class="card empty"><div class="h">${L('Loading the latest numbers…', 'Cargando los últimos números…')}</div><div class="small">${SLOW ? L('This is taking longer than usual. The data can’t be reached yet.', 'Está tardando más de lo normal. Aún no se pueden obtener los datos.') : ''}</div></div>`;
+  return `<div class="card empty">${plant(0, 60)}<div class="h">${L('No data yet', 'Aún no hay datos')}</div>
+    <div class="small">${L('Load the demo data to fill the Santiago region with example branches, teams and members.', 'Carga los datos de demo para llenar la región Santiago con sucursales, equipos y miembros de ejemplo.')}</div>
+    ${IS_EDITOR || !DB ? `<button class="btn" data-act="loadSample" ${BUSY ? 'disabled' : ''}>${BUSY ? L('Loading…', 'Cargando…') : L('Load demo data', 'Cargar datos de demo')}</button>` : `<div class="small">${L('Ask the owner of this demo to load it.', 'Pide al dueño de la demo que la cargue.')}</div>`}</div>`;
+}
+
+function sheet() {
+  if (!SHEET) return '';
+  let body = '';
+  if (SHEET.type === 'goal') {
+    const m = S.members[SHEET.m] ? { id: SHEET.m, ...S.members[SHEET.m] } : null; if (!m) return '';
+    const t = { id: m.teamId, ...S.teams[m.teamId] }, g = GOALS().find(x => x.k === SHEET.k), v = mval(m, g.k), tg = goalTarget(t, g);
+    body = `<div class="row"><div class="ic">${icon(g.icon, 22)}</div><div class="grow"><div class="h">${g.name}</div><div class="small">${esc(m.name)} · ${monthLabel(CURRENT_MONTH)}</div></div><button class="x" data-act="close" aria-label="${L('Close', 'Cerrar')}">×</button></div>
+      ${tg === 1
+        ? `<div class="row" style="justify-content:space-between"><span style="font-weight:600">${v ? L('Done', 'Hecho') : L('Not yet', 'Pendiente')}</span><button class="switch ${v ? 'on' : ''}" data-act="goalSet" data-v="${v ? 0 : 1}" aria-label="${g.name}"></button></div>`
+        : `<div class="row" style="justify-content:space-between"><span class="small">${L('Goal', 'Meta')}: ${tg} ${L('times this month', 'veces este mes')}</span><div class="stepper"><button data-act="goalSet" data-v="${Math.max(0, v - 1)}" aria-label="−">−</button><span class="val">${v}/${tg}</span><button class="plus" data-act="goalSet" data-v="${Math.min(tg, v + 1)}" aria-label="+">+</button></div></div>`}
+      <div class="row" style="justify-content:space-between"><button class="btn ghost sm" data-act="goalStep" data-d="-1">‹ ${L('Previous goal', 'Meta anterior')}</button><button class="btn ghost sm" data-act="goalStep" data-d="1">${L('Next goal', 'Siguiente meta')} ›</button></div>`;
+  } else if (SHEET.type === 'member') {
+    const m = S.members[SHEET.m] ? { id: SHEET.m, ...S.members[SHEET.m] } : null; if (!m) return '';
+    const t = { id: m.teamId, ...S.teams[m.teamId] }, c = mdone(m, t);
+    body = `<div class="row"><div class="avatar" style="width:44px;height:44px">${esc(initials(m.name))}</div><div class="grow"><div class="h">${esc(m.name)}</div><div class="small">${c}/7 ${L('goals this month', 'metas este mes')}</div></div><button class="x" data-act="close" aria-label="${L('Close', 'Cerrar')}">×</button></div>
+      <label class="small" for="mp-name">${L('Full name', 'Nombre completo')}</label><input class="input" id="mp-name" value="${esc(m.name)}" autocomplete="off">
+      <label class="small" for="mp-phone">${L('Phone', 'Teléfono')}</label><input class="input" id="mp-phone" value="${esc(m.phone)}" inputmode="tel" autocomplete="off">
+      <label class="small" for="mp-notes">${L('Notes for the leader', 'Notas para el líder')}</label><textarea class="input" id="mp-notes" rows="3">${esc(m.notes)}</textarea>
+      <div class="row" style="justify-content:space-between">
+        <button class="btn ${CONFIRM === m.id ? 'danger' : 'ghost'}" data-act="memberDelete">${CONFIRM === m.id ? L('Tap again to remove', 'Toca otra vez para quitar') : L('Remove member', 'Quitar miembro')}</button>
+        <button class="btn" data-act="memberSave">${icon('check', 14)}${L('Save', 'Guardar')}</button></div>`;
+  } else if (SHEET.type === 'team') {
+    const t = { id: VIEW_TEAM, ...S.teams[VIEW_TEAM] };
+    body = `<div class="row"><div class="h grow">${L('Team settings', 'Ajustes del equipo')}</div><button class="x" data-act="close" aria-label="${L('Close', 'Cerrar')}">×</button></div>
+      <label class="small" for="ts-name">${L('Team name (optional)', 'Nombre del equipo (opcional)')}</label><input class="input" id="ts-name" value="${esc(t.name)}" placeholder="${L('Team', 'Equipo')} ${t.num}" autocomplete="off">
+      <label class="small" for="ts-leader">${L('Team leader', 'Líder del equipo')}</label><input class="input" id="ts-leader" value="${esc(t.leader)}" autocomplete="off">
+      <div class="small">${L('Attendance goal per month', 'Meta de asistencia por mes')}</div>
+      <div class="seg">${[1, 2, 3, 4].map(n => `<button class="${(t.attTarget || 4) === n ? 'on' : ''}" data-act="attTarget" data-n="${n}">${n}</button>`).join('')}</div>
+      <div class="row" style="justify-content:flex-end"><button class="btn" data-act="teamSave">${icon('check', 14)}${L('Save', 'Guardar')}</button></div>`;
+  } else if (SHEET.type === 'addTeam') {
+    body = `<div class="row"><div class="h grow">${L('Add team', 'Agregar equipo')}</div><button class="x" data-act="close" aria-label="${L('Close', 'Cerrar')}">×</button></div>
+      <label class="small" for="nt-leader">${L('Team leader', 'Líder del equipo')}</label><input class="input" id="nt-leader" autocomplete="off">
+      <label class="small" for="nt-name">${L('Team name (optional)', 'Nombre del equipo (opcional)')}</label><input class="input" id="nt-name" autocomplete="off">
+      <div class="small">${L('In the real app, this also creates the leader’s login.', 'En la app real, esto también crea el usuario del líder.')}</div>
+      <div class="row" style="justify-content:flex-end"><button class="btn" data-act="teamAdd">${L('Add team', 'Agregar equipo')}</button></div>`;
+  }
+  return `<div class="overlay" data-act="overlay"><div class="sheet" role="dialog" aria-modal="true">${body}</div></div>`;
+}
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+let SLOW = false;
+function hasData() { return Object.keys(S.branches).length > 0; }
+function render() {
+  document.documentElement.lang = LANG;
+  readHash();
+  const a = document.activeElement, focusId = a && a.id, selStart = a && 'selectionStart' in a ? a.selectionStart : null;
+  let body;
+  if (!hasData()) body = emptyState();
+  else if (VIEW === 'report' && ROLE === 'jefe') body = viewReport();
+  else if (VIEW === 'teams' && ROLE === 'jefe') body = viewTeams();
+  else if (VIEW === 'team') body = viewTeam();
+  else body = viewRegion();
+  const readOnly = DB && !CAN_WRITE ? `<div class="banner">${icon('hands', 18)}<span>${L('You’re watching live. Changes made by the presenter show up here automatically.', 'Estás viendo en vivo. Los cambios del presentador aparecen aquí automáticamente.')}</span></div>` : '';
+  const offline = MODE === 'offline' ? `<div class="banner">${icon('pin', 18)}<span>${L('Offline demo: your changes stay on this device. Sign in to claude.ai to see the live shared version.', 'Demo sin conexión: tus cambios se quedan en este dispositivo. Inicia sesión en claude.ai para ver la versión en vivo.')}</span></div>` : '';
+  document.getElementById('app').innerHTML = `${topBar()}<main class="wrap">${offline}${readOnly}${body}</main>
+    <footer class="wrap">${L('Demo with example data. Only the Jefe de Templo and Santiago team leaders sign in; members don’t.', 'Demo con datos de ejemplo. Solo entran el Jefe de Templo y los líderes de equipo de Santiago; los miembros no.')}
+    ${IS_EDITOR && hasData() ? ` · <button class="btn ghost sm" data-act="resetDemo">${CONFIRM === 'reset' ? L('Tap again to reset all data', 'Toca otra vez para reiniciar todo') : L('Reset demo data', 'Reiniciar datos de demo')}</button>` : ''}</footer>${sheet()}`;
+  if (focusId) { const el = document.getElementById(focusId); if (el) { el.focus(); try { if (selStart != null) el.setSelectionRange(selStart, selStart); } catch (e) {} } }
+}
+
+/* =====================================================================
+   EVENTS
+   ===================================================================== */
+const app = document.getElementById('app');
+function setMemberGoal(mid, k, v) { save('members', mid, { months: { [CURRENT_MONTH]: { [k]: v } } }); }
+app.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const act = el.dataset.act;
+  if (act === 'overlay' && e.target !== el) return;
+  if (el.tagName === 'SELECT' || (el.tagName === 'INPUT' && act !== 'overlay')) return;
+  if (act !== 'memberDelete' && act !== 'resetDemo') CONFIRM = null;
+  switch (act) {
+    case 'period': PERIOD = el.dataset.p; break;
+    case 'lang': LANG = el.dataset.l; try { localStorage.setItem('f7-lang', LANG); } catch (x) {} break;
+    case 'openReport': REPORT = { branch: el.dataset.b, month: CURRENT_MONTH, draft: {} }; location.hash = 'report'; return;
+    case 'openTeam': location.hash = 'team-' + el.dataset.t; return;
+    case 'pickBranch': REPORT = { branch: el.dataset.b, month: REPORT.month, draft: {} }; break;
+    case 'resetDraft': REPORT.draft = {}; break;
+    case 'saveReport': {
+      const b = S.branches[REPORT.branch]; if (!b) break;
+      const v = {}, goals = {};
+      METRICS().forEach(x => {
+        const vi = document.getElementById('v-' + x.k), gi = document.getElementById('g-' + x.k);
+        if (vi && vi.value !== '') v[x.k] = Math.max(0, Math.round(+vi.value));
+        if (gi && gi.value !== '') goals[x.k] = Math.max(0, Math.round(+gi.value));
+      });
+      save('branches', REPORT.branch, { months: { [REPORT.month]: v }, goals });
+      REPORT.draft = {}; toast(L(`Saved ${b.name} · ${monthLabel(REPORT.month)}`, `Guardado ${b.name} · ${monthLabel(REPORT.month)}`)); break;
+    }
+    case 'goalOpen': SHEET = { type: 'goal', m: el.dataset.m, k: el.dataset.k }; break;
+    case 'goalSet': if (SHEET) setMemberGoal(SHEET.m, SHEET.k, +el.dataset.v); break;
+    case 'goalStep': { const ks = GOALS().map(g => g.k), i = ks.indexOf(SHEET.k); SHEET = { ...SHEET, k: ks[(i + +el.dataset.d + ks.length) % ks.length] }; break; }
+    case 'memberOpen': SHEET = { type: 'member', m: el.dataset.m }; break;
+    case 'memberSave': {
+      const name = document.getElementById('mp-name').value.trim();
+      if (!name) { toast(L('Enter the member’s name.', 'Escribe el nombre del miembro.')); return; }
+      save('members', SHEET.m, { name, phone: document.getElementById('mp-phone').value.trim(), notes: document.getElementById('mp-notes').value.trim() });
+      SHEET = null; toast(L('Profile saved.', 'Perfil guardado.')); break;
+    }
+    case 'memberDelete':
+      if (CONFIRM === SHEET.m) { save('members', SHEET.m, null, 'delete'); SHEET = null; CONFIRM = null; toast(L('Member removed.', 'Miembro quitado.')); }
+      else CONFIRM = SHEET.m;
+      break;
+    case 'teamSettings': SHEET = { type: 'team' }; break;
+    case 'attTarget': save('teams', VIEW_TEAM, { attTarget: +el.dataset.n }); break;
+    case 'teamSave': {
+      const leader = document.getElementById('ts-leader').value.trim();
+      save('teams', VIEW_TEAM, { name: document.getElementById('ts-name').value.trim(), ...(leader ? { leader } : {}) });
+      SHEET = null; toast(L('Team saved.', 'Equipo guardado.')); break;
+    }
+    case 'addTeamOpen': SHEET = { type: 'addTeam' }; break;
+    case 'teamAdd': {
+      const leader = document.getElementById('nt-leader').value.trim();
+      if (!leader) { toast(L('Enter the team leader’s name.', 'Escribe el nombre del líder.')); return; }
+      const num = TEAMS().reduce((a, t) => Math.max(a, t.num || 0), 0) + 1;
+      save('teams', 't' + num + '-' + Date.now().toString(36), { name: document.getElementById('nt-name').value.trim(), num, leader, fruitGoal: 0, attTarget: 4, fruit: {} }, 'set');
+      SHEET = null; toast(L('Team added.', 'Equipo agregado.')); break;
+    }
+    case 'fruitInc': case 'fruitDec': {
+      const t = S.teams[VIEW_TEAM]; const cur = (t.fruit || {})[CURRENT_MONTH] || 0;
+      const next = act === 'fruitInc' ? cur + 1 : Math.max(0, cur - 1);
+      if (next !== cur) save('teams', VIEW_TEAM, { fruit: { [CURRENT_MONTH]: next } });
+      if (act === 'fruitInc' && CAN_WRITE) toast(L('Praise God! Fruit added.', '¡Gloria a Dios! Fruto agregado.'));
+      break;
+    }
+    case 'loadSample': loadSample(); return;
+    case 'resetDemo': if (CONFIRM === 'reset') { CONFIRM = null; loadSample(); return; } CONFIRM = 'reset'; break;
+    case 'overlay': case 'close': SHEET = null; break;
+    default: return;
+  }
+  render();
+});
+app.addEventListener('change', e => {
+  const el = e.target, act = el.dataset.act;
+  if (act === 'role') { ROLE = el.value; try { localStorage.setItem('f7-role', ROLE); } catch (x) {} SHEET = null; location.hash = ROLE === 'jefe' ? 'region' : 'team-' + ROLE; render(); }
+  else if (act === 'repMonth') { REPORT = { ...REPORT, month: el.value, draft: {} }; render(); }
+  else if (act === 'fruitGoal') { save('teams', el.dataset.t, { fruitGoal: Math.max(0, Math.round(+el.value || 0)) }); }
+});
+app.addEventListener('input', e => { const el = e.target; if (el.dataset.act === 'draft') REPORT.draft[el.id] = el.value; });
+app.addEventListener('submit', e => {
+  e.preventDefault();
+  if (e.target.dataset.form === 'addMember') {
+    const inp = document.getElementById('new-member'), name = inp.value.trim();
+    if (!name) { toast(L('Enter the member’s name.', 'Escribe el nombre del miembro.')); return; }
+    save('members', 'm' + Date.now().toString(36), { teamId: VIEW_TEAM, name, phone: '', notes: '', months: { [CURRENT_MONTH]: {} } }, 'set');
+    inp.value = ''; toast(L(`${name} added.`, `${name} agregado.`));
+  }
+});
+app.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('tr[data-act]')) { e.preventDefault(); e.target.click(); }
+  if (e.key === 'Escape' && SHEET) { SHEET = null; render(); }
+});
+window.addEventListener('hashchange', () => { SHEET = null; render(); });
+
+/* =====================================================================
+   START: connect to the shared database, or fall back to a local copy
+   ===================================================================== */
+render();
+(async () => {
+  const [db, user] = await Promise.all([
+    window.claude?.use ? window.claude.use('db').catch(() => null) : null,
+    window.claude?.use ? window.claude.use('user').catch(() => null) : null,
+  ]);
+  if (user) {
+    IS_EDITOR = await user.canEdit();
+    const w = await user.can('data.write');
+    if (w === false) CAN_WRITE = false;
+  }
+  if (!db) { MODE = 'offline'; CAN_WRITE = true; IS_EDITOR = true; Object.assign(S, makeSample()); render(); return; }
+  DB = db;
+  const slowTimer = setTimeout(() => { SLOW = true; render(); }, 10000);
+  let first = { branches: true, teams: true, members: true };
+  ['branches', 'teams', 'members'].forEach(col => {
+    db.collection(col).onSnapshot(snap => {
+      const next = {};
+      snap.docs.forEach(d => { if (d.exists) next[d.id] = d.data(); });
+      S[col] = next;
+      if (!snap.metadata.fromCache) loaded[col] = true;
+      if (Object.values(loaded).every(Boolean)) { MODE = 'live'; clearTimeout(slowTimer); SLOW = false; }
+      const remote = !first[col] && !snap.metadata.hasPendingWrites && snap.docChanges().length > 0;
+      first[col] = false;
+      render();
+      if (remote) toast(L('Live update received', 'Actualización en vivo recibida'));
+    }, () => { MODE = 'live'; loaded[col] = true; clearTimeout(slowTimer); render(); });
+  });
+})();
+</script>
