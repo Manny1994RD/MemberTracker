@@ -1,228 +1,416 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="pixel">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Faithful 7 Mockup</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --ink: #1d1b2f;
-    --night: #1f2340;
-    --night-2: #2b3058;
-    --parch: #f4e9cf;
-    --parch-2: #eadbb6;
-    --paper: #fbf5e6;
-    --gold: #e8b04b;
-    --gold-d: #a8761f;
-    --wine: #9a2f3e;
-    --wine-l: #d0475a;
-    --green: #4f9a5a;
-    --green-d: #2f6b3a;
-    --sky: #86bdf0;
-    --blue: #3d6fb6;
-    --muted: #6d6680;
-    --px: 'Press Start 2P', monospace;
-    --vt: 'VT323', monospace;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--night);
-    background-image:
-      radial-gradient(#ffffff22 1px, transparent 1px),
-      radial-gradient(#e8b04b22 1px, transparent 1px);
-    background-size: 48px 48px, 80px 80px;
-    background-position: 0 0, 24px 40px;
-    color: var(--parch);
-    font-family: var(--vt);
-    font-size: 20px;
-    padding: 48px 16px 80px;
-  }
-  svg { image-rendering: pixelated; display: block; }
+/* =====================================================================
+   THEME TOKENS: three design options share one layout
+   ===================================================================== */
+:root, [data-theme="pixel"] {
+  --page-bg: #1f2340;
+  --page-img: radial-gradient(#ffffff22 1px, transparent 1px), radial-gradient(#e8b04b22 1px, transparent 1px);
+  --page-ink: #f4e9cf; --page-muted: #bfb6d6; --page-accent: #e8b04b;
+  --surface: #f4e9cf; --surface-2: #fbf5e6; --inset: #eadbb6;
+  --ink: #1d1b2f; --muted: #6d6680; --line: #1d1b2f; --dash: #c9b88f;
+  --accent: #e8b04b; --accent-ink: #1d1b2f; --primary: #9a2f3e; --primary-ink: #f4e9cf;
+  --ok: #4f9a5a; --ok-soft: #e3f0d6; --warn: #e8b04b; --bad: #d0475a; --bad-soft: #f6d9d6;
+  --hero-bg: #2b3058; --hero-ink: #f4e9cf; --hero-muted: #bdb4dc; --hero-accent: #e8b04b;
+  --side-bg: #1f2340; --side-ink: #cfc6e6; --side-on-bg: #e8b04b; --side-on-ink: #1d1b2f;
+  --appbar-bg: #1f2340; --appbar-ink: #f4e9cf;
+  --r: 0px; --r-sm: 0px; --r-pill: 0px; --bw: 3px; --bw-sm: 2px;
+  --shadow: 4px 4px 0 #1d1b2f; --shadow-sm: 2px 2px 0 #1d1b2f;
+  --fh: 'Press Start 2P', monospace; --fb: 'VT323', monospace; --fw-h: 400;
+  --fs-body: 20px; --fs-small: 17px; --fs-lbl: 9px; --fs-h: 11px; --fs-h2: 18px; --fs-big: 26px; --fs-tag: 8px; --fs-hero: 36px;
+  --lbl-ls: .5px; --lh: 1.05;
+  --phone-bezel: 6px solid #1d1b2f; --phone-r: 0px; --phone-outline: 6px solid #3b3a55; --phone-shadow: 12px 12px 0 #0e0f22;
+  --bar-fill: repeating-linear-gradient(90deg, #4f9a5a 0 10px, #5fae6a 10px 12px);
+  --bar-warn: repeating-linear-gradient(90deg, #e8b04b 0 10px, #f2c46a 10px 12px);
+  --bar-bad: repeating-linear-gradient(90deg, #d0475a 0 10px, #e06373 10px 12px);
+  --bar-track: #ffffff88; --bar-h: 16px;
+}
+[data-theme="soft"] {
+  --page-bg: #dff0ff;
+  --page-img: radial-gradient(1200px 600px at 10% -10%, #fff7e6 0%, transparent 60%), radial-gradient(900px 600px at 100% 0%, #e6dcff 0%, transparent 60%), linear-gradient(180deg, #d7ecff 0%, #fdeedd 100%);
+  --page-ink: #2e2a4a; --page-muted: #6c6890; --page-accent: #7a4fd6;
+  --surface: #ffffff; --surface-2: #fffaf2; --inset: #f4efff;
+  --ink: #2e2a4a; --muted: #8580a6; --line: transparent; --dash: #ece6f8;
+  --accent: #ffc75a; --accent-ink: #4a3300; --primary: #7a4fd6; --primary-ink: #ffffff;
+  --ok: #3fb56a; --ok-soft: #e4f8ea; --warn: #ffb547; --bad: #ff6b7d; --bad-soft: #ffe6ea;
+  --hero-bg: linear-gradient(145deg, #7a4fd6 0%, #4f6fe0 100%); --hero-ink: #ffffff; --hero-muted: #e3dcff; --hero-accent: #ffd36e;
+  --side-bg: linear-gradient(180deg, #3d2f7a 0%, #2b2f6b 100%); --side-ink: #d9d3ff; --side-on-bg: #ffffff; --side-on-ink: #4b33a8;
+  --appbar-bg: linear-gradient(135deg, #7a4fd6 0%, #4f6fe0 100%); --appbar-ink: #ffffff;
+  --r: 24px; --r-sm: 14px; --r-pill: 999px; --bw: 0px; --bw-sm: 0px;
+  --shadow: 0 14px 34px -10px rgba(76, 56, 160, .28), 0 2px 6px rgba(76, 56, 160, .08); --shadow-sm: 0 4px 10px -2px rgba(76, 56, 160, .25);
+  --fh: 'Fredoka', sans-serif; --fb: 'Nunito', sans-serif; --fw-h: 600;
+  --fs-body: 15px; --fs-small: 13px; --fs-lbl: 12px; --fs-h: 17px; --fs-h2: 28px; --fs-big: 36px; --fs-tag: 11px; --fs-hero: 52px;
+  --lbl-ls: .06em; --lh: 1.35;
+  --phone-bezel: 10px solid #2e2a4a; --phone-r: 54px; --phone-outline: 0 solid transparent; --phone-shadow: 0 40px 80px -20px rgba(46, 42, 74, .45);
+  --bar-fill: linear-gradient(180deg, #6fe08f 0%, #34a85a 100%);
+  --bar-warn: linear-gradient(180deg, #ffd27a 0%, #f39c22 100%);
+  --bar-bad: linear-gradient(180deg, #ff9aa7 0%, #f0475e 100%);
+  --bar-track: #efeaf9; --bar-h: 12px;
+}
+[data-theme="clean"] {
+  --page-bg: #eef1f5; --page-img: none;
+  --page-ink: #0f172a; --page-muted: #64748b; --page-accent: #1d4ed8;
+  --surface: #ffffff; --surface-2: #f8fafc; --inset: #f1f5f9;
+  --ink: #0f172a; --muted: #64748b; --line: #e2e8f0; --dash: #eef2f6;
+  --accent: #1d4ed8; --accent-ink: #ffffff; --primary: #0f172a; --primary-ink: #ffffff;
+  --ok: #16a34a; --ok-soft: #ecfdf3; --warn: #f59e0b; --bad: #e11d48; --bad-soft: #fff1f2;
+  --hero-bg: #0f172a; --hero-ink: #f8fafc; --hero-muted: #94a3b8; --hero-accent: #fbbf24;
+  --side-bg: #ffffff; --side-ink: #475569; --side-on-bg: #eff4ff; --side-on-ink: #1d4ed8;
+  --appbar-bg: #ffffff; --appbar-ink: #0f172a;
+  --r: 12px; --r-sm: 8px; --r-pill: 999px; --bw: 1px; --bw-sm: 1px;
+  --shadow: 0 1px 2px rgba(15, 23, 42, .05); --shadow-sm: none;
+  --fh: 'Inter', sans-serif; --fb: 'Inter', sans-serif; --fw-h: 600;
+  --fs-body: 14px; --fs-small: 12.5px; --fs-lbl: 11px; --fs-h: 15px; --fs-h2: 24px; --fs-big: 30px; --fs-tag: 11px; --fs-hero: 44px;
+  --lbl-ls: .06em; --lh: 1.4;
+  --phone-bezel: 9px solid #0f172a; --phone-r: 50px; --phone-outline: 0 solid transparent; --phone-shadow: 0 30px 60px -24px rgba(15, 23, 42, .35);
+  --bar-fill: #16a34a; --bar-warn: #f59e0b; --bar-bad: #e11d48; --bar-track: #eef2f6; --bar-h: 8px;
+}
 
-  /* ---------- Showcase chrome ---------- */
-  .hero { text-align: center; max-width: 900px; margin: 0 auto 56px; }
-  .hero .icons { display: flex; justify-content: center; gap: 28px; margin-bottom: 24px; align-items: flex-end; }
-  .hero h1 { font-family: var(--px); font-size: 36px; color: var(--gold); text-shadow: 4px 4px 0 var(--ink); letter-spacing: 2px; }
-  .hero p { font-size: 26px; margin-top: 14px; color: #d9cfb3; }
-  .section-title { font-family: var(--px); font-size: 16px; color: var(--gold); text-align: center; margin: 0 auto 28px; letter-spacing: 1px; }
-  .section-title span { display: block; font-family: var(--vt); font-size: 22px; color: #bfb6d6; margin-top: 10px; letter-spacing: 0; }
-  .phones { display: flex; flex-wrap: wrap; justify-content: center; gap: 40px; margin-bottom: 90px; }
-  .phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-  .phone-cap { font-family: var(--px); font-size: 11px; color: #cfc6e6; }
+/* =====================================================================
+   BASE
+   ===================================================================== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background-color: var(--page-bg); background-image: var(--page-img);
+  background-size: 48px 48px, 80px 80px; background-position: 0 0, 24px 40px;
+  color: var(--page-ink); font-family: var(--fb); font-size: var(--fs-body); line-height: var(--lh);
+  padding: 0 16px 80px; min-height: 100vh;
+}
+[data-theme="soft"] body, [data-theme="clean"] body { background-size: auto; background-attachment: fixed; }
+svg { display: block; flex-shrink: 0; }
+[data-theme="pixel"] svg { image-rendering: pixelated; }
 
-  /* ---------- Phone frame ---------- */
-  .phone {
-    width: 390px; height: 844px; background: var(--paper);
-    border: 6px solid var(--ink); outline: 6px solid #3b3a55;
-    box-shadow: 12px 12px 0 #0e0f22;
-    position: relative; overflow: hidden; color: var(--ink);
-    display: flex; flex-direction: column;
-  }
-  .status { height: 40px; display: flex; justify-content: space-between; align-items: center; padding: 0 22px; font-family: var(--px); font-size: 10px; background: var(--night); color: var(--parch); flex-shrink: 0; }
-  .status .notch { width: 110px; height: 22px; background: var(--ink); }
-  .status .bat { display: flex; gap: 3px; }
-  .status .bat i { width: 5px; height: 10px; background: var(--parch); display: block; }
-  .appbar { background: var(--night); color: var(--parch); padding: 10px 16px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 4px solid var(--ink); flex-shrink: 0; }
-  .appbar .title { font-family: var(--px); font-size: 12px; color: var(--gold); flex: 1; line-height: 1.5; }
-  .appbar .title small { display: block; font-family: var(--vt); font-size: 18px; color: #c8c0df; letter-spacing: 0; }
-  .avatar { width: 34px; height: 34px; background: var(--wine); border: 3px solid var(--ink); color: var(--parch); font-family: var(--px); font-size: 11px; display: grid; place-items: center; box-shadow: 2px 2px 0 var(--ink); flex-shrink: 0; }
-  .avatar.lg { width: 56px; height: 56px; font-size: 16px; }
-  .scroll { flex: 1; overflow: hidden; padding: 14px 14px 0; display: flex; flex-direction: column; gap: 12px; }
-  .nav { height: 72px; flex-shrink: 0; background: var(--parch); border-top: 4px solid var(--ink); display: grid; grid-template-columns: repeat(4, 1fr); }
-  .nav div { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-family: var(--px); font-size: 7px; color: var(--muted); }
-  .nav div.on { background: var(--gold); color: var(--ink); box-shadow: inset 0 -4px 0 var(--gold-d); }
+/* Switcher toolbar */
+.toolbar { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; align-items: center; padding: 12px 8px; margin: 0 -16px 36px; background: rgba(15, 17, 38, .82); backdrop-filter: blur(8px); color: #fff; font-family: 'Inter', sans-serif; font-size: 13px; }
+.toolbar .grp { display: flex; align-items: center; gap: 6px; }
+.toolbar .grp > span { opacity: .7; margin-right: 4px; }
+.toolbar button { font: 600 13px 'Inter', sans-serif; border: 1px solid #ffffff33; background: transparent; color: #fff; padding: 7px 12px; border-radius: 999px; cursor: pointer; }
+.toolbar button.on { background: #fff; color: #111; }
 
-  /* ---------- Shared UI ---------- */
-  .card { background: var(--parch); border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); padding: 12px; }
-  .card.dark { background: var(--night-2); color: var(--parch); }
-  .label { font-family: var(--px); font-size: 9px; letter-spacing: .5px; color: var(--muted); }
-  .card.dark .label { color: #bdb4dc; }
-  .h { font-family: var(--px); font-size: 11px; line-height: 1.5; }
-  .big { font-family: var(--px); font-size: 26px; }
-  .segbar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-  .segbar i { height: 12px; border: 2px solid var(--ink); background: #fff8; display: block; }
-  .segbar i.d { background: var(--green); }
-  .segbar i.p { background: var(--gold); }
-  .bar { height: 16px; border: 3px solid var(--ink); background: #fff7; position: relative; }
-  .bar b { position: absolute; inset: 0 auto 0 0; background: repeating-linear-gradient(90deg, var(--green) 0 10px, #5fae6a 10px 12px); }
-  .bar.gold b { background: repeating-linear-gradient(90deg, var(--gold) 0 10px, #f2c46a 10px 12px); }
-  .bar.blue b { background: repeating-linear-gradient(90deg, var(--blue) 0 10px, #5a8bd0 10px 12px); }
-  .btn { font-family: var(--px); font-size: 10px; background: var(--wine); color: var(--parch); border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); padding: 10px 12px; display: inline-flex; gap: 8px; align-items: center; justify-content: center; }
-  .btn.gold { background: var(--gold); color: var(--ink); }
-  .btn.ghost { background: var(--paper); color: var(--ink); }
-  .chip { font-family: var(--px); font-size: 8px; border: 2px solid var(--ink); padding: 4px 6px; background: var(--paper); color: var(--ink); display: inline-block; }
-  .chip.on { background: var(--gold); }
-  .verse { font-size: 19px; line-height: 1.05; }
-  .verse cite { display: block; font-style: normal; font-family: var(--px); font-size: 8px; margin-top: 6px; color: var(--gold); }
+.hero { text-align: center; max-width: 960px; margin: 0 auto 56px; }
+.hero .icons { display: flex; justify-content: center; gap: 26px; margin-bottom: 22px; align-items: flex-end; }
+.hero h1 { font-family: var(--fh); font-weight: 700; font-size: var(--fs-hero); color: var(--page-accent); letter-spacing: 1px; }
+[data-theme="pixel"] .hero h1 { text-shadow: 4px 4px 0 #1d1b2f; font-weight: 400; }
+.hero p { font-size: calc(var(--fs-body) * 1.25); margin-top: 14px; color: var(--page-muted); }
+.hero .pill { display: inline-block; margin-top: 16px; font-family: var(--fh); font-size: var(--fs-tag); padding: 8px 14px; border-radius: var(--r-pill); background: var(--accent); color: var(--accent-ink); border: var(--bw-sm) solid var(--line); }
+.section-title { font-family: var(--fh); font-weight: var(--fw-h); font-size: calc(var(--fs-h) * 1.4); color: var(--page-accent); text-align: center; margin: 0 auto 28px; letter-spacing: 1px; }
+.section-title span { display: block; font-family: var(--fb); font-weight: 400; font-size: calc(var(--fs-body) * 1.1); color: var(--page-muted); margin-top: 10px; letter-spacing: 0; }
+.phones { display: flex; flex-wrap: wrap; justify-content: center; gap: 40px; margin: 0 auto 60px; }
+.phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.cap { font-family: var(--fh); font-weight: var(--fw-h); font-size: var(--fs-lbl); color: var(--page-muted); text-transform: uppercase; letter-spacing: var(--lbl-ls); }
+.block { margin-bottom: 100px; }
 
-  /* Task rows (member) */
-  .task { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border: 3px solid var(--ink); background: var(--paper); }
-  .task.done { background: #e3f0d6; }
-  .task .ic { width: 36px; height: 36px; display: grid; place-items: center; background: var(--parch); border: 2px solid var(--ink); flex-shrink: 0; }
-  .task .t { flex: 1; line-height: 1; }
-  .task .t b { font-family: var(--px); font-size: 9px; font-weight: normal; display: block; margin-bottom: 4px; }
-  .task .t span { font-size: 17px; color: var(--muted); }
-  .box { width: 26px; height: 26px; border: 3px solid var(--ink); background: #fff; display: grid; place-items: center; }
-  .box.d { background: var(--green); }
-  .dots { display: flex; gap: 4px; align-items: center; }
-  .dots i { width: 14px; height: 14px; border: 2px solid var(--ink); background: #fff; display: block; }
-  .dots i.d { background: var(--green); }
-  .dots i.wk { width: 10px; }
-  .plus { width: 26px; height: 26px; border: 3px solid var(--ink); background: var(--gold); font-family: var(--px); font-size: 12px; display: grid; place-items: center; margin-left: 4px; box-shadow: 2px 2px 0 var(--ink); }
+/* =====================================================================
+   SHARED COMPONENTS
+   ===================================================================== */
+.card { background: var(--surface); border: var(--bw) solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); padding: 14px; color: var(--ink); }
+.card.hero-card { background: var(--hero-bg); color: var(--hero-ink); }
+.card.hero-card .lbl { color: var(--hero-muted); }
+.lbl { font-family: var(--fh); font-size: var(--fs-lbl); letter-spacing: var(--lbl-ls); color: var(--muted); text-transform: uppercase; font-weight: var(--fw-h); }
+[data-theme="clean"] .lbl { font-weight: 600; }
+.h { font-family: var(--fh); font-weight: var(--fw-h); font-size: var(--fs-h); line-height: 1.35; }
+.big { font-family: var(--fh); font-weight: 700; font-size: var(--fs-big); line-height: 1.1; }
+[data-theme="pixel"] .big { font-weight: 400; }
+.small { font-size: var(--fs-small); color: var(--muted); }
+.row { display: flex; align-items: center; gap: 10px; }
+.grow { flex: 1; min-width: 0; }
 
-  /* Member rows (group) */
-  .mrow { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border-bottom: 2px dashed #c9b88f; }
-  .mrow:last-child { border-bottom: 0; }
-  .mrow .n { flex: 1; line-height: 1; font-size: 20px; }
-  .mrow .n small { display: block; font-size: 16px; color: var(--wine); }
-  .mrow .n small.ok { color: var(--green-d); }
-  .mrow .score { font-family: var(--px); font-size: 10px; width: 34px; text-align: right; }
-  .pips { display: grid; grid-template-columns: repeat(7, 9px); gap: 2px; }
-  .pips i { width: 9px; height: 9px; border: 2px solid var(--ink); display: block; background: #fff; }
-  .pips i.d { background: var(--green); }
-  .pips i.p { background: var(--gold); }
+.bar { height: var(--bar-h); border: var(--bw) solid var(--line); background: var(--bar-track); border-radius: var(--r-pill); position: relative; overflow: hidden; }
+[data-theme="pixel"] .bar { border-color: #1d1b2f; }
+.bar b { position: absolute; inset: 0 auto 0 0; background: var(--bar-fill); border-radius: var(--r-pill); }
+.bar.warn b { background: var(--bar-warn); }
+.bar.bad b { background: var(--bar-bad); }
+.bar.thin { --bar-h: 8px; }
+[data-theme="pixel"] .bar.thin { --bar-h: 12px; border-width: 2px; }
 
-  .drops { display: flex; gap: 8px; }
-  .drops .off { opacity: .28; filter: grayscale(1); }
+.btn { font-family: var(--fh); font-weight: var(--fw-h); font-size: var(--fs-tag); background: var(--primary); color: var(--primary-ink); border: var(--bw) solid var(--line); border-radius: var(--r-pill); box-shadow: var(--shadow-sm); padding: 10px 14px; display: inline-flex; gap: 8px; align-items: center; justify-content: center; white-space: nowrap; }
+[data-theme="pixel"] .btn { border-color: #1d1b2f; }
+[data-theme="soft"] .btn { font-size: 14px; padding: 11px 18px; }
+[data-theme="clean"] .btn { font-size: 13px; padding: 9px 14px; border-radius: 8px; }
+.btn.acc { background: var(--accent); color: var(--accent-ink); }
+.btn.ghost { background: var(--surface-2); color: var(--ink); }
+[data-theme="clean"] .btn.ghost { border: 1px solid var(--line); }
+.chip { font-family: var(--fh); font-weight: var(--fw-h); font-size: var(--fs-tag); border: var(--bw-sm) solid var(--line); border-radius: var(--r-pill); padding: 5px 9px; background: var(--surface-2); color: var(--ink); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+[data-theme="pixel"] .chip { border-color: #1d1b2f; }
+[data-theme="soft"] .chip { background: var(--inset); padding: 6px 12px; }
+[data-theme="clean"] .chip { border: 1px solid var(--line); }
+.chip.on { background: var(--accent); color: var(--accent-ink); }
+[data-theme="soft"] .chip.on { background: var(--primary); color: #fff; }
+.tag { font-family: var(--fh); font-weight: var(--fw-h); font-size: var(--fs-tag); padding: 5px 8px; border: var(--bw-sm) solid var(--line); border-radius: var(--r-pill); display: inline-block; white-space: nowrap; }
+[data-theme="pixel"] .tag { border-color: #1d1b2f; }
+.tag.ok { background: var(--ok); color: #fff; }
+.tag.warn { background: var(--warn); color: #3a2600; }
+.tag.bad { background: var(--bad); color: #fff; }
+[data-theme="clean"] .tag.ok { background: var(--ok-soft); color: var(--ok); border-color: #bbf7d0; }
+[data-theme="clean"] .tag.warn { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+[data-theme="clean"] .tag.bad { background: var(--bad-soft); color: var(--bad); border-color: #fecdd3; }
+.verse { font-size: calc(var(--fs-body) * .98); line-height: 1.2; font-style: italic; }
+[data-theme="pixel"] .verse { font-style: normal; }
+.verse cite { display: block; font-style: normal; font-family: var(--fh); font-weight: var(--fw-h); font-size: var(--fs-tag); margin-top: 6px; color: var(--hero-accent); letter-spacing: var(--lbl-ls); }
 
-  /* ---------- Desktop ---------- */
-  .browser { width: 1440px; max-width: 100%; margin: 0 auto; border: 6px solid var(--ink); outline: 6px solid #3b3a55; box-shadow: 14px 14px 0 #0e0f22; background: var(--paper); color: var(--ink); }
-  .browser-top { height: 44px; background: #3b3a55; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 4px solid var(--ink); }
-  .browser-top i { width: 14px; height: 14px; border: 2px solid var(--ink); display: block; }
-  .browser-top .url { flex: 1; margin-left: 16px; background: var(--parch); border: 3px solid var(--ink); height: 26px; font-family: var(--px); font-size: 9px; display: flex; align-items: center; padding: 0 10px; color: var(--muted); }
-  .app { display: grid; grid-template-columns: 236px 1fr; min-height: 900px; }
-  .side { background: var(--night); color: var(--parch); border-right: 4px solid var(--ink); padding: 22px 16px; display: flex; flex-direction: column; gap: 6px; }
-  .side .brand { display: flex; align-items: center; gap: 10px; font-family: var(--px); font-size: 13px; color: var(--gold); margin-bottom: 22px; line-height: 1.4; }
-  .side a { display: flex; align-items: center; gap: 12px; padding: 10px 10px; font-family: var(--px); font-size: 9px; color: #cfc6e6; text-decoration: none; border: 3px solid transparent; }
-  .side a.on { background: var(--gold); color: var(--ink); border-color: var(--ink); box-shadow: 3px 3px 0 #0e0f22; }
-  .side .grp { margin-top: auto; border: 3px solid #4a4f80; padding: 12px; font-size: 18px; color: #cfc6e6; }
-  .side .grp b { font-family: var(--px); font-size: 9px; color: var(--gold); font-weight: normal; display: block; margin-bottom: 6px; }
-  .main { padding: 24px 28px 32px; display: flex; flex-direction: column; gap: 20px; }
-  .topline { display: flex; align-items: center; gap: 16px; }
-  .topline h2 { font-family: var(--px); font-size: 18px; flex: 1; line-height: 1.5; }
-  .topline h2 small { display: block; font-family: var(--vt); font-size: 22px; color: var(--muted); font-weight: normal; }
-  .month { font-family: var(--px); font-size: 11px; border: 3px solid var(--ink); background: var(--parch); padding: 10px 14px; box-shadow: 3px 3px 0 var(--ink); }
-  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
-  .kpi { display: flex; align-items: center; gap: 14px; }
-  .kpi .v { font-family: var(--px); font-size: 22px; margin-top: 8px; }
-  .kpi .s { font-size: 18px; color: var(--muted); }
-  .grid2 { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
-  table.mx { width: 100%; border-collapse: collapse; }
-  table.mx th { font-family: var(--px); font-size: 8px; font-weight: normal; padding: 6px 4px 10px; color: var(--muted); text-align: center; vertical-align: bottom; line-height: 1.6; }
-  table.mx th .thi { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-  table.mx th:first-child { text-align: left; }
-  table.mx td { border-top: 2px dashed #c9b88f; padding: 7px 4px; text-align: center; }
-  table.mx td:first-child { text-align: left; }
-  .who { display: flex; align-items: center; gap: 10px; font-size: 21px; }
-  .cell { width: 46px; height: 30px; margin: 0 auto; border: 3px solid var(--ink); display: grid; place-items: center; font-family: var(--px); font-size: 9px; background: #fff; }
-  .cell.d { background: var(--green); }
-  .cell.p { background: var(--gold); }
-  .cell.m { background: #f6d9d6; border-style: dashed; color: var(--wine); }
-  .tag { font-family: var(--px); font-size: 8px; padding: 5px 6px; border: 2px solid var(--ink); display: inline-block; }
-  .tag.ok { background: var(--green); color: #fff; }
-  .tag.close { background: var(--gold); }
-  .tag.help { background: var(--wine-l); color: #fff; }
-  .legend { display: flex; gap: 18px; font-size: 18px; color: var(--muted); margin-top: 10px; align-items: center; }
-  .legend i { width: 14px; height: 14px; border: 2px solid var(--ink); display: inline-block; vertical-align: -2px; margin-right: 6px; }
-  .grid3 { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 20px; }
-  .garden { display: flex; justify-content: space-between; align-items: flex-end; gap: 6px; margin-top: 10px; padding: 8px 6px 0; background: linear-gradient(transparent 78%, #c9b88f 78%); }
-  .garden .g { text-align: center; font-family: var(--px); font-size: 8px; line-height: 1.7; }
-  .garden .g.me { outline: 3px dashed var(--wine); outline-offset: 4px; }
-  .actrow { display: grid; grid-template-columns: 26px 110px 1fr 40px; gap: 10px; align-items: center; margin-top: 9px; font-size: 19px; }
-  .actrow .c { font-family: var(--px); font-size: 9px; text-align: right; }
-  .help-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 2px dashed #c9b88f; font-size: 19px; line-height: 1; }
-  .help-row:last-child { border-bottom: 0; }
-  .help-row .n { flex: 1; }
-  .help-row .n small { display: block; color: var(--wine); font-size: 17px; margin-top: 3px; }
+.ic { width: 40px; height: 40px; display: grid; place-items: center; flex-shrink: 0; background: var(--surface-2); border: var(--bw-sm) solid var(--line); border-radius: var(--r-sm); }
+[data-theme="pixel"] .ic { border-color: #1d1b2f; background: var(--surface); }
+[data-theme="soft"] .ic { background: linear-gradient(180deg, #ffffff 0%, #f2edff 100%); box-shadow: 0 6px 12px -6px rgba(76, 56, 160, .35), inset 0 -2px 0 rgba(76, 56, 160, .08); }
+[data-theme="clean"] .ic { background: var(--inset); border: 0; }
+.ic.sm { width: 30px; height: 30px; }
+.avatar { width: 36px; height: 36px; background: var(--primary); color: var(--primary-ink); font-family: var(--fh); font-weight: 700; font-size: 12px; display: grid; place-items: center; flex-shrink: 0; border: var(--bw) solid var(--line); border-radius: var(--r-pill); box-shadow: var(--shadow-sm); }
+[data-theme="pixel"] .avatar { border-color: #1d1b2f; font-size: 10px; font-weight: 400; }
+[data-theme="soft"] .avatar { background: linear-gradient(145deg, #ff9a8b, #ff6a88); }
+[data-theme="clean"] .avatar { background: #e0e7ff; color: #3730a3; font-size: 12px; border: 0; }
+.avatar.lg { width: 56px; height: 56px; font-size: 16px; }
+.plantbox { border: var(--bw) solid var(--line); border-radius: var(--r-sm); padding: 6px 8px 2px; background: #dfeef5; display: flex; align-items: flex-end; justify-content: center; }
+[data-theme="pixel"] .plantbox { border-color: #1d1b2f; }
+[data-theme="soft"] .plantbox { background: radial-gradient(circle at 50% 30%, #ffffff 0%, #e4f3ff 70%); border-radius: 20px; padding: 10px 10px 4px; }
+[data-theme="clean"] .plantbox { background: #f0fdf4; border: 0; padding: 8px 10px 4px; }
+.hero-card .plantbox { background: rgba(255, 255, 255, .12); }
+[data-theme="pixel"] .hero-card .plantbox { background: #39406e; }
 
-  .notes { max-width: 1100px; margin: 80px auto 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; color: var(--ink); }
-  .notes .card { background: var(--parch); }
-  .notes h3 { font-family: var(--px); font-size: 11px; margin-bottom: 10px; line-height: 1.5; }
-  .notes p, .notes li { font-size: 20px; line-height: 1.1; }
-  .notes ul { padding-left: 18px; }
+.pips { display: grid; grid-template-columns: repeat(7, 10px); gap: 3px; }
+.pips i { width: 10px; height: 10px; border: var(--bw-sm) solid var(--line); display: block; background: var(--inset); border-radius: 3px; }
+[data-theme="pixel"] .pips i { border-color: #1d1b2f; background: #fff; border-radius: 0; width: 9px; height: 9px; }
+[data-theme="soft"] .pips i { border-radius: 50%; }
+.pips i.d { background: var(--ok); }
+.pips i.p { background: var(--warn); }
 
-  @media (max-width: 480px) {
-    .hero h1 { font-size: 22px; }
-    .phone { transform: scale(.82); transform-origin: top center; margin-bottom: -150px; }
-    .browser { overflow-x: auto; }
-  }
+/* Grid cells */
+.cell { width: 46px; height: 30px; margin: 0 auto; border: var(--bw) solid var(--line); border-radius: var(--r-sm); display: grid; place-items: center; font-family: var(--fh); font-weight: var(--fw-h); font-size: var(--fs-tag); background: var(--surface-2); position: relative; }
+[data-theme="pixel"] .cell { border-color: #1d1b2f; }
+[data-theme="soft"] .cell { border-radius: 10px; }
+[data-theme="clean"] .cell { border-radius: 6px; }
+.cell.d { background: var(--ok); color: #fff; }
+.cell.p { background: var(--warn); color: #3a2600; }
+.cell.m { background: var(--bad-soft); color: var(--bad); border-style: dashed; }
+[data-theme="pixel"] .cell.m { border-color: #1d1b2f; }
+[data-theme="soft"] .cell.m { border: 2px dashed #ffb3bf; }
+[data-theme="clean"] .cell.m { border: 1px dashed #fda4af; }
+[data-theme="clean"] .cell.d { background: var(--ok-soft); color: var(--ok); border-color: #bbf7d0; }
+[data-theme="clean"] .cell.p { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+.cell.sel { outline: 3px solid var(--primary); outline-offset: 2px; }
+.popover { position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 5; width: 210px; text-align: left; padding: 12px; color: var(--ink); font-family: var(--fb); font-size: var(--fs-small); }
+.popover::before { content: ''; position: absolute; top: -8px; left: 50%; margin-left: -8px; border: 8px solid transparent; border-top: 0; border-bottom-color: var(--ink); }
+[data-theme="soft"] .popover::before, [data-theme="clean"] .popover::before { border-bottom-color: #fff; }
+.stepper { display: flex; align-items: center; gap: 8px; }
+.stepper .sb { width: 30px; height: 30px; border: var(--bw) solid var(--line); border-radius: var(--r-pill); background: var(--surface-2); display: grid; place-items: center; font-family: var(--fh); font-weight: 700; font-size: 13px; box-shadow: var(--shadow-sm); color: var(--ink); }
+[data-theme="pixel"] .stepper .sb { border-color: #1d1b2f; }
+[data-theme="clean"] .stepper .sb { border: 1px solid var(--line); border-radius: 8px; }
+.stepper .sb.plus { background: var(--accent); color: var(--accent-ink); }
+[data-theme="soft"] .stepper .sb.plus { background: var(--primary); color: #fff; }
+.stepper .val { font-family: var(--fh); font-weight: 700; font-size: var(--fs-h); min-width: 36px; text-align: center; }
+[data-theme="pixel"] .stepper .val { font-weight: 400; }
+.switch { width: 46px; height: 26px; border-radius: 999px; background: #d6d3e3; position: relative; flex-shrink: 0; }
+.switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.switch.on { background: var(--ok); }
+.switch.on::after { left: 23px; }
+[data-theme="pixel"] .switch { border-radius: 0; border: 3px solid #1d1b2f; width: 30px; height: 30px; background: #fff; }
+[data-theme="pixel"] .switch::after { display: none; }
+[data-theme="pixel"] .switch.on { background: var(--ok); }
+[data-theme="pixel"] .switch.on::before { content: ''; position: absolute; inset: 0; background: center/18px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23fff' d='M6 0h1v1H6zM5 1h2v1H5zM0 2h1v1H0zM4 2h2v1H4zM0 3h2v1H0zM3 3h2v1H3zM1 4h3v1H1zM2 5h1v1H2z'/%3E%3C/svg%3E"); }
+.seg { display: inline-flex; border: var(--bw-sm) solid var(--line); border-radius: var(--r-pill); overflow: hidden; background: var(--surface-2); }
+[data-theme="pixel"] .seg { border-color: #1d1b2f; }
+[data-theme="clean"] .seg { border: 1px solid var(--line); border-radius: 8px; }
+.seg span { font-family: var(--fh); font-weight: var(--fw-h); font-size: var(--fs-tag); padding: 7px 12px; color: var(--muted); }
+.seg span.on { background: var(--accent); color: var(--accent-ink); }
+[data-theme="soft"] .seg span.on { background: var(--primary); color: #fff; border-radius: 999px; }
+.input { border: var(--bw-sm) solid var(--line); border-radius: var(--r-sm); background: var(--surface-2); padding: 8px 10px; font-family: var(--fb); font-size: var(--fs-body); color: var(--ink); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+[data-theme="pixel"] .input { border-color: #1d1b2f; background: #fff; }
+[data-theme="soft"] .input { background: var(--inset); border-radius: 12px; }
+[data-theme="clean"] .input { border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; }
+.input.num { width: 68px; padding: 7px 4px; font-family: var(--fh); font-weight: 600; font-size: var(--fs-tag); justify-content: center; }
+.divider { border-top: 2px dashed var(--dash); }
+[data-theme="clean"] .divider { border-top: 1px solid var(--dash); }
+
+/* =====================================================================
+   PHONE
+   ===================================================================== */
+.phone { width: 390px; height: 844px; background: var(--surface-2); border: var(--phone-bezel); outline: var(--phone-outline); border-radius: var(--phone-r); box-shadow: var(--phone-shadow); position: relative; overflow: hidden; color: var(--ink); display: flex; flex-direction: column; }
+[data-theme="soft"] .phone { background: linear-gradient(180deg, #f7f4ff 0%, #fffaf2 100%); }
+[data-theme="clean"] .phone { background: #f6f8fb; }
+.status { height: 44px; display: flex; justify-content: space-between; align-items: center; padding: 0 26px; font-family: var(--fh); font-weight: 600; font-size: 13px; background: var(--appbar-bg); color: var(--appbar-ink); flex-shrink: 0; }
+[data-theme="pixel"] .status { font-size: 10px; font-weight: 400; }
+.status .notch { width: 110px; height: 26px; background: #111; border-radius: var(--r-pill); }
+[data-theme="pixel"] .status .notch { border-radius: 0; background: #1d1b2f; }
+.status .bat { display: flex; gap: 3px; }
+.status .bat i { width: 5px; height: 10px; background: currentColor; display: block; border-radius: 1px; }
+.appbar { background: var(--appbar-bg); color: var(--appbar-ink); padding: 8px 16px 16px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+[data-theme="pixel"] .appbar { border-bottom: 4px solid #1d1b2f; }
+[data-theme="soft"] .appbar { border-radius: 0 0 28px 28px; padding-bottom: 20px; box-shadow: 0 10px 24px -12px rgba(76, 56, 160, .6); }
+[data-theme="clean"] .appbar { border-bottom: 1px solid var(--line); }
+.appbar .title { font-family: var(--fh); font-weight: 700; font-size: var(--fs-h); flex: 1; line-height: 1.35; }
+[data-theme="pixel"] .appbar .title { color: var(--accent); font-weight: 400; }
+.appbar .title small { display: block; font-family: var(--fb); font-weight: 400; font-size: var(--fs-small); opacity: .8; letter-spacing: 0; }
+.scroll { flex: 1; overflow: hidden; padding: 14px 14px 0; display: flex; flex-direction: column; gap: 12px; }
+.nav { height: 78px; flex-shrink: 0; background: var(--surface); display: grid; grid-template-columns: repeat(4, 1fr); padding-bottom: 8px; }
+[data-theme="pixel"] .nav { border-top: 4px solid #1d1b2f; padding-bottom: 0; }
+[data-theme="soft"] .nav { margin: 0 12px 12px; border-radius: 26px; height: 70px; box-shadow: var(--shadow); padding: 0; }
+[data-theme="clean"] .nav { border-top: 1px solid var(--line); }
+.nav div { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; font-family: var(--fh); font-weight: 600; font-size: 10.5px; color: var(--muted); }
+[data-theme="pixel"] .nav div { font-size: 7px; font-weight: 400; }
+.nav div.on { color: var(--primary); }
+[data-theme="pixel"] .nav div.on { background: var(--accent); color: #1d1b2f; box-shadow: inset 0 -4px 0 #a8761f; }
+[data-theme="soft"] .nav div.on { color: var(--primary); }
+[data-theme="soft"] .nav div.on svg { transform: translateY(-2px) scale(1.12); filter: drop-shadow(0 4px 4px rgba(76, 56, 160, .3)); }
+[data-theme="clean"] .nav div.on { color: var(--accent); }
+[data-theme="clean"] .nav div:not(.on) svg, [data-theme="soft"] .nav div:not(.on) svg { opacity: .55; filter: grayscale(.6); }
+
+.task { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: var(--bw) solid var(--line); border-radius: var(--r-sm); background: var(--surface); }
+[data-theme="pixel"] .task { border-color: #1d1b2f; background: var(--surface-2); }
+[data-theme="soft"] .task { box-shadow: 0 6px 16px -10px rgba(76, 56, 160, .4); border-radius: 18px; }
+.task.done { background: var(--ok-soft); }
+.task .t { flex: 1; line-height: 1.1; min-width: 0; }
+.task .t b { font-family: var(--fh); font-weight: var(--fw-h); font-size: calc(var(--fs-h) * .82); display: block; margin-bottom: 3px; }
+.task .t span { font-size: var(--fs-small); color: var(--muted); }
+.mrow { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-bottom: 2px dashed var(--dash); }
+[data-theme="clean"] .mrow { border-bottom: 1px solid var(--dash); }
+.mrow:last-child { border-bottom: 0; }
+.mrow .n { flex: 1; line-height: 1.1; min-width: 0; }
+.mrow .n small { display: block; font-size: var(--fs-small); color: var(--bad); }
+.mrow .n small.ok { color: var(--ok); }
+.mrow .score { font-family: var(--fh); font-weight: 700; font-size: var(--fs-tag); width: 34px; text-align: right; }
+.memberchips { display: flex; gap: 6px; overflow: hidden; }
+
+/* =====================================================================
+   DESKTOP
+   ===================================================================== */
+.browser { width: 1440px; max-width: 100%; margin: 0 auto 30px; border: 6px solid #1d1b2f; outline: 6px solid #3b3a55; box-shadow: 14px 14px 0 #0e0f22; background: var(--surface-2); color: var(--ink); overflow: hidden; }
+[data-theme="soft"] .browser { border: 0; outline: 0; border-radius: 22px; box-shadow: 0 50px 100px -30px rgba(46, 42, 74, .45); background: #f7f4ff; }
+[data-theme="clean"] .browser { border: 1px solid #cbd5e1; outline: 0; border-radius: 12px; box-shadow: 0 30px 60px -30px rgba(15, 23, 42, .3); background: #f6f8fb; }
+.browser-top { height: 44px; background: #3b3a55; display: flex; align-items: center; gap: 8px; padding: 0 16px; }
+[data-theme="pixel"] .browser-top { border-bottom: 4px solid #1d1b2f; }
+[data-theme="soft"] .browser-top { background: #ece7fb; }
+[data-theme="clean"] .browser-top { background: #f1f5f9; border-bottom: 1px solid #e2e8f0; }
+.browser-top i { width: 13px; height: 13px; display: block; border-radius: 50%; }
+[data-theme="pixel"] .browser-top i { border-radius: 0; border: 2px solid #1d1b2f; }
+.browser-top .url { flex: 1; max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 8px; height: 28px; font: 500 12px 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; color: #64748b; }
+[data-theme="pixel"] .browser-top .url { border-radius: 0; border: 3px solid #1d1b2f; background: #f4e9cf; font: 9px 'Press Start 2P'; }
+.app { display: grid; grid-template-columns: 240px 1fr; min-height: 940px; }
+.side { background: var(--side-bg); color: var(--side-ink); padding: 22px 16px; display: flex; flex-direction: column; gap: 4px; }
+[data-theme="pixel"] .side { border-right: 4px solid #1d1b2f; }
+[data-theme="clean"] .side { border-right: 1px solid var(--line); }
+.side .brand { display: flex; align-items: center; gap: 10px; font-family: var(--fh); font-weight: 700; font-size: var(--fs-h); margin-bottom: 18px; line-height: 1.3; color: var(--side-ink); }
+[data-theme="pixel"] .side .brand { color: var(--accent); font-weight: 400; }
+[data-theme="soft"] .side .brand { color: #fff; font-size: 20px; }
+[data-theme="clean"] .side .brand { color: var(--ink); }
+.side .scope { margin-bottom: 14px; }
+.side .scope .input { font-size: var(--fs-small); }
+[data-theme="pixel"] .side .scope .input { background: #2b3058; color: var(--side-ink); border-color: #4a4f80; }
+[data-theme="soft"] .side .scope .input { background: rgba(255,255,255,.12); color: #fff; }
+.side a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; font-family: var(--fh); font-weight: var(--fw-h); font-size: calc(var(--fs-h) * .82); color: var(--side-ink); text-decoration: none; border: var(--bw) solid transparent; border-radius: var(--r-sm); }
+[data-theme="clean"] .side a { font-size: 14px; font-weight: 500; }
+.side a.on { background: var(--side-on-bg); color: var(--side-on-ink); }
+[data-theme="pixel"] .side a.on { border-color: #1d1b2f; box-shadow: 3px 3px 0 #0e0f22; }
+[data-theme="soft"] .side a.on { box-shadow: 0 10px 20px -8px rgba(0,0,0,.4); }
+.side a .ct { margin-left: auto; font-size: var(--fs-tag); opacity: .7; }
+.side .who { margin-top: auto; border: 2px solid rgba(255,255,255,.15); border-radius: var(--r-sm); padding: 12px; font-size: var(--fs-small); display: flex; gap: 10px; align-items: center; }
+[data-theme="pixel"] .side .who { border: 3px solid #4a4f80; }
+[data-theme="clean"] .side .who { border: 1px solid var(--line); }
+.side .who b { font-family: var(--fh); font-weight: var(--fw-h); font-size: var(--fs-tag); display: block; margin-bottom: 4px; color: var(--hero-accent); }
+[data-theme="clean"] .side .who b { color: var(--accent); }
+.main { padding: 26px 30px 34px; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.topline { display: flex; align-items: center; gap: 14px; }
+.topline h2 { font-family: var(--fh); font-weight: 700; font-size: var(--fs-h2); flex: 1; line-height: 1.3; }
+[data-theme="pixel"] .topline h2 { font-weight: 400; }
+.topline h2 small { display: block; font-family: var(--fb); font-size: calc(var(--fs-body) * 1.05); color: var(--muted); font-weight: 400; margin-top: 4px; }
+.topline h2 .edit { display: inline-flex; vertical-align: middle; margin-left: 8px; opacity: .55; }
+.kpis { display: grid; gap: 18px; }
+.kpi { display: flex; align-items: center; gap: 14px; }
+.kpi .v { font-family: var(--fh); font-weight: 700; font-size: calc(var(--fs-big) * .82); margin-top: 6px; }
+[data-theme="pixel"] .kpi .v { font-weight: 400; }
+.kpi .v small { font-size: .55em; color: var(--muted); }
+.grid2 { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+.grid3 { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 20px; }
+table.mx { width: 100%; border-collapse: collapse; }
+table.mx th { font-family: var(--fh); font-weight: var(--fw-h); font-size: var(--fs-tag); padding: 6px 4px 10px; color: var(--muted); text-align: center; vertical-align: bottom; line-height: 1.4; }
+table.mx th .thi { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+table.mx th:first-child, table.mx td:first-child { text-align: left; }
+table.mx td { border-top: 2px dashed var(--dash); padding: 8px 4px; text-align: center; }
+[data-theme="clean"] table.mx td { border-top: 1px solid var(--dash); }
+table.mx tr.hl td { background: var(--inset); }
+.who-cell { white-space: nowrap; display: flex; align-items: center; gap: 10px; font-size: calc(var(--fs-body) * 1.02); line-height: 1.1; }
+.legend { display: flex; gap: 18px; font-size: var(--fs-small); color: var(--muted); margin-top: 12px; align-items: center; }
+.legend i { width: 14px; height: 14px; display: inline-block; vertical-align: -2px; margin-right: 6px; border-radius: 3px; }
+.garden { display: flex; justify-content: space-between; align-items: flex-end; gap: 6px; margin-top: 12px; padding: 8px 6px 0; background: linear-gradient(transparent 80%, var(--inset) 80%); border-radius: var(--r-sm); }
+.garden .g { text-align: center; font-family: var(--fh); font-weight: var(--fw-h); font-size: var(--fs-tag); line-height: 1.6; display: flex; flex-direction: column; align-items: center; }
+.garden .g.me { outline: 3px dashed var(--primary); outline-offset: 4px; border-radius: var(--r-sm); }
+.actrow { display: grid; grid-template-columns: 26px 1fr 110px 40px; gap: 10px; align-items: center; margin-top: 10px; font-size: var(--fs-small); color: var(--ink); }
+.actrow .c { font-family: var(--fh); font-weight: 600; font-size: var(--fs-tag); text-align: right; }
+.list-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 2px dashed var(--dash); line-height: 1.15; }
+[data-theme="clean"] .list-row { border-bottom: 1px solid var(--dash); }
+.list-row:last-child { border-bottom: 0; }
+.list-row .n { flex: 1; min-width: 0; }
+.list-row .n small { display: block; color: var(--bad); font-size: var(--fs-small); margin-top: 2px; }
+.metric-cell { min-width: 92px; text-align: left; }
+.metric-cell .nums { font-family: var(--fh); font-weight: 600; font-size: var(--fs-tag); margin-bottom: 5px; display: flex; justify-content: space-between; }
+[data-theme="pixel"] .metric-cell .nums { font-weight: 400; }
+.metric-cell .nums span { color: var(--muted); }
+.formrow { display: grid; grid-template-columns: 24px 1fr 68px 68px; gap: 8px; align-items: center; padding: 7px 0; border-bottom: 2px dashed var(--dash); font-size: var(--fs-small); }
+[data-theme="clean"] .formrow { border-bottom: 1px solid var(--dash); }
+
+.notes { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+.notes h3 { font-family: var(--fh); font-weight: var(--fw-h); font-size: var(--fs-h); margin-bottom: 10px; line-height: 1.4; }
+.notes p, .notes li { font-size: var(--fs-body); line-height: calc(var(--lh) + .1); }
+.notes ul { padding-left: 18px; }
+.notes li { margin-bottom: 4px; }
+
+@media (max-width: 480px) {
+  .phone { transform: scale(.82); transform-origin: top center; margin-bottom: -150px; }
+  .browser { overflow-x: auto; }
+}
 </style>
 </head>
 <body>
 
-<header class="hero">
-  <div class="icons" id="heroIcons"></div>
-  <h1>FAITHFUL 7</h1>
-  <p>A monthly faith tracker for church groups &mdash; every member, all 7 goals, growing together.</p>
-</header>
+<!-- Shared gradients for the Soft 3D style -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="sRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8b96"/><stop offset="1" stop-color="#e03a52"/></linearGradient>
+    <linearGradient id="sWine" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9566a"/><stop offset="1" stop-color="#7d2235"/></linearGradient>
+    <linearGradient id="sGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe08a"/><stop offset="1" stop-color="#f0a020"/></linearGradient>
+    <linearGradient id="sBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fd0ff"/><stop offset="1" stop-color="#2f7fd6"/></linearGradient>
+    <linearGradient id="sGreen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#93e88f"/><stop offset="1" stop-color="#2f9a4a"/></linearGradient>
+    <linearGradient id="sLeaf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a9f08f"/><stop offset="1" stop-color="#3aa55a"/></linearGradient>
+    <linearGradient id="sOlive" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e3d27a"/><stop offset="1" stop-color="#a39535"/></linearGradient>
+    <linearGradient id="sBrown" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0a46a"/><stop offset="1" stop-color="#b45a2c"/></linearGradient>
+    <linearGradient id="sRim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb47e"/><stop offset="1" stop-color="#cf6a36"/></linearGradient>
+    <linearGradient id="sGray" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4d2e6"/><stop offset="1" stop-color="#8f8bab"/></linearGradient>
+    <linearGradient id="sPurple" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b394ff"/><stop offset="1" stop-color="#6a3fd0"/></linearGradient>
+    <linearGradient id="sSkin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd2ad"/><stop offset="1" stop-color="#e6a174"/></linearGradient>
+    <radialGradient id="sPink" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#ffd6e0"/><stop offset="1" stop-color="#ff7a9a"/></radialGradient>
+  </defs>
+</svg>
 
-<h2 class="section-title">MOBILE APP<span>What members and group leaders see on their phones</span></h2>
-<div class="phones">
-  <div class="phone-wrap"><div class="phone" id="phone1"></div><div class="phone-cap">1 &middot; MY MONTH</div></div>
-  <div class="phone-wrap"><div class="phone" id="phone2"></div><div class="phone-cap">2 &middot; MY GROUP</div></div>
-  <div class="phone-wrap"><div class="phone" id="phone3"></div><div class="phone-cap">3 &middot; HELP A MEMBER</div></div>
+<div class="toolbar">
+  <div class="grp"><span>Design option:</span><button data-theme-btn="pixel">1 · 8-Bit</button><button data-theme-btn="soft">2 · Soft 3D</button><button data-theme-btn="clean">3 · Clean</button></div>
+  <div class="grp"><span>Language:</span><button data-lang-btn="en">English</button><button data-lang-btn="es">Español</button></div>
 </div>
 
-<h2 class="section-title">DESKTOP DASHBOARD<span>Group leader view on a computer</span></h2>
-<div class="browser" id="desktop"></div>
-
-<section class="notes">
-  <div class="card"><h3>THE 7 MONTHLY GOALS</h3><ul id="goalList"></ul></div>
-  <div class="card"><h3>PLANT = HEALTH</h3><p>Every member and every group has a pixel plant. It grows from seed to full bloom as goals are completed, and droops when a member is falling behind, so you can see at a glance who needs encouragement.</p></div>
-  <div class="card"><h3>GROUP GOAL</h3><p>Baptisms are tracked as a shared group goal with water drops filling in as the group reaches it, plus encouragement messages with Bible verses to keep everyone pushing.</p></div>
-</section>
+<div id="root"></div>
 
 <script>
-/* ================= Pixel art engine ================= */
+/* =====================================================================
+   STATE
+   ===================================================================== */
+const params = new URLSearchParams(location.search);
+let THEME = params.get('theme') || 'pixel';
+let LANG = params.get('lang') || 'en';
+const L = (en, es) => LANG === 'es' ? es : en;
+
+/* =====================================================================
+   ICONS: pixel set + smooth set (soft 3D gradients or clean flat)
+   ===================================================================== */
 const PAL = {
   k:'#1d1b2f', r:'#9a2f3e', D:'#5e1b27', R:'#d0475a', p:'#f19aa4', g:'#e8b04b', G:'#a8761f',
   w:'#f4e9cf', W:'#ffffff', s:'#e8b088', S:'#c0835c', u:'#3d6fb6', U:'#86bdf0', n:'#2f6b3a',
   N:'#4f9a5a', l:'#9bd46c', B:'#c0673a', b:'#9a4f2c', o:'#4a3020', c:'#8a8aa0', y:'#d6c46a', Y:'#8f8740'
 };
-function pix(rows, size) {
+function pix(rows, scale) {
   const h = rows.length, w = Math.max(...rows.map(r => r.length));
   let out = '';
   rows.forEach((row, y) => {
@@ -235,295 +423,524 @@ function pix(rows, size) {
       x = x2;
     }
   });
-  return `<svg viewBox="0 0 ${w} ${h}" width="${w * size}" height="${h * size}" shape-rendering="crispEdges" aria-hidden="true">${out}</svg>`;
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w * scale}" height="${h * scale}" shape-rendering="crispEdges" aria-hidden="true">${out}</svg>`;
 }
-
-const ICON = {
+const PIX = {
   heart: [".kk...kk.","kRpk.kRRk","kpRRkRRRk","kRRRRRRRk",".kRRRRRk.","..kRRRk..","...kRk...","....k...."],
   bible: [".kkkkkkkkk.","kDrrrrrrrrk","kDrrrrgrrrk","kDrrrrgrrrk","kDrrgggggrk","kDrrrrgrrrk","kDrrrrgrrrk","kDrrrrgrrrk","kDrrrrrrrrk","kDrrrrrrrrk","kDwwwwwwwwk",".kkkkkkkkk."],
   hands: ["....kkk....","...kskSk...","...kskSk...","..ksskSSk..","..ksskSSk..",".kssskSSSk.",".kssskSSSk.",".kssskSSSk.",".kssskSSSk.",".kuuukUUUk.",".kuuukUUUk.",".kkkkkkkkk."],
   calendar: [".k.....k.","kkkkkkkkk","kRRRRRRRk","kkkkkkkkk","kWWWWWWWk","kWkWWWkWk","kWWWWWWWk","kWWWkWWWk","kkkkkkkkk"],
   coin: ["..kkkkk..",".kgggggk.","kgggGgggk","kggGGGggk","kgggGgggk","kgggGgggk","kgggggggk",".kgggggk.","..kkkkk.."],
   laptop: [".kkkkkkk.",".kUUUUUk.",".kUWUUUk.",".kUUUUUk.",".kkkkkkk.","kccccccck","kkkkkkkkk"],
-  scroll: ["kkkkkkkk.","kGwwwwwwk","kkwkkkkwk",".kwwwwwwk",".kwkkkkwk",".kwwwwwwk",".kwkkkwwk",".kwwwwwGk",".kkkkkkkk"],
+  sign: [".......kk","......kgk",".....kgk.","....kgk..","...kgk...","..kGk....",".kkk.....",".........","kk.kk.kk."],
   globe: ["..kkkkk..",".kuNNuuk.","kuNNNuuuk","kuuNuuNNk","kuuuuNNNk","kNuuuuNuk","kNNuuuuuk",".kuNuuuk.","..kkkkk.."],
   speech: ["kkkkkkkkk","kWWWgWWWk","kWWgggWWk","kWWWgWWWk","kWWWgWWWk","kkkWkkkkk","..kWk....","..kk....."],
+  speechHeart: ["kkkkkkkkk","kWWRWRWWk","kWRRRRRWk","kWWRRRWWk","kWWWRWWWk","kkkWkkkkk","..kWk....","..kk....."],
   lamp: ["....R....","...RgR...","....g....","...kkk...",".kkBBBkkk","kBBBBBBBk","kbBBBBBbk",".kbbbbbk.","..kkkkk.."],
   drop: ["....k....","...kUk...","...kUk...","..kUUuk..",".kWUUUuk.",".kWUUUuk.",".kUUUuuk.","..kuuuk..","...kkk..."],
+  fruit: [".....k...","....kNN..",".kkkkkkk.","kRpRRRRRk","kpRRRRRRk","kRRRRRRrk","kRRRRRrrk",".kRRRrrk.","..kkkkk.."],
   check: ["......W",".....WW","W...WW.","WW.WW..",".WWW...","..W...."],
-  checkk: ["......k",".....kk","k...kk.","kk.kk..",".kkk...","..k...."],
   star: ["....k....","...kgk...","kkkkgkkkk","kggggggGk",".kgggGGk.","..kgkGk..",".kgk.kGk.","kkk...kkk"],
   people: [".kk...kk.","kssk.kSSk","kssk.kSSk",".kk...kk.","kuuk.kRRk","kuuk.kRRk","kuuk.kRRk","kkkk.kkkk"],
   chart: ["k........","k......g.","k..u..gg.","k..uu.gg.","k.uuu.gg.","k.uuuNgg.","kkkkkkkkk"],
   gear: ["..kk.kk..",".kcckcck.","kccccccck","kcckkkcck",".kck.kck.","kcckkkcck","kccccccck",".kcckcck.","..kk.kk.."],
+  pin: ["..kkkkk..",".kRRRRRk.","kRRkkkRRk","kRRkWkRRk","kRRkkkRRk",".kRRRRRk.","..kRRRk..","...kRk...","....k...."],
+  target: ["..kkkkk..",".kRRRRRk.","kRWWWWWRk","kRWRRRWRk","kRWRgRWRk","kRWRRRWRk","kRWWWWWRk",".kRRRRRk.","..kkkkk.."],
 };
+function pal() {
+  return THEME === 'soft'
+    ? { red:'url(#sRed)', wine:'url(#sWine)', gold:'url(#sGold)', blue:'url(#sBlue)', sky:'#d8eeff', green:'url(#sGreen)', brown:'url(#sBrown)', cream:'#fffaf0', ink:'#3a3460', gray:'url(#sGray)', purple:'url(#sPurple)', skin:'url(#sSkin)', white:'#ffffff' }
+    : { red:'#e5484d', wine:'#be123c', gold:'#f59e0b', blue:'#3b82f6', sky:'#dbeafe', green:'#22a55a', brown:'#c2703a', cream:'#ffffff', ink:'#334155', gray:'#94a3b8', purple:'#6d5bd0', skin:'#f2b48a', white:'#ffffff' };
+}
+const HL = () => THEME === 'soft'; // highlight shine on soft icons
+const shine = (cx, cy, rx, ry) => HL() ? `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#fff" opacity=".55"/>` : '';
+const SM = {
+  heart: P => `<path d="M12 21.2S3 15.6 3 9.4A4.8 4.8 0 0 1 12 7a4.8 4.8 0 0 1 9 2.4c0 6.2-9 11.8-9 11.8z" fill="${P.red}"/>${shine(8, 9.5, 2.2, 1.3)}`,
+  bible: P => `<rect x="4" y="2.5" width="16" height="19" rx="2.6" fill="${P.wine}"/><rect x="5.5" y="17.6" width="14.5" height="3.9" rx="1.2" fill="${P.cream}"/><rect x="10.9" y="5.6" width="2.2" height="9.4" rx="1" fill="${P.gold}"/><rect x="8" y="8.2" width="8" height="2.2" rx="1" fill="${P.gold}"/>${shine(7.5, 5.5, 1.6, 1)}`,
+  hands: P => `<path d="M11.4 3.2c-.9 0-1.6.7-1.7 1.6L8.6 13l-2.7 4.4V21h5.5V4.4c0-.4.2-1.2 0-1.2z" fill="${P.skin}"/><path d="M12.6 3.2c.9 0 1.6.7 1.7 1.6l1.1 8.2 2.7 4.4V21h-5.5V4.4c0-.4-.2-1.2 0-1.2z" fill="${P.skin}" opacity=".85"/><rect x="5.6" y="18.6" width="12.8" height="3" rx="1.2" fill="${P.blue}"/>`,
+  calendar: P => `<rect x="3" y="4.5" width="18" height="16.5" rx="3.5" fill="${P.cream}" stroke="${THEME === 'clean' ? '#cbd5e1' : 'none'}"/><path d="M3 8a3.5 3.5 0 0 1 3.5-3.5h11A3.5 3.5 0 0 1 21 8v2H3z" fill="${P.red}"/><rect x="7" y="2.5" width="2" height="4" rx="1" fill="${P.ink}"/><rect x="15" y="2.5" width="2" height="4" rx="1" fill="${P.ink}"/><circle cx="8" cy="14" r="1.3" fill="${P.gray}"/><circle cx="12" cy="14" r="1.3" fill="${P.gray}"/><circle cx="16" cy="14" r="1.3" fill="${P.green}"/><circle cx="8" cy="17.6" r="1.3" fill="${P.gray}"/><circle cx="12" cy="17.6" r="1.3" fill="${P.gray}"/>`,
+  coin: P => `<circle cx="12" cy="12" r="9.5" fill="${P.gold}"/><circle cx="12" cy="12" r="6.8" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.2"/><rect x="11" y="7.5" width="2" height="9" rx="1" fill="#fff"/><rect x="8.6" y="10" width="6.8" height="2" rx="1" fill="#fff"/>${shine(8.2, 7.5, 2, 1.1)}`,
+  laptop: P => `<rect x="4" y="4.5" width="16" height="11.5" rx="2" fill="${P.ink}"/><rect x="5.5" y="6" width="13" height="8.5" rx="1" fill="${P.blue}"/><path d="M2 17h20l-1.2 2.6a1.5 1.5 0 0 1-1.4.9H4.6a1.5 1.5 0 0 1-1.4-.9z" fill="${P.gray}"/>${shine(8.5, 8, 2, 1)}`,
+  sign: P => `<path d="M3 19.5c1.6-2.8 2.8-.2 4.3-1.4s1.4-2.4 3-1 2.2 1.2 3.4.2" stroke="${P.ink}" stroke-width="1.7" fill="none" stroke-linecap="round"/><g transform="rotate(42 15 9)"><rect x="12.8" y="1.5" width="4.4" height="13" rx="2.2" fill="${P.purple}"/><path d="M12.8 14.5h4.4L15 18.5z" fill="${P.gold}"/></g>`,
+  globe: P => `<circle cx="12" cy="12" r="9.5" fill="${P.blue}"/><path d="M7 6.5c2 .3 3 1.8 2.4 3.3-.6 1.4-2.4 1.2-2.8 2.9-.3 1.3-1.6 1.6-2.6.8A9.5 9.5 0 0 1 7 6.5zM14 4.6c1.8.4 3.3 1.4 4.4 2.8-1.2 1-2.8.6-3.6 1.8-.7 1-.1 2.6-1.4 3.1-1.2.4-2-1-1.6-2.4.5-1.6 2.4-2.3 2.2-5.3zM15.2 15c1.5-.6 3.4-.4 4.3.2a9.5 9.5 0 0 1-5.3 5.6c-.5-1.2-.4-2.6.2-3.6.3-.6.2-1.8.8-2.2z" fill="${P.green}"/>${shine(8.5, 6.8, 2.2, 1.2)}`,
+  speech: P => `<path d="M5 3.5h14a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-8.5L6 21.5v-4H5a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3z" fill="${P.blue}"/><rect x="11" y="6" width="2" height="9" rx="1" fill="#fff"/><rect x="8.6" y="8.4" width="6.8" height="2" rx="1" fill="#fff"/>${shine(6.5, 5.6, 2, .9)}`,
+  speechHeart: P => `<path d="M5 3.5h14a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-8.5L6 21.5v-4H5a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3z" fill="${P.purple}"/><path d="M12 15.2s-4.2-2.5-4.2-5.4a2.2 2.2 0 0 1 4.2-1 2.2 2.2 0 0 1 4.2 1c0 2.9-4.2 5.4-4.2 5.4z" fill="#fff"/>${shine(6.5, 5.6, 2, .9)}`,
+  lamp: P => `<path d="M12 2.5c2 2.6 3 4.1 3 5.9a3 3 0 0 1-6 0c0-1.8 1-3.3 3-5.9z" fill="${P.gold}"/><rect x="9.5" y="11.5" width="5" height="2.6" rx="1" fill="${P.ink}"/><path d="M3.5 14h17a1 1 0 0 1 .9 1.4l-1.5 3.4a3 3 0 0 1-2.8 1.7H7a3 3 0 0 1-2.8-1.7l-1.6-3.4A1 1 0 0 1 3.5 14z" fill="${P.brown}"/>${shine(8, 15.5, 2.2, .8)}`,
+  drop: P => `<path d="M12 2.5c3 4.4 6.6 8 6.6 12a6.6 6.6 0 0 1-13.2 0c0-4 3.6-7.6 6.6-12z" fill="${P.blue}"/>${HL() ? '<ellipse cx="9.4" cy="13.5" rx="1.6" ry="2.6" fill="#fff" opacity=".6"/>' : '<path d="M9 14.5a3 3 0 0 0 3 3" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round" opacity=".8"/>'}`,
+  fruit: P => `<path d="M12 7.5c-1.4-1-3-1.4-4.6-1C4.6 7.2 3.5 10 3.9 13c.5 4 3.2 8 5.8 8 .9 0 1.4-.4 2.3-.4s1.4.4 2.3.4c2.6 0 5.3-4 5.8-8 .4-3-.7-5.8-3.5-6.5-1.6-.4-3.2 0-4.6 1z" fill="${P.red}"/><path d="M12 7.5c0-2 .6-3.6 2-4.6" stroke="${P.brown}" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M13 4.2c1.5-1.6 3.8-1.6 5-.6-1.2 1.4-3.4 1.8-5 .6z" fill="${P.green}"/>${shine(7.5, 10, 1.6, 2.4)}`,
+  check: P => `<path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+  star: P => `<path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z" fill="${P.gold}" stroke-linejoin="round"/>${shine(10, 8.5, 1.6, 1)}`,
+  people: P => `<circle cx="8.5" cy="8" r="3.4" fill="${P.skin}"/><path d="M2.5 20c0-3.9 2.7-6.6 6-6.6s6 2.7 6 6.6z" fill="${P.blue}"/><circle cx="16.5" cy="9" r="2.9" fill="${P.skin}"/><path d="M12.2 20c.1-3.3 2-5.6 4.4-5.6 2.6 0 4.9 2.3 4.9 5.6z" fill="${P.red}"/>`,
+  chart: P => `<rect x="3" y="13" width="4" height="8" rx="1.4" fill="${P.blue}"/><rect x="10" y="8" width="4" height="13" rx="1.4" fill="${P.green}"/><rect x="17" y="3" width="4" height="18" rx="1.4" fill="${P.gold}"/>`,
+  gear: P => `<path d="M10.3 2.5h3.4l.5 2.6 2 .9 2.2-1.5 2.4 2.4-1.5 2.2.9 2 2.6.5v3.4l-2.6.5-.9 2 1.5 2.2-2.4 2.4-2.2-1.5-2 .9-.5 2.6h-3.4l-.5-2.6-2-.9-2.2 1.5-2.4-2.4 1.5-2.2-.9-2-2.6-.5v-3.4l2.6-.5.9-2-1.5-2.2 2.4-2.4 2.2 1.5 2-.9z" fill="${P.gray}"/><circle cx="12" cy="12" r="3.4" fill="${P.cream}"/>`,
+  pin: P => `<path d="M12 22s-7-6.6-7-12a7 7 0 0 1 14 0c0 5.4-7 12-7 12z" fill="${P.red}"/><circle cx="12" cy="10" r="2.8" fill="#fff"/>${shine(9, 6.4, 1.6, 1)}`,
+  target: P => `<circle cx="12" cy="12" r="9.5" fill="${P.red}"/><circle cx="12" cy="12" r="6.6" fill="#fff"/><circle cx="12" cy="12" r="3.8" fill="${P.red}"/><circle cx="12" cy="12" r="1.4" fill="#fff"/>`,
+  pencil: P => `<g transform="rotate(45 12 12)"><rect x="9.5" y="2" width="5" height="15" rx="1.5" fill="${P.gold}"/><path d="M9.5 17h5L12 22z" fill="${P.ink}"/></g>`,
+};
+PIX.pencil = PIX.sign;
+function icon(name, px) {
+  if (THEME === 'pixel') {
+    const g = PIX[name] || PIX.heart;
+    const w = Math.max(...g.map(r => r.length));
+    return pix(g, Math.max(1, Math.round(px / w)));
+  }
+  return `<svg viewBox="0 0 24 24" width="${px}" height="${px}" aria-hidden="true">${(SM[name] || SM.heart)(pal())}</svg>`;
+}
 
-function plantRows(stage, wilt) {
+/* =====================================================================
+   PLANTS: health visual (seed → sprout → young → leafy → full bloom)
+   ===================================================================== */
+function pixelPlantRows(stage, wilt) {
   const W = 16, H = 19;
   const g = [...Array(H)].map(() => Array(W).fill('.'));
   const set = (x, y, c) => { if (y >= 0 && y < H && x >= 0 && x < W) g[y][x] = c; };
-  const pot = ["..kooooooooook..","..kkkkkkkkkkkk..","..kBBBBBBBBBBk..","..kkkkkkkkkkkk..","...kbbbbbbbbk...","...kbbbbbbbbk...","....kkkkkkkk...."];
-  pot.forEach((r, i) => [...r].forEach((c, x) => g[12 + i][x] = c));
-  const S = wilt ? 'Y' : 'n', L = wilt ? 'Y' : 'N', HI = wilt ? 'y' : 'l';
+  ["..kooooooooook..","..kkkkkkkkkkkk..","..kBBBBBBBBBBk..","..kkkkkkkkkkkk..","...kbbbbbbbbk...","...kbbbbbbbbk...","....kkkkkkkk...."]
+    .forEach((r, i) => [...r].forEach((c, x) => g[12 + i][x] = c));
+  const S = wilt ? 'Y' : 'n', Lf = wilt ? 'Y' : 'N', HI = wilt ? 'y' : 'l';
   if (stage === 0) { set(6, 11, 'o'); set(7, 11, 'b'); set(8, 11, 'b'); set(9, 11, 'o'); set(7, 10, 'b'); return g.map(r => r.join('')); }
-  const len = [0, 2, 5, 8, 9][stage];
-  const top = 12 - len;
-  for (let y = top; y < 12; y++) { set(7, y, S); set(8, y, L); }
+  const len = [0, 2, 5, 8, 9][stage], top = 12 - len, d = wilt ? 1 : 0;
+  for (let y = top; y < 12; y++) { set(7, y, S); set(8, y, Lf); }
   for (let i = 0, y = 10; y > top; y -= 3, i++) {
     const left = stage >= 3 || i % 2 === 0, right = stage >= 3 || i % 2 === 1;
-    const droop = wilt ? 1 : 0;
-    if (left) { set(6, y, L); set(5, y, L); set(5, y - 1 + droop, HI); set(4, y - 1 + droop, HI); if (stage >= 3) set(3, y - 1 + droop, stage === 4 && i === 1 ? 'p' : HI); }
-    if (right) { set(9, y, L); set(10, y, L); set(10, y - 1 + droop, HI); set(11, y - 1 + droop, HI); if (stage >= 3) set(12, y - 1 + droop, stage === 4 && i === 1 ? 'p' : HI); }
+    if (left) { set(6, y, Lf); set(5, y, Lf); set(5, y - 1 + d, HI); set(4, y - 1 + d, HI); if (stage >= 3) set(3, y - 1 + d, stage === 4 && i === 1 ? 'p' : HI); }
+    if (right) { set(9, y, Lf); set(10, y, Lf); set(10, y - 1 + d, HI); set(11, y - 1 + d, HI); if (stage >= 3) set(12, y - 1 + d, stage === 4 && i === 1 ? 'p' : HI); }
   }
-  // crown leaves
-  const d = wilt ? 1 : 0;
   set(6, top + d, HI); set(5, top - 1 + d * 2, HI); set(9, top + d, HI); set(10, top - 1 + d * 2, HI);
-  if (stage === 4) {
-    set(7, 0, 'p'); set(8, 0, 'p'); set(6, 1, 'p'); set(7, 1, 'g'); set(8, 1, 'g'); set(9, 1, 'p'); set(7, 2, 'p'); set(8, 2, 'p');
-  }
+  if (stage === 4) { set(7, 0, 'p'); set(8, 0, 'p'); set(6, 1, 'p'); set(7, 1, 'g'); set(8, 1, 'g'); set(9, 1, 'p'); set(7, 2, 'p'); set(8, 2, 'p'); }
   return g.map(r => r.join(''));
 }
-const plant = (stage, size, wilt) => pix(plantRows(stage, wilt), size);
+function smoothPlant(stage, w, wilt) {
+  const soft = THEME === 'soft';
+  const leafA = wilt ? (soft ? 'url(#sOlive)' : '#c2b04a') : (soft ? 'url(#sLeaf)' : '#34c26f');
+  const leafB = wilt ? (soft ? 'url(#sOlive)' : '#a99a3c') : (soft ? 'url(#sGreen)' : '#22a55a');
+  const stemC = wilt ? '#9a8f3a' : (soft ? '#3a9a52' : '#1f9150');
+  const pot = soft ? 'url(#sBrown)' : '#d97745', rim = soft ? 'url(#sRim)' : '#e8915e';
+  let s = soft ? `<ellipse cx="32" cy="74" rx="19" ry="2.4" fill="#2e2a4a" opacity=".14"/>` : '';
+  const len = [0, 13, 24, 33, 40][stage], top = 50 - len;
+  const leaf = (cx, cy, sd, rx, ry, fill) => `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" transform="rotate(${sd * (wilt ? 38 : -32)} ${cx} ${cy})"/>`;
+  if (stage === 0) {
+    s += `<ellipse cx="32" cy="47.5" rx="4.5" ry="3.2" fill="${soft ? 'url(#sBrown)' : '#9a5b2e'}"/><path d="M32 45c0-3 2-5 4.5-5.2" stroke="${stemC}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+  } else {
+    const bend = wilt ? 5 : 0;
+    s += `<path d="M32 51 C 32 ${50 - len * .5}, ${32 + bend} ${top + 8}, ${32 + bend} ${top + (wilt ? 3 : 0)}" stroke="${stemC}" stroke-width="3.2" fill="none" stroke-linecap="round"/>`;
+    for (let i = 0, y = 44; y > top + 5; y -= 9, i++) {
+      const sides = stage >= 3 ? [-1, 1] : [i % 2 ? 1 : -1];
+      sides.forEach(sd => { s += leaf(32 + sd * 8.5, y, sd, 8.5, 3.8, sd < 0 ? leafA : leafB); });
+    }
+    const cy = top + (wilt ? 5 : 2), cx = 32 + bend;
+    s += leaf(cx - 6, cy, -1, 6.5, 3.2, leafA) + leaf(cx + 6, cy, 1, 6.5, 3.2, leafB);
+    if (stage === 4) {
+      const flower = (fx, fy, r) => [0, 72, 144, 216, 288].map(a => `<circle cx="${fx + Math.cos(a * Math.PI / 180) * r}" cy="${fy + Math.sin(a * Math.PI / 180) * r}" r="${r * .8}" fill="${soft ? 'url(#sPink)' : '#f472b6'}"/>`).join('') + `<circle cx="${fx}" cy="${fy}" r="${r * .7}" fill="${soft ? 'url(#sGold)' : '#fbbf24'}"/>`;
+      s += flower(32, top - 3, 3.6) + flower(17, 26, 2.6) + flower(47, 26, 2.6);
+    }
+  }
+  s += `<path d="M15 55h34l-3.8 17.4a2.6 2.6 0 0 1-2.5 2H21.3a2.6 2.6 0 0 1-2.5-2z" fill="${pot}"/>`;
+  s += `<rect x="11.5" y="47.5" width="41" height="9" rx="3.5" fill="${rim}"/>`;
+  if (soft) s += `<rect x="15" y="49.5" width="12" height="2.4" rx="1.2" fill="#fff" opacity=".45"/><path d="M19.5 59h3l1.6 12h-2.4z" fill="#fff" opacity=".22"/>`;
+  return `<svg viewBox="0 0 64 76" width="${w}" height="${Math.round(w * 76 / 64)}" aria-hidden="true">${s}</svg>`;
+}
+function plant(stage, w, wilt) {
+  return THEME === 'pixel' ? pix(pixelPlantRows(stage, wilt), Math.max(1, Math.round(w / 16))) : smoothPlant(stage, w, wilt);
+}
 const pctStage = p => p >= 90 ? 4 : p >= 70 ? 3 : p >= 45 ? 2 : p >= 20 ? 1 : 0;
 const cntStage = c => c === 7 ? 4 : c >= 5 ? 3 : c >= 3 ? 2 : c >= 1 ? 1 : 0;
+const healthWord = p => p >= 90 ? L('IN FULL BLOOM', 'EN PLENA FLOR') : p >= 70 ? L('GROWING STRONG', 'CRECIENDO FUERTE') : p >= 45 ? L('GROWING', 'CRECIENDO') : L('NEEDS WATER', 'NECESITA AGUA');
 
-/* ================= Data ================= */
-const GOALS = [
-  { k: 'att',   name: 'ATTENDANCE',   short: 'ATTEND', icon: 'calendar', target: 4, unit: 'weeks', desc: 'Every week at service' },
-  { k: 'tithe', name: 'TITHE',        short: 'TITHE',  icon: 'coin',     target: 1, desc: 'Monthly tithe returned' },
-  { k: 'edu',   name: 'EDULMS',       short: 'EDULMS', icon: 'laptop',   target: 1, desc: 'Monthly lesson completed' },
-  { k: 'ga',    name: 'GA',           short: 'GA',     icon: 'scroll',   target: 1, desc: 'GA completed' },
-  { k: 'om',    name: 'ONLINE MISSION', short: 'ONLINE', icon: 'globe',  target: 3, desc: '3 times this month' },
-  { k: 'pr',    name: 'PREACHED',     short: 'PREACH', icon: 'speech',   target: 3, desc: '3 times this month' },
-  { k: 'prep',  name: 'PREPARATION DAY', short: 'PREP', icon: 'lamp',    target: 1, desc: 'Preparation day done' },
+/* =====================================================================
+   DATA (sample only)
+   ===================================================================== */
+const TEAM = { custom: 'Los Valientes', get official() { return L('Group 3', 'Grupo 3'); }, leader: 'Ruben Gómez', branch: 'Santiago Centro', showCustom: true };
+const GOALS = () => [
+  { k: 'att',   name: L('Attendance', 'Asistencia'),         short: L('ATTEND', 'ASIST.'),  icon: 'calendar', target: 4, unit: L('times', 'veces') },
+  { k: 'tithe', name: L('Tithe', 'Diezmo'),                  short: L('TITHE', 'DIEZMO'),   icon: 'coin',     target: 1 },
+  { k: 'edu',   name: 'EduLMS',                              short: 'EDULMS',               icon: 'laptop',   target: 1 },
+  { k: 'ga',    name: L('GA Signature', 'Firma de AG'),      short: L('GA SIGN', 'FIRMA AG'), icon: 'sign',   target: 1 },
+  { k: 'om',    name: L('Online Mission', 'Misión en línea'), short: L('ONLINE', 'EN LÍNEA'), icon: 'globe',  target: 3, unit: L('times', 'veces') },
+  { k: 'pr',    name: L('Preached', 'Predicó'),              short: L('PREACH', 'PREDICÓ'), icon: 'speech',   target: 3, unit: L('times', 'veces') },
+  { k: 'prep',  name: L('Preparation Day', 'Día de Preparación'), short: L('PREP', 'PREP.'), icon: 'lamp',  target: 1 },
 ];
 const M = (name, att, tithe, edu, ga, om, pr, prep) => ({ name, v: { att, tithe, edu, ga, om, pr, prep } });
 const MEMBERS = [
-  M('Ana Rodriguez',   4, 1, 1, 1, 3, 3, 1),
-  M('Maria Lopez',     4, 1, 1, 1, 3, 3, 1),
-  M('Sofia Ramirez',   4, 1, 1, 1, 3, 3, 1),
+  M('Ana Rodríguez',   4, 1, 1, 1, 3, 3, 1),
+  M('María López',     4, 1, 1, 1, 3, 3, 1),
+  M('Sofía Ramírez',   4, 1, 1, 1, 3, 3, 1),
   M('Miguel Torres',   4, 1, 1, 1, 2, 3, 1),
-  M('Lucia Fernandez', 4, 1, 1, 1, 3, 3, 0),
-  M('Jose Martinez',   4, 1, 0, 1, 3, 2, 1),
-  M('Carlos Mendez',   3, 1, 1, 0, 1, 0, 1),
-  M('Daniel Perez',    2, 0, 0, 0, 0, 0, 1),
+  M('Lucía Fernández', 4, 1, 1, 1, 3, 3, 0),
+  M('José Martínez',   4, 1, 0, 1, 3, 2, 1),
+  M('Carlos Méndez',   3, 1, 1, 0, 1, 0, 1),
+  M('Daniel Pérez',    2, 0, 0, 0, 0, 0, 1),
 ];
 const status = (m, g) => m.v[g.k] >= g.target ? 'd' : m.v[g.k] > 0 ? 'p' : 'm';
-const doneCount = m => GOALS.filter(g => status(m, g) === 'd').length;
-const missing = m => GOALS.filter(g => status(m, g) !== 'd');
+const doneCount = m => GOALS().filter(g => status(m, g) === 'd').length;
+const missing = m => GOALS().filter(g => status(m, g) !== 'd');
 const initials = n => n.split(' ').map(s => s[0]).join('');
-const totalDone = MEMBERS.reduce((a, m) => a + doneCount(m), 0);
-const HEALTH = Math.round(totalDone / (MEMBERS.length * 7) * 100);
+const first = n => n.split(' ')[0];
+const HEALTH = Math.round(MEMBERS.reduce((a, m) => a + doneCount(m), 0) / (MEMBERS.length * 7) * 100);
 const COMPLETE = MEMBERS.filter(m => doneCount(m) === 7).length;
 const BAPT = { goal: 5, done: 2 };
 
-/* ================= Pieces ================= */
-const statusBar = () => `<div class="status"><span>9:41</span><span class="notch"></span><span class="bat"><i></i><i></i><i></i></span></div>`;
-const navBar = on => `<div class="nav">${[['heart','MY MONTH'],['hands','GROUP'],['drop','GOAL'],['bible','VERSE']].map(([ic, t], i) =>
-  `<div class="${i === on ? 'on' : ''}">${pix(ICON[ic], 3)}${t}</div>`).join('')}</div>`;
-const segbar = m => `<div class="segbar">${GOALS.map(g => `<i class="${status(m, g)}"></i>`).join('')}</div>`;
-const pips = m => `<div class="pips">${GOALS.map(g => `<i class="${status(m, g)}"></i>`).join('')}</div>`;
-function taskWidget(m, g) {
-  const v = m.v[g.k];
-  if (g.target === 1) return `<div class="box ${v ? 'd' : ''}">${v ? pix(ICON.check, 2) : ''}</div>`;
-  const dots = Array.from({ length: g.target }, (_, i) => `<i class="${i < v ? 'd' : ''} ${g.target === 4 ? 'wk' : ''}"></i>`).join('');
-  return `<div class="dots">${dots}${v < g.target ? '<span class="plus">+</span>' : ''}</div>`;
-}
+// Region: General Assembly goals per branch
+const METRICS = () => [
+  { k: 'simple', name: L('Simple Preaching', 'Predicación Simple'),        short: L('SIMPLE', 'SIMPLE'),         icon: 'speech' },
+  { k: 'mean',   name: L('Meaningful Preaching', 'Predicación Significativa'), short: L('MEANINGFUL', 'SIGNIFICATIVA'), icon: 'speechHeart' },
+  { k: 'att',    name: L('Attendance', 'Asistencia'),                       short: L('ATTENDANCE', 'ASISTENCIA'), icon: 'calendar' },
+  { k: 'tithe',  name: L('Tithe', 'Diezmo'),                                short: L('TITHE', 'DIEZMO'),          icon: 'coin' },
+  { k: 'fruit',  name: L('Fruit', 'Fruto'),                                 short: L('FRUIT', 'FRUTO'),           icon: 'fruit' },
+];
+const B = (name, simple, mean, att, tithe, fruit) => ({ name, d: { simple, mean, att, tithe, fruit } });
+const BRANCHES = [
+  B('Santiago Centro', [462, 500], [112, 120], [268, 300], [88, 95], [13, 15]),
+  B('Santiago Norte',  [318, 400], [74, 100],  [182, 220], [61, 80], [8, 12]),
+  B('Santiago Sur',    [251, 350], [58, 90],   [151, 200], [52, 70], [6, 12]),
+  B('Santiago Este',   [176, 300], [41, 80],   [118, 160], [39, 60], [5, 11]),
+  B('Santiago Oeste',  [92, 250],  [22, 60],   [97, 140],  [30, 50], [2, 10]),
+];
+const ratio = ([c, g]) => Math.min(1, c / g);
+const branchPct = b => Math.round(METRICS().reduce((a, m) => a + ratio(b.d[m.k]), 0) / 5 * 100);
+const regionTotal = k => BRANCHES.reduce((a, b) => [a[0] + b.d[k][0], a[1] + b.d[k][1]], [0, 0]);
+const REGION_PCT = () => Math.round(METRICS().reduce((a, m) => a + ratio(regionTotal(m.k)), 0) / 5 * 100);
+const barCls = r => r >= .8 ? '' : r >= .55 ? 'warn' : 'bad';
+const fmt = n => n.toLocaleString(LANG === 'es' ? 'es-DO' : 'en-US');
 
-/* ================= Phone 1: My Month ================= */
-const me = MEMBERS.find(m => m.name.startsWith('Miguel'));
-document.getElementById('phone1').innerHTML = `
+/* =====================================================================
+   PIECES
+   ===================================================================== */
+const statusBar = () => `<div class="status"><span>9:41</span><span class="notch"></span><span class="bat"><i></i><i></i><i></i></span></div>`;
+const navBar = on => `<div class="nav">${[['heart', L('UPDATE', 'ACTUALIZAR')], ['people', L('GROUP', 'GRUPO')], ['pin', L('REGION', 'REGIÓN')], ['gear', L('GOALS', 'METAS')]]
+  .map(([ic, t], i) => `<div class="${i === on ? 'on' : ''}">${icon(ic, 24)}${t}</div>`).join('')}</div>`;
+const pips = m => `<div class="pips">${GOALS().map(g => `<i class="${status(m, g)}"></i>`).join('')}</div>`;
+const bar = (r, cls = '', extra = '') => `<div class="bar ${cls}" ${extra}><b style="width:${Math.round(r * 100)}%"></b></div>`;
+const teamName = () => TEAM.showCustom ? TEAM.custom : TEAM.official;
+const teamSub = () => `${TEAM.official} · ${L('Leader', 'Líder')}: ${TEAM.leader}`;
+const MONTH = () => L('November 2026', 'Noviembre 2026');
+const DAYS = () => L('12 days left', 'quedan 12 días');
+const drops = (n, done, px) => `<div class="row" style="gap:6px">${Array.from({ length: n }, (_, i) => `<span style="${i < done ? '' : 'opacity:.25;filter:grayscale(1)'}">${icon('drop', px)}</span>`).join('')}</div>`;
+const sideNav = (items, who) => `
+  <aside class="side">
+    <div class="brand">${icon('bible', 30)}<span>Faithful 7<br><span style="font-size:.7em;opacity:.7;font-weight:500">${L('La Iglesia', 'La Iglesia')}</span></span></div>
+    <div class="scope"><div class="input">${icon('pin', 16)}<span class="grow">${L('Region', 'Región')}: Santiago</span>▾</div></div>
+    ${items.map(([ic, t, on, ct]) => `<a class="${on ? 'on' : ''}">${icon(ic, 18)}${t}${ct ? `<span class="ct">${ct}</span>` : ''}</a>`).join('')}
+    <div class="who">${who}</div>
+  </aside>`;
+
+/* ---------- Phone 1: leader updates a member ---------- */
+function phoneUpdate() {
+  const c = MEMBERS.find(m => m.name.startsWith('Carlos'));
+  // show the leader mid-edit: Carlos preached 1 time, now 1/3
+  const v = { ...c.v, pr: 1 };
+  const cm = { ...c, v };
+  return `
   ${statusBar()}
-  <div class="appbar">${pix(ICON.bible, 3)}<div class="title">FAITHFUL 7<small>Grupo Esperanza</small></div><div class="avatar">MT</div></div>
+  <div class="appbar">${icon('bible', 28)}<div class="title">${teamName()}<small>${teamSub()}</small></div><span class="btn acc" style="padding:8px 12px">${icon('check', 14)} ${L('Save', 'Guardar')}</span></div>
   <div class="scroll">
-    <div class="card" style="display:flex;gap:14px;align-items:center">
-      <div style="background:#dfeef5;border:3px solid var(--ink);padding:6px 8px 0">${plant(cntStage(doneCount(me)), 5)}</div>
-      <div style="flex:1">
-        <div class="label">NOVEMBER &middot; 12 DAYS LEFT</div>
-        <div class="h" style="margin:8px 0 2px">Hi, Miguel!</div>
-        <div><span class="big">${doneCount(me)}</span><span class="h"> / 7</span></div>
-        <div style="margin:8px 0 6px">${segbar(me)}</div>
-        <div style="font-size:18px;line-height:1">1 more to reach full bloom!</div>
+    <div class="row" style="justify-content:space-between"><div class="lbl">${L('Update member', 'Actualizar miembro')} · ${MONTH()}</div><span class="small">${DAYS()}</span></div>
+    <div class="memberchips">${MEMBERS.slice(3).map(m => `<span class="chip ${m === c ? 'on' : ''}">${first(m.name)}</span>`).join('')}</div>
+    <div class="card row" style="gap:12px">
+      <div class="avatar lg">${initials(c.name)}</div>
+      <div class="grow">
+        <div class="h">${c.name}</div>
+        <div class="small" style="color:var(--bad);margin:2px 0 8px">${doneCount(cm)} / 7 · ${L('needs follow-up', 'necesita seguimiento')}</div>
+        ${pips(cm)}
       </div>
+      <div class="plantbox">${plant(cntStage(doneCount(cm)), 48, true)}</div>
     </div>
-    <div class="label" style="margin-top:2px">THIS MONTH'S GOALS</div>
-    <div style="display:flex;flex-direction:column;gap:6px">
-      ${GOALS.map(g => {
-        const v = me.v[g.k], d = v >= g.target;
-        const sub = g.target > 1 ? `${v} of ${g.target} ${g.unit || 'times'}` : (d ? 'Done' : 'Not yet');
-        return `<div class="task ${d ? 'done' : ''}"><div class="ic">${pix(ICON[g.icon], 3)}</div><div class="t"><b>${g.name}</b><span>${sub}</span></div>${taskWidget(me, g)}</div>`;
+    <div style="display:flex;flex-direction:column;gap:7px">
+      ${GOALS().map(g => {
+        const val = v[g.k], d = val >= g.target;
+        const ctrl = g.target === 1
+          ? `<div class="switch ${val ? 'on' : ''}"></div>`
+          : `<div class="stepper"><span class="sb">−</span><span class="val">${val}/${g.target}</span><span class="sb plus">+</span></div>`;
+        const sub = g.target > 1 ? `${L('Goal', 'Meta')}: ${g.target} ${g.unit}` : (d ? L('Done', 'Hecho') : L('Not yet', 'Pendiente'));
+        const changed = g.k === 'pr' ? `<span class="tag warn" style="margin-left:6px">${L('NEW', 'NUEVO')}</span>` : '';
+        return `<div class="task ${d ? 'done' : ''}"><div class="ic">${icon(g.icon, 24)}</div><div class="t"><b>${g.name}${changed}</b><span>${sub}</span></div>${ctrl}</div>`;
       }).join('')}
     </div>
   </div>
   ${navBar(0)}`;
+}
 
-/* ================= Phone 2: My Group ================= */
-document.getElementById('phone2').innerHTML = `
+/* ---------- Phone 2: group overview ---------- */
+function phoneGroup() {
+  return `
   ${statusBar()}
-  <div class="appbar">${pix(ICON.hands, 3)}<div class="title">GRUPO ESPERANZA<small>8 members &middot; November</small></div><div class="avatar" style="background:var(--green)">${pix(ICON.star, 2)}</div></div>
+  <div class="appbar">${icon('people', 28)}<div class="title">${teamName()}<small>${MEMBERS.length} ${L('members', 'miembros')} · ${MONTH()}</small></div>${icon('star', 26)}</div>
   <div class="scroll">
-    <div class="card dark" style="display:flex;gap:12px;align-items:center">
-      <div style="background:#39406e;border:3px solid var(--ink);padding:6px 8px 0">${plant(pctStage(HEALTH), 4)}</div>
-      <div style="flex:1">
-        <div class="label">GROUP HEALTH</div>
-        <div style="margin:8px 0"><span class="big" style="color:var(--gold)">${HEALTH}%</span></div>
-        <div class="bar" style="margin-bottom:8px"><b style="width:${HEALTH}%"></b></div>
-        <div class="verse">"Let us not become weary in doing good..."<cite>GALATIANS 6:9</cite></div>
+    <div class="card hero-card row" style="gap:12px">
+      <div class="plantbox">${plant(pctStage(HEALTH), 64)}</div>
+      <div class="grow">
+        <div class="lbl">${L('Group health', 'Salud del grupo')}</div>
+        <div class="big" style="color:var(--hero-accent);margin:6px 0">${HEALTH}%</div>
+        ${bar(HEALTH / 100)}
+        <div class="verse" style="margin-top:8px">${L('“Let us not become weary in doing good…”', '“No nos cansemos, pues, de hacer bien…”')}<cite>${L('GALATIANS 6:9', 'GÁLATAS 6:9')}</cite></div>
       </div>
     </div>
-    <div class="card" style="display:flex;align-items:center;gap:12px;padding:10px 12px">
-      <div style="flex:1"><div class="label">BAPTISM GOAL</div><div class="h" style="margin-top:6px">${BAPT.done} of ${BAPT.goal} souls</div></div>
-      <div class="drops">${Array.from({ length: BAPT.goal }, (_, i) => `<span class="${i < BAPT.done ? '' : 'off'}">${pix(ICON.drop, 3)}</span>`).join('')}</div>
+    <div class="card row" style="padding:12px 14px">
+      <div class="grow"><div class="lbl">${L('Baptism goal', 'Meta de bautismos')}</div><div class="h" style="margin-top:4px">${BAPT.done} ${L('of', 'de')} ${BAPT.goal}</div></div>
+      ${drops(BAPT.goal, BAPT.done, 26)}
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center"><div class="label">MEMBERS &middot; ${COMPLETE}/8 COMPLETE</div><span class="chip on">NEEDS HELP</span></div>
-    <div class="card" style="padding:4px 4px">
+    <div class="row" style="justify-content:space-between"><div class="lbl">${L('Members', 'Miembros')} · ${COMPLETE}/${MEMBERS.length} ${L('complete', 'completos')}</div><span class="chip on">${L('Follow up', 'Seguimiento')}</span></div>
+    <div class="card" style="padding:4px 6px">
       ${MEMBERS.map(m => {
         const c = doneCount(m), miss = missing(m);
-        const note = c === 7 ? '<small class="ok">All 7 complete</small>' : `<small>Missing: ${miss.map(g => g.short.toLowerCase()).slice(0, 3).join(', ')}${miss.length > 3 ? '...' : ''}</small>`;
-        return `<div class="mrow">${plant(cntStage(c), 2, c <= 3)}<div class="n">${m.name}${note}</div>${pips(m)}<div class="score">${c}/7</div></div>`;
+        const note = c === 7 ? `<small class="ok">${L('All 7 complete', 'Las 7 completas')}</small>` : `<small>${L('Missing', 'Falta')}: ${miss.map(g => g.short.toLowerCase()).slice(0, 2).join(', ')}${miss.length > 2 ? ` +${miss.length - 2}` : ''}</small>`;
+        return `<div class="mrow">${plant(cntStage(c), 32, c <= 3)}<div class="n">${m.name}${note}</div>${pips(m)}<div class="score">${c}/7</div></div>`;
       }).join('')}
     </div>
   </div>
   ${navBar(1)}`;
+}
 
-/* ================= Phone 3: Help a member ================= */
-const carlos = MEMBERS.find(m => m.name.startsWith('Carlos'));
-document.getElementById('phone3').innerHTML = `
+/* ---------- Phone 3: region (view-only for groups) ---------- */
+function phoneRegion() {
+  const rp = REGION_PCT();
+  const sorted = [...BRANCHES].sort((a, b) => branchPct(b) - branchPct(a));
+  return `
   ${statusBar()}
-  <div class="appbar"><span class="h" style="color:var(--gold)">&lt;</span><div class="title">MEMBER<small>Grupo Esperanza</small></div>${pix(ICON.heart, 3)}</div>
+  <div class="appbar">${icon('pin', 28)}<div class="title">${L('Santiago Region', 'Región Santiago')}<small>${L('General Assembly goals', 'Metas de Asamblea General')}</small></div><span class="chip" style="font-size:10px">${L('View only', 'Solo ver')}</span></div>
   <div class="scroll">
-    <div class="card" style="display:flex;gap:12px;align-items:center">
-      <div class="avatar lg">CM</div>
-      <div style="flex:1">
-        <div class="h">Carlos Mendez</div>
-        <div style="font-size:18px;color:var(--wine);margin:4px 0 6px">Plant needs water &middot; ${doneCount(carlos)}/7</div>
-        ${segbar(carlos)}
-      </div>
-      <div style="background:#efe2c0;border:3px solid var(--ink);padding:4px 5px 0">${plant(cntStage(doneCount(carlos)), 3, true)}</div>
-    </div>
-    <div class="label">STILL NEEDED THIS MONTH</div>
-    <div style="display:flex;flex-direction:column;gap:6px">
-      ${missing(carlos).map(g => {
-        const v = carlos.v[g.k];
-        return `<div class="task"><div class="ic">${pix(ICON[g.icon], 3)}</div><div class="t"><b>${g.name}</b><span>${g.target > 1 ? `${v} of ${g.target} ${g.unit || 'times'}` : 'Not yet'}</span></div>${g.target > 1 ? `<span class="tag close">${g.target - v} LEFT</span>` : '<span class="tag help">TODO</span>'}</div>`;
-      }).join('')}
-    </div>
-    <div class="card dark">
-      <div class="label" style="margin-bottom:8px">SEND ENCOURAGEMENT</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-        <span class="chip on">GAL 6:9</span><span class="chip">PHIL 4:13</span><span class="chip">1 THESS 5:11</span>
-      </div>
-      <div style="background:var(--paper);color:var(--ink);border:3px solid var(--ink);padding:8px 10px;font-size:19px;line-height:1.05">
-        Carlos, you're doing great! Want to go preach together this Saturday? We've got 12 days, let's finish strong.
+    <div class="card hero-card row" style="gap:12px">
+      <div class="plantbox">${plant(pctStage(rp), 56)}</div>
+      <div class="grow">
+        <div class="lbl">${L('Region progress', 'Progreso de la región')}</div>
+        <div class="big" style="color:var(--hero-accent);margin:6px 0">${rp}%</div>
+        ${bar(rp / 100)}
+        <div class="small" style="color:var(--hero-muted);margin-top:6px">${BRANCHES.length} ${L('branches · GA 2026', 'sucursales · AG 2026')}</div>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <span class="btn ghost">PAIR UP</span><span class="btn">${pix(ICON.heart, 2)} SEND</span>
+      ${METRICS().map((m, i) => {
+        const [c, g] = regionTotal(m.k), r = c / g;
+        return `<div class="card" style="padding:10px 12px;${i === 4 ? 'grid-column:1 / -1' : ''}">
+          <div class="row" style="gap:8px">${icon(m.icon, 22)}<div class="lbl" style="font-size:calc(var(--fs-lbl) * .9)">${m.short}</div></div>
+          <div class="h" style="margin:6px 0 6px">${fmt(c)} <span class="small">/ ${fmt(g)}</span></div>
+          ${bar(r, 'thin ' + barCls(r))}
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="lbl">${L('Branches', 'Sucursales')}</div>
+    <div class="card" style="padding:4px 10px">
+      ${sorted.map((b, i) => {
+        const p = branchPct(b);
+        return `<div class="mrow" ${b.name === TEAM.branch ? 'style="background:var(--inset);border-radius:var(--r-sm)"' : ''}><span class="h" style="width:18px">${i + 1}</span>${plant(pctStage(p), 30, p < 45)}<div class="n">${b.name}${b.name === TEAM.branch ? `<small class="ok">${L('Your branch', 'Tu sucursal')}</small>` : ''}</div><div style="width:80px">${bar(p / 100, 'thin ' + barCls(p / 100))}</div><div class="score">${p}%</div></div>`;
+      }).join('')}
     </div>
   </div>
-  ${navBar(1)}`;
+  ${navBar(2)}`;
+}
 
-/* ================= Desktop ================= */
-const GROUPS = [
-  { n: 'VICTORIA', p: 94 }, { n: 'FE', p: 86 }, { n: 'ESPERANZA', p: HEALTH, me: true }, { n: 'GRACIA', p: 52 }, { n: 'LUZ', p: 31 },
-];
-const cell = (m, g) => {
-  const s = status(m, g), v = m.v[g.k];
-  if (s === 'd') return `<div class="cell d">${pix(ICON.check, 2)}</div>`;
-  if (s === 'p') return `<div class="cell p">${v}/${g.target}</div>`;
-  return `<div class="cell m">${g.target > 1 ? `0/${g.target}` : '--'}</div>`;
-};
-const tagFor = c => c === 7 ? '<span class="tag ok">COMPLETE</span>' : c >= 5 ? '<span class="tag close">ALMOST</span>' : '<span class="tag help">NEEDS HELP</span>';
-const side = [['heart', 'DASHBOARD', 1], ['people', 'MEMBERS'], ['drop', 'BAPTISM GOAL'], ['chart', 'REPORTS'], ['bible', 'VERSES'], ['gear', 'SETTINGS']];
-
-document.getElementById('desktop').innerHTML = `
-  <div class="browser-top"><i style="background:var(--wine-l)"></i><i style="background:var(--gold)"></i><i style="background:var(--green)"></i><div class="url">faithful7.app/group/esperanza</div></div>
+/* ---------- Desktop 1: group leader dashboard ---------- */
+function desktopGroup() {
+  const cell = (m, g, sel) => {
+    const s = status(m, g), v = m.v[g.k];
+    const inner = s === 'd' ? icon('check', 16) : s === 'p' ? `${v}/${g.target}` : (g.target > 1 ? `0/${g.target}` : '—');
+    const pop = sel ? `<div class="card popover"><div class="lbl" style="margin-bottom:6px">${first(m.name)} · ${g.name}</div><div class="stepper" style="justify-content:space-between"><span class="sb">−</span><span class="val">${v}/${g.target}</span><span class="sb plus">+</span></div><div class="small" style="margin-top:8px">${L('Click a box to update it', 'Haz clic para actualizar')}</div></div>` : '';
+    return `<div class="cell ${s} ${sel ? 'sel' : ''}">${inner}${pop}</div>`;
+  };
+  const tagFor = c => c === 7 ? `<span class="tag ok">${L('COMPLETE', 'COMPLETO')}</span>` : c >= 5 ? `<span class="tag warn">${L('ALMOST', 'CASI')}</span>` : `<span class="tag bad">${L('FOLLOW UP', 'SEGUIMIENTO')}</span>`;
+  const follow = MEMBERS.filter(m => doneCount(m) < 7).sort((a, b) => doneCount(a) - doneCount(b));
+  const rp = REGION_PCT();
+  const myB = BRANCHES.find(b => b.name === TEAM.branch);
+  return `
+  <div class="browser-top"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><div class="url">faithful7.app/santiago/centro/los-valientes</div></div>
   <div class="app">
-    <aside class="side">
-      <div class="brand">${pix(ICON.bible, 3)}FAITHFUL<br>7</div>
-      ${side.map(([ic, t, on]) => `<a class="${on ? 'on' : ''}">${pix(ICON[ic], 2)}${t}</a>`).join('')}
-      <div class="grp"><b>LEADER</b>Pastor Ruben G.<br>Grupo Esperanza</div>
-    </aside>
+    ${sideNav([
+      ['heart', L('Dashboard', 'Panel'), 1], ['people', L('Members', 'Miembros'), 0, '8'], ['target', L('Month goals', 'Metas del mes')],
+      ['pin', L('Region', 'Región')], ['chart', L('Reports', 'Reportes')], ['gear', L('Settings', 'Ajustes')]
+    ], `<div class="avatar">RG</div><div><b>${L('GROUP LEADER', 'LÍDER DE GRUPO')}</b>${TEAM.leader}<br>${TEAM.official} · Centro</div>`)}
     <main class="main">
       <div class="topline">
-        <h2>Group Dashboard<small>Grupo Esperanza &middot; 8 members &middot; 12 days left this month</small></h2>
-        <span class="month">&lt; NOVEMBER 2026 &gt;</span>
-        <span class="btn gold">${pix(ICON.chart, 2)} EXPORT</span>
+        <h2>${teamName()}<span class="edit">${icon('pencil', 18)}</span><small>${teamSub()} · ${TEAM.branch} · ${DAYS()}</small></h2>
+        <span class="chip" style="padding:10px 14px">‹ ${MONTH()} ›</span>
+        <span class="btn ghost">${icon('chart', 16)} ${L('Export', 'Exportar')}</span>
       </div>
 
-      <div class="kpis">
-        <div class="card kpi"><div style="background:#dfeef5;border:3px solid var(--ink);padding:3px 4px 0">${plant(pctStage(HEALTH), 3)}</div><div><div class="label">GROUP HEALTH</div><div class="v">${HEALTH}%</div><div class="s">Growing strong</div></div></div>
-        <div class="card kpi">${pix(ICON.star, 5)}<div><div class="label">ALL 7 REACHED</div><div class="v">${COMPLETE} / 8</div><div class="s">3 almost there</div></div></div>
-        <div class="card kpi">${pix(ICON.drop, 5)}<div><div class="label">BAPTISM GOAL</div><div class="v">${BAPT.done} / ${BAPT.goal}</div><div class="s">Next: Nov 28</div></div></div>
-        <div class="card kpi">${pix(ICON.hands, 5)}<div><div class="label">NEED HELP</div><div class="v">2</div><div class="s">Carlos, Daniel</div></div></div>
+      <div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+        <div class="card kpi"><div class="plantbox">${plant(pctStage(HEALTH), 40)}</div><div><div class="lbl">${L('Group health', 'Salud del grupo')}</div><div class="v">${HEALTH}%</div><div class="small">${healthWord(HEALTH).toLowerCase()}</div></div></div>
+        <div class="card kpi"><div class="ic" style="width:56px;height:56px">${icon('star', 34)}</div><div><div class="lbl">${L('All 7 reached', 'Las 7 logradas')}</div><div class="v">${COMPLETE} <small>/ ${MEMBERS.length}</small></div><div class="small">${L('3 almost there', '3 casi listos')}</div></div></div>
+        <div class="card kpi"><div class="ic" style="width:56px;height:56px">${icon('drop', 34)}</div><div><div class="lbl">${L('Baptism goal', 'Meta de bautismos')}</div><div class="v">${BAPT.done} <small>/ ${BAPT.goal}</small></div><div class="small">${L('Next: Nov 28', 'Próximo: 28 nov')}</div></div></div>
+        <div class="card kpi"><div class="ic" style="width:56px;height:56px">${icon('hands', 34)}</div><div><div class="lbl">${L('Need follow-up', 'Necesitan seguimiento')}</div><div class="v">2</div><div class="small">Carlos, Daniel</div></div></div>
       </div>
 
       <div class="grid2">
-        <div class="card" style="padding:16px 18px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <div class="h">Member Progress</div>
-            <div style="display:flex;gap:8px"><span class="chip on">ALL</span><span class="chip">NEEDS HELP</span><span class="chip">COMPLETE</span></div>
+        <div class="card" style="padding:18px 20px">
+          <div class="row" style="justify-content:space-between;margin-bottom:8px">
+            <div><div class="h">${L('Member progress', 'Progreso de miembros')}</div><div class="small">${L('You fill this in. Click any box to update it.', 'Tú lo llenas. Haz clic en cualquier casilla para actualizar.')}</div></div>
+            <div class="row" style="gap:8px"><span class="chip on">${L('All', 'Todos')}</span><span class="chip">${L('Follow up', 'Seguimiento')}</span><span class="chip">${L('Complete', 'Completos')}</span></div>
           </div>
           <table class="mx">
-            <thead><tr><th>MEMBER</th>${GOALS.map(g => `<th><div class="thi">${pix(ICON[g.icon], 3)}${g.short}${g.target > 1 ? ` ${g.target}x` : ''}</div></th>`).join('')}<th>TOTAL</th><th>STATUS</th></tr></thead>
+            <thead><tr><th>${L('MEMBER', 'MIEMBRO')}</th>${GOALS().map(g => `<th><div class="thi">${icon(g.icon, 24)}${g.short}${g.target > 1 ? ` ${g.target}x` : ''}</div></th>`).join('')}<th>${L('TOTAL', 'TOTAL')}</th><th>${L('STATUS', 'ESTADO')}</th></tr></thead>
             <tbody>
               ${MEMBERS.map(m => {
                 const c = doneCount(m);
-                return `<tr><td><div class="who">${plant(cntStage(c), 2, c <= 3)}${m.name}</div></td>${GOALS.map(g => `<td>${cell(m, g)}</td>`).join('')}<td style="font-family:var(--px);font-size:11px">${c}/7</td><td>${tagFor(c)}</td></tr>`;
+                return `<tr><td><div class="who-cell">${plant(cntStage(c), 30, c <= 3)}${m.name}</div></td>${GOALS().map(g => `<td>${cell(m, g, m.name.startsWith('Miguel') && g.k === 'om')}</td>`).join('')}<td class="h" style="font-size:var(--fs-tag)">${c}/7</td><td>${tagFor(c)}</td></tr>`;
               }).join('')}
             </tbody>
           </table>
-          <div class="legend"><span><i style="background:var(--green)"></i>Done</span><span><i style="background:var(--gold)"></i>In progress</span><span><i style="background:#f6d9d6;border-style:dashed"></i>Missing</span><span style="margin-left:auto">Members check in on their phone &middot; updated 5 min ago</span></div>
+          <div class="legend"><span><i style="background:var(--ok)"></i>${L('Done', 'Hecho')}</span><span><i style="background:var(--warn)"></i>${L('In progress', 'En progreso')}</span><span><i style="background:var(--bad-soft);border:2px dashed var(--bad)"></i>${L('Missing', 'Falta')}</span><span style="margin-left:auto">${L('Only leaders can see and edit this page', 'Solo los líderes pueden ver y editar esta página')}</span></div>
         </div>
 
         <div style="display:flex;flex-direction:column;gap:20px">
-          <div class="card dark" style="text-align:center;padding:18px">
-            <div class="label" style="text-align:left">GROUP PLANT</div>
-            <div style="display:flex;justify-content:center;margin:12px 0 10px">${plant(pctStage(HEALTH), 8)}</div>
-            <div class="bar" style="margin:0 6px 10px"><b style="width:${HEALTH}%"></b></div>
-            <div class="h" style="color:var(--gold);margin-bottom:10px">${HEALTH}% &middot; GROWING STRONG</div>
-            <div class="verse">"I planted the seed, Apollos watered it, but God has been making it grow."<cite>1 CORINTHIANS 3:6</cite></div>
+          <div class="card hero-card" style="text-align:center;padding:18px">
+            <div class="lbl" style="text-align:left">${L('Group plant', 'Planta del grupo')}</div>
+            <div style="display:flex;justify-content:center;margin:10px 0">${plant(pctStage(HEALTH), 120)}</div>
+            ${bar(HEALTH / 100)}
+            <div class="h" style="color:var(--hero-accent);margin:10px 0">${HEALTH}% · ${healthWord(HEALTH)}</div>
+            <div class="verse">${L('“I planted the seed, Apollos watered it, but God has been making it grow.”', '“Yo planté, Apolos regó; pero el crecimiento lo ha dado Dios.”')}<cite>${L('1 CORINTHIANS 3:6', '1 CORINTIOS 3:6')}</cite></div>
           </div>
           <div class="card">
-            <div class="label">BAPTISM GOAL &middot; GROUP</div>
-            <div style="display:flex;gap:10px;margin:12px 0">${Array.from({ length: BAPT.goal }, (_, i) => `<span class="${i < BAPT.done ? '' : 'off'}" style="${i < BAPT.done ? '' : 'opacity:.28;filter:grayscale(1)'}">${pix(ICON.drop, 4)}</span>`).join('')}</div>
-            <div style="font-size:19px;line-height:1.1">Baptized: Elena V., Marco D.<br>Studying: Rosa P. (Nov 28), Luis C.</div>
+            <div class="row" style="justify-content:space-between;margin-bottom:10px"><div class="lbl">${L('Month goals · set by leader', 'Metas del mes · por el líder')}</div>${icon('pencil', 16)}</div>
+            <div class="small" style="margin-bottom:4px">${L('Team name (optional)', 'Nombre del equipo (opcional)')}</div>
+            <div class="input" style="margin-bottom:8px"><span>${TEAM.custom}</span><div class="switch on" style="transform:scale(.8)"></div></div>
+            <div class="small" style="margin-bottom:10px">${L('Shown instead of', 'Se muestra en lugar de')} “${TEAM.official} · ${TEAM.leader}”</div>
+            <div class="divider" style="margin-bottom:10px"></div>
+            <div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="row" style="gap:8px">${icon('calendar', 18)}${L('Attendance', 'Asistencia')}</span><div class="seg"><span>1</span><span>2</span><span>3</span><span class="on">4</span></div></div>
+            <div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="row" style="gap:8px">${icon('globe', 18)}${L('Online Mission', 'Misión en línea')}</span><div class="input num">3x</div></div>
+            <div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="row" style="gap:8px">${icon('speech', 18)}${L('Preached', 'Predicó')}</span><div class="input num">3x</div></div>
+            <div class="row" style="justify-content:space-between"><span class="row" style="gap:8px">${icon('drop', 18)}${L('Baptism goal', 'Meta de bautismos')}</span><div class="input num">5</div></div>
           </div>
         </div>
       </div>
 
       <div class="grid3">
         <div class="card">
-          <div class="label">CHURCH GARDEN &middot; ALL GROUPS</div>
-          <div class="garden">
-            ${GROUPS.map(g => `<div class="g ${g.me ? 'me' : ''}">${plant(pctStage(g.p), 4, g.p < 40)}${g.n}<br>${g.p}%</div>`).join('')}
-          </div>
-          <div style="margin-top:22px;border-top:2px dashed #c9b88f;padding-top:14px;font-size:19px;line-height:1.1">
-            <div class="label" style="margin-bottom:8px">THIS WEEK'S ENCOURAGEMENT</div>
-            Grupo Luz's plant is drooping. Every group's plant grows when its members finish their 7 goals, so it's a garden we tend together, not a competition.
-            <div class="verse" style="margin-top:10px">"Therefore encourage one another and build each other up."<cite>1 THESSALONIANS 5:11</cite></div>
-          </div>
+          <div class="row" style="justify-content:space-between"><div class="lbl">${L('Santiago region · GA goals', 'Región Santiago · metas AG')}</div><span class="chip">${L('View only', 'Solo ver')}</span></div>
+          <div class="row" style="margin:12px 0 4px;gap:14px">${plant(pctStage(rp), 44)}<div class="grow"><div class="h">${L('Region', 'Región')} ${rp}%</div><div class="small">${L('Our branch', 'Nuestra sucursal')}: ${TEAM.branch} · ${branchPct(myB)}%</div></div></div>
+          ${METRICS().map(m => { const [c, g] = regionTotal(m.k), r = c / g; return `<div class="actrow">${icon(m.icon, 20)}<span>${m.name}</span>${bar(r, 'thin ' + barCls(r))}<span class="c">${Math.round(r * 100)}%</span></div>`; }).join('')}
         </div>
         <div class="card">
-          <div class="label">GOAL COMPLETION &middot; BY ACTIVITY</div>
-          ${GOALS.map(g => {
-            const n = MEMBERS.filter(m => status(m, g) === 'd').length;
-            return `<div class="actrow">${pix(ICON[g.icon], 2)}<span>${g.name.charAt(0) + g.name.slice(1).toLowerCase()}</span><div class="bar ${n / 8 < .7 ? 'gold' : ''}" style="height:14px"><b style="width:${n / 8 * 100}%"></b></div><span class="c">${n}/8</span></div>`;
-          }).join('')}
+          <div class="lbl">${L('Completion by goal', 'Cumplimiento por meta')}</div>
+          ${GOALS().map(g => { const n = MEMBERS.filter(m => status(m, g) === 'd').length; return `<div class="actrow">${icon(g.icon, 20)}<span>${g.name}</span>${bar(n / 8, 'thin ' + barCls(n / 8))}<span class="c">${n}/8</span></div>`; }).join('')}
         </div>
         <div class="card">
-          <div class="label">WHO NEEDS ENCOURAGEMENT</div>
-          ${MEMBERS.filter(m => doneCount(m) < 7).sort((a, b) => doneCount(a) - doneCount(b)).map(m =>
-            `<div class="help-row"><div class="avatar">${initials(m.name)}</div><div class="n">${m.name}<small>Missing ${missing(m).map(g => g.short.toLowerCase()).join(', ')}</small></div><span class="btn" style="padding:6px 8px;font-size:8px">${pix(ICON.heart, 1)} NUDGE</span></div>`
-          ).join('')}
+          <div class="lbl">${L('Who to follow up with', 'A quién dar seguimiento')}</div>
+          ${follow.map(m => `<div class="list-row"><div class="avatar">${initials(m.name)}</div><div class="n">${m.name}<small>${L('Missing', 'Falta')}: ${missing(m).map(g => g.short.toLowerCase()).join(', ')}</small></div><span class="btn ghost" style="padding:6px 10px">${icon('heart', 14)}</span></div>`).join('')}
         </div>
       </div>
     </main>
   </div>`;
+}
 
-/* ================= Hero + notes ================= */
-document.getElementById('heroIcons').innerHTML = [pix(ICON.bible, 7), pix(ICON.heart, 7), plant(4, 6), pix(ICON.hands, 7), pix(ICON.drop, 7)].join('');
-document.getElementById('goalList').innerHTML = GOALS.map(g => `<li>${g.name.charAt(0) + g.name.slice(1).toLowerCase()} &mdash; ${g.desc}</li>`).join('');
+/* ---------- Desktop 2: overseer region dashboard ---------- */
+function desktopRegion() {
+  const rp = REGION_PCT();
+  const editing = BRANCHES[1];
+  return `
+  <div class="browser-top"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><div class="url">faithful7.app/santiago/region</div></div>
+  <div class="app">
+    ${sideNav([
+      ['pin', L('Region overview', 'Resumen regional'), 1], ['chart', L('Branches', 'Sucursales'), 0, '5'], ['people', L('Groups', 'Grupos'), 0, '38'],
+      ['target', L('GA goals', 'Metas AG')], ['bible', L('Reports', 'Reportes')], ['gear', L('Settings', 'Ajustes')]
+    ], `<div class="avatar" style="background:var(--ok)">PS</div><div><b>${L('OVERSEER', 'SUPERVISOR')}</b>Pastor Samuel R.<br>${L('Santiago Region', 'Región Santiago')}</div>`)}
+    <main class="main">
+      <div class="topline">
+        <h2>${L('Santiago Region', 'Región Santiago')}<small>${L('General Assembly goals', 'Metas de Asamblea General')} · ${BRANCHES.length} ${L('branches', 'sucursales')} · ${L('updated Nov 18', 'actualizado 18 nov')}</small></h2>
+        <div class="seg"><span>${L('This month', 'Este mes')}</span><span class="on">GA 2026</span></div>
+        <span class="btn">${icon('pencil', 16)} ${L('Edit goals', 'Editar metas')}</span>
+      </div>
+
+      <div class="kpis" style="grid-template-columns:repeat(5,1fr)">
+        ${METRICS().map(m => {
+          const [c, g] = regionTotal(m.k), r = c / g;
+          return `<div class="card"><div class="row" style="gap:10px;margin-bottom:10px"><div class="ic">${icon(m.icon, 26)}</div><div class="lbl">${m.name}</div></div>
+            <div class="kpi"><div class="v" style="margin:0">${fmt(c)} <small>/ ${fmt(g)}</small></div></div>
+            <div style="margin-top:10px">${bar(r, barCls(r))}</div><div class="small" style="margin-top:6px">${Math.round(r * 100)}% ${L('of goal', 'de la meta')}</div></div>`;
+        }).join('')}
+      </div>
+
+      <div class="grid2" style="grid-template-columns:minmax(0,1fr) 330px">
+        <div class="card" style="padding:18px 20px;min-width:0">
+          <div class="row" style="justify-content:space-between;margin-bottom:10px">
+            <div><div class="h">${L('Branch progress', 'Progreso por sucursal')}</div><div class="small">${L('Each branch sets its own goals. The overseer can update any branch.', 'Cada sucursal define sus metas. El supervisor puede actualizar cualquiera.')}</div></div>
+          </div>
+          <table class="mx">
+            <thead><tr><th>${L('BRANCH', 'SUCURSAL')}</th>${METRICS().map(m => `<th><div class="thi">${icon(m.icon, 22)}${m.short}</div></th>`).join('')}<th>${L('OVERALL', 'TOTAL')}</th><th></th></tr></thead>
+            <tbody>
+              ${BRANCHES.map(b => {
+                const p = branchPct(b);
+                return `<tr class="${b === editing ? 'hl' : ''}"><td><div class="who-cell">${plant(pctStage(p), 30, p < 45)}<span>${b.name}</span></div></td>
+                  ${METRICS().map(m => { const [c, g] = b.d[m.k], r = c / g; return `<td><div class="metric-cell"><div class="nums">${fmt(c)}<span>/ ${fmt(g)}</span></div>${bar(r, 'thin ' + barCls(r))}</div></td>`; }).join('')}
+                  <td><span class="tag ${p >= 80 ? 'ok' : p >= 55 ? 'warn' : 'bad'}">${p}%</span></td>
+                  <td>${icon('pencil', 16)}</td></tr>`;
+              }).join('')}
+              <tr><td class="h" style="font-size:var(--fs-tag)">${L('REGION TOTAL', 'TOTAL REGIÓN')}</td>${METRICS().map(m => { const [c, g] = regionTotal(m.k); return `<td><div class="metric-cell"><div class="nums">${fmt(c)}<span>/ ${fmt(g)}</span></div></div></td>`; }).join('')}<td><span class="tag ${rp >= 80 ? 'ok' : 'warn'}">${rp}%</span></td><td></td></tr>
+            </tbody>
+          </table>
+          <div class="legend"><span><i style="background:var(--ok)"></i>${L('On track (80%+)', 'En camino (80%+)')}</span><span><i style="background:var(--warn)"></i>55–79%</span><span><i style="background:var(--bad)"></i>${L('Below 55%', 'Menos de 55%')}</span></div>
+        </div>
+
+        <div class="card">
+          <div class="row" style="justify-content:space-between;margin-bottom:4px"><div class="lbl">${L('Edit goals', 'Editar metas')}</div><span class="chip on">${editing.name}</span></div>
+          <div class="formrow" style="font-family:var(--fh);font-size:var(--fs-tag);color:var(--muted)"><span></span><span></span><span style="text-align:center">${L('CURRENT', 'ACTUAL')}</span><span style="text-align:center">${L('GOAL', 'META')}</span></div>
+          ${METRICS().map(m => { const [c, g] = editing.d[m.k]; return `<div class="formrow">${icon(m.icon, 20)}<span>${m.name}</span><div class="input num">${fmt(c)}</div><div class="input num">${fmt(g)}</div></div>`; }).join('')}
+          <div class="row" style="margin-top:14px;gap:10px"><span class="btn ghost grow">${L('Cancel', 'Cancelar')}</span><span class="btn grow">${icon('check', 14)} ${L('Save', 'Guardar')}</span></div>
+          <div class="divider" style="margin:16px 0 12px"></div>
+          <div class="lbl" style="margin-bottom:8px">${L('Who can do what', 'Quién puede hacer qué')}</div>
+          <div class="small" style="line-height:1.5;color:var(--ink)">
+            <div class="row" style="gap:8px">${icon('star', 14)}<span><b>${L('Overseer', 'Supervisor')}</b>: ${L('edit every branch', 'edita todas las sucursales')}</span></div>
+            <div class="row" style="gap:8px">${icon('pin', 14)}<span><b>${L('Branch leader', 'Líder de sucursal')}</b>: ${L('edits own branch', 'edita su sucursal')}</span></div>
+            <div class="row" style="gap:8px">${icon('people', 14)}<span><b>${L('Group leaders', 'Líderes de grupo')}</b>: ${L('view only', 'solo ver')}</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid3" style="grid-template-columns:1.4fr 1fr">
+        <div class="card">
+          <div class="lbl">${L('Santiago garden · every branch', 'Jardín de Santiago · cada sucursal')}</div>
+          <div class="garden">${BRANCHES.map(b => { const p = branchPct(b); return `<div class="g">${plant(pctStage(p), 64, p < 45)}${b.name.replace('Santiago ', '')}<br>${p}%</div>`; }).join('')}</div>
+        </div>
+        <div class="card hero-card">
+          <div class="lbl">${L('Encouragement for the region', 'Ánimo para la región')}</div>
+          <div class="verse" style="margin-top:12px;font-size:calc(var(--fs-body) * 1.15)">${L('“The harvest is plentiful but the workers are few. Ask the Lord of the harvest, therefore, to send out workers into his harvest field.”', '“La mies a la verdad es mucha, mas los obreros pocos. Rogad, pues, al Señor de la mies, que envíe obreros a su mies.”')}<cite>${L('MATTHEW 9:37–38', 'MATEO 9:37–38')}</cite></div>
+          <div class="row" style="margin-top:14px;gap:10px">${icon('fruit', 26)}<span>${L(`${regionTotal('fruit')[0]} souls of fruit so far this GA year — ${regionTotal('fruit')[1] - regionTotal('fruit')[0]} to go.`, `${regionTotal('fruit')[0]} almas de fruto en este año de AG — faltan ${regionTotal('fruit')[1] - regionTotal('fruit')[0]}.`)}</span></div>
+        </div>
+      </div>
+    </main>
+  </div>`;
+}
+
+/* =====================================================================
+   PAGE
+   ===================================================================== */
+function render() {
+  document.documentElement.dataset.theme = THEME;
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-theme-btn]').forEach(b => b.classList.toggle('on', b.dataset.themeBtn === THEME));
+  document.querySelectorAll('[data-lang-btn]').forEach(b => b.classList.toggle('on', b.dataset.langBtn === LANG));
+  const styleName = { pixel: L('8-Bit', '8-Bit'), soft: L('Soft 3D', '3D suave'), clean: L('Clean', 'Limpio') }[THEME];
+  document.getElementById('root').innerHTML = `
+  <header class="hero">
+    <div class="icons">${icon('bible', 64)}${icon('heart', 58)}${plant(4, 80)}${icon('hands', 64)}${icon('fruit', 58)}</div>
+    <h1>Faithful 7</h1>
+    <p>${L('A monthly dashboard for group leaders and overseers: track every member’s 7 goals, and every branch’s General Assembly goals.', 'Un panel mensual para líderes y supervisores: sigue las 7 metas de cada miembro y las metas de Asamblea General de cada sucursal.')}</p>
+    <span class="pill">${L('Design option', 'Opción de diseño')}: ${styleName} · ${L('Leaders only, members don’t log in', 'Solo líderes, los miembros no inician sesión')}</span>
+  </header>
+
+  <section class="block">
+    <h2 class="section-title">${L('1 · GROUP LEADER', '1 · LÍDER DE GRUPO')}<span>${L('The leader fills in each member’s month and sees the whole group at a glance.', 'El líder llena el mes de cada miembro y ve todo el grupo de un vistazo.')}</span></h2>
+    <div class="browser" id="desktopGroup">${desktopGroup()}</div>
+    <div class="phones" style="margin-top:50px">
+      <div class="phone-wrap"><div class="phone" id="phoneUpdate">${phoneUpdate()}</div><div class="cap">${L('Phone · update a member', 'Teléfono · actualizar miembro')}</div></div>
+      <div class="phone-wrap"><div class="phone" id="phoneGroup">${phoneGroup()}</div><div class="cap">${L('Phone · group overview', 'Teléfono · resumen del grupo')}</div></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2 class="section-title">${L('2 · OVERSEER · SANTIAGO REGION', '2 · SUPERVISOR · REGIÓN SANTIAGO')}<span>${L('General Assembly goals for every branch. Groups in Santiago can view it, and other regions can get the same setup.', 'Metas de Asamblea General por sucursal. Los grupos de Santiago pueden verlo, y otras regiones pueden tener lo mismo.')}</span></h2>
+    <div class="browser" id="desktopRegion">${desktopRegion()}</div>
+    <div class="phones" style="margin-top:50px">
+      <div class="phone-wrap"><div class="phone" id="phoneRegion">${phoneRegion()}</div><div class="cap">${L('Phone · region (view only)', 'Teléfono · región (solo ver)')}</div></div>
+    </div>
+  </section>
+
+  <section class="notes">
+    <div class="card"><h3>${L('The 7 monthly goals (per member)', 'Las 7 metas mensuales (por miembro)')}</h3><ul>${GOALS().map(g => `<li>${g.name}${g.target > 1 ? ` · ${g.k === 'att' ? L('1–4 times, leader picks', '1–4 veces, lo elige el líder') : `${g.target}x`}` : ''}</li>`).join('')}</ul></div>
+    <div class="card"><h3>${L('GA goals (per branch)', 'Metas AG (por sucursal)')}</h3><ul>${METRICS().map(m => `<li>${m.name}</li>`).join('')}</ul></div>
+    <div class="card"><h3>${L('Plant = health', 'Planta = salud')}</h3><p>${L('Members, groups and branches each have a plant. It grows from a seed to full bloom as goals are met, and droops when they fall behind.', 'Miembros, grupos y sucursales tienen una planta. Crece de semilla a flor según se cumplen las metas, y se marchita cuando se atrasan.')}</p></div>
+  </section>`;
+}
+document.querySelectorAll('[data-theme-btn]').forEach(b => b.onclick = () => { THEME = b.dataset.themeBtn; render(); });
+document.querySelectorAll('[data-lang-btn]').forEach(b => b.onclick = () => { LANG = b.dataset.langBtn; render(); });
+render();
 </script>
 </body>
 </html>
