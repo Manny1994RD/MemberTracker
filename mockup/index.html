@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Faithful 7 Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1d1b2f;
+    --night: #1f2340;
+    --night-2: #2b3058;
+    --parch: #f4e9cf;
+    --parch-2: #eadbb6;
+    --paper: #fbf5e6;
+    --gold: #e8b04b;
+    --gold-d: #a8761f;
+    --wine: #9a2f3e;
+    --wine-l: #d0475a;
+    --green: #4f9a5a;
+    --green-d: #2f6b3a;
+    --sky: #86bdf0;
+    --blue: #3d6fb6;
+    --muted: #6d6680;
+    --px: 'Press Start 2P', monospace;
+    --vt: 'VT323', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--night);
+    background-image:
+      radial-gradient(#ffffff22 1px, transparent 1px),
+      radial-gradient(#e8b04b22 1px, transparent 1px);
+    background-size: 48px 48px, 80px 80px;
+    background-position: 0 0, 24px 40px;
+    color: var(--parch);
+    font-family: var(--vt);
+    font-size: 20px;
+    padding: 48px 16px 80px;
+  }
+  svg { image-rendering: pixelated; display: block; }
+
+  /* ---------- Showcase chrome ---------- */
+  .hero { text-align: center; max-width: 900px; margin: 0 auto 56px; }
+  .hero .icons { display: flex; justify-content: center; gap: 28px; margin-bottom: 24px; align-items: flex-end; }
+  .hero h1 { font-family: var(--px); font-size: 36px; color: var(--gold); text-shadow: 4px 4px 0 var(--ink); letter-spacing: 2px; }
+  .hero p { font-size: 26px; margin-top: 14px; color: #d9cfb3; }
+  .section-title { font-family: var(--px); font-size: 16px; color: var(--gold); text-align: center; margin: 0 auto 28px; letter-spacing: 1px; }
+  .section-title span { display: block; font-family: var(--vt); font-size: 22px; color: #bfb6d6; margin-top: 10px; letter-spacing: 0; }
+  .phones { display: flex; flex-wrap: wrap; justify-content: center; gap: 40px; margin-bottom: 90px; }
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .phone-cap { font-family: var(--px); font-size: 11px; color: #cfc6e6; }
+
+  /* ---------- Phone frame ---------- */
+  .phone {
+    width: 390px; height: 844px; background: var(--paper);
+    border: 6px solid var(--ink); outline: 6px solid #3b3a55;
+    box-shadow: 12px 12px 0 #0e0f22;
+    position: relative; overflow: hidden; color: var(--ink);
+    display: flex; flex-direction: column;
+  }
+  .status { height: 40px; display: flex; justify-content: space-between; align-items: center; padding: 0 22px; font-family: var(--px); font-size: 10px; background: var(--night); color: var(--parch); flex-shrink: 0; }
+  .status .notch { width: 110px; height: 22px; background: var(--ink); }
+  .status .bat { display: flex; gap: 3px; }
+  .status .bat i { width: 5px; height: 10px; background: var(--parch); display: block; }
+  .appbar { background: var(--night); color: var(--parch); padding: 10px 16px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 4px solid var(--ink); flex-shrink: 0; }
+  .appbar .title { font-family: var(--px); font-size: 12px; color: var(--gold); flex: 1; line-height: 1.5; }
+  .appbar .title small { display: block; font-family: var(--vt); font-size: 18px; color: #c8c0df; letter-spacing: 0; }
+  .avatar { width: 34px; height: 34px; background: var(--wine); border: 3px solid var(--ink); color: var(--parch); font-family: var(--px); font-size: 11px; display: grid; place-items: center; box-shadow: 2px 2px 0 var(--ink); flex-shrink: 0; }
+  .avatar.lg { width: 56px; height: 56px; font-size: 16px; }
+  .scroll { flex: 1; overflow: hidden; padding: 14px 14px 0; display: flex; flex-direction: column; gap: 12px; }
+  .nav { height: 72px; flex-shrink: 0; background: var(--parch); border-top: 4px solid var(--ink); display: grid; grid-template-columns: repeat(4, 1fr); }
+  .nav div { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-family: var(--px); font-size: 7px; color: var(--muted); }
+  .nav div.on { background: var(--gold); color: var(--ink); box-shadow: inset 0 -4px 0 var(--gold-d); }
+
+  /* ---------- Shared UI ---------- */
+  .card { background: var(--parch); border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); padding: 12px; }
+  .card.dark { background: var(--night-2); color: var(--parch); }
+  .label { font-family: var(--px); font-size: 9px; letter-spacing: .5px; color: var(--muted); }
+  .card.dark .label { color: #bdb4dc; }
+  .h { font-family: var(--px); font-size: 11px; line-height: 1.5; }
+  .big { font-family: var(--px); font-size: 26px; }
+  .segbar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .segbar i { height: 12px; border: 2px solid var(--ink); background: #fff8; display: block; }
+  .segbar i.d { background: var(--green); }
+  .segbar i.p { background: var(--gold); }
+  .bar { height: 16px; border: 3px solid var(--ink); background: #fff7; position: relative; }
+  .bar b { position: absolute; inset: 0 auto 0 0; background: repeating-linear-gradient(90deg, var(--green) 0 10px, #5fae6a 10px 12px); }
+  .bar.gold b { background: repeating-linear-gradient(90deg, var(--gold) 0 10px, #f2c46a 10px 12px); }
+  .bar.blue b { background: repeating-linear-gradient(90deg, var(--blue) 0 10px, #5a8bd0 10px 12px); }
+  .btn { font-family: var(--px); font-size: 10px; background: var(--wine); color: var(--parch); border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); padding: 10px 12px; display: inline-flex; gap: 8px; align-items: center; justify-content: center; }
+  .btn.gold { background: var(--gold); color: var(--ink); }
+  .btn.ghost { background: var(--paper); color: var(--ink); }
+  .chip { font-family: var(--px); font-size: 8px; border: 2px solid var(--ink); padding: 4px 6px; background: var(--paper); color: var(--ink); display: inline-block; }
+  .chip.on { background: var(--gold); }
+  .verse { font-size: 19px; line-height: 1.05; }
+  .verse cite { display: block; font-style: normal; font-family: var(--px); font-size: 8px; margin-top: 6px; color: var(--gold); }
+
+  /* Task rows (member) */
+  .task { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border: 3px solid var(--ink); background: var(--paper); }
+  .task.done { background: #e3f0d6; }
+  .task .ic { width: 36px; height: 36px; display: grid; place-items: center; background: var(--parch); border: 2px solid var(--ink); flex-shrink: 0; }
+  .task .t { flex: 1; line-height: 1; }
+  .task .t b { font-family: var(--px); font-size: 9px; font-weight: normal; display: block; margin-bottom: 4px; }
+  .task .t span { font-size: 17px; color: var(--muted); }
+  .box { width: 26px; height: 26px; border: 3px solid var(--ink); background: #fff; display: grid; place-items: center; }
+  .box.d { background: var(--green); }
+  .dots { display: flex; gap: 4px; align-items: center; }
+  .dots i { width: 14px; height: 14px; border: 2px solid var(--ink); background: #fff; display: block; }
+  .dots i.d { background: var(--green); }
+  .dots i.wk { width: 10px; }
+  .plus { width: 26px; height: 26px; border: 3px solid var(--ink); background: var(--gold); font-family: var(--px); font-size: 12px; display: grid; place-items: center; margin-left: 4px; box-shadow: 2px 2px 0 var(--ink); }
+
+  /* Member rows (group) */
+  .mrow { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border-bottom: 2px dashed #c9b88f; }
+  .mrow:last-child { border-bottom: 0; }
+  .mrow .n { flex: 1; line-height: 1; font-size: 20px; }
+  .mrow .n small { display: block; font-size: 16px; color: var(--wine); }
+  .mrow .n small.ok { color: var(--green-d); }
+  .mrow .score { font-family: var(--px); font-size: 10px; width: 34px; text-align: right; }
+  .pips { display: grid; grid-template-columns: repeat(7, 9px); gap: 2px; }
+  .pips i { width: 9px; height: 9px; border: 2px solid var(--ink); display: block; background: #fff; }
+  .pips i.d { background: var(--green); }
+  .pips i.p { background: var(--gold); }
+
+  .drops { display: flex; gap: 8px; }
+  .drops .off { opacity: .28; filter: grayscale(1); }
+
+  /* ---------- Desktop ---------- */
+  .browser { width: 1440px; max-width: 100%; margin: 0 auto; border: 6px solid var(--ink); outline: 6px solid #3b3a55; box-shadow: 14px 14px 0 #0e0f22; background: var(--paper); color: var(--ink); }
+  .browser-top { height: 44px; background: #3b3a55; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 4px solid var(--ink); }
+  .browser-top i { width: 14px; height: 14px; border: 2px solid var(--ink); display: block; }
+  .browser-top .url { flex: 1; margin-left: 16px; background: var(--parch); border: 3px solid var(--ink); height: 26px; font-family: var(--px); font-size: 9px; display: flex; align-items: center; padding: 0 10px; color: var(--muted); }
+  .app { display: grid; grid-template-columns: 236px 1fr; min-height: 900px; }
+  .side { background: var(--night); color: var(--parch); border-right: 4px solid var(--ink); padding: 22px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .side .brand { display: flex; align-items: center; gap: 10px; font-family: var(--px); font-size: 13px; color: var(--gold); margin-bottom: 22px; line-height: 1.4; }
+  .side a { display: flex; align-items: center; gap: 12px; padding: 10px 10px; font-family: var(--px); font-size: 9px; color: #cfc6e6; text-decoration: none; border: 3px solid transparent; }
+  .side a.on { background: var(--gold); color: var(--ink); border-color: var(--ink); box-shadow: 3px 3px 0 #0e0f22; }
+  .side .grp { margin-top: auto; border: 3px solid #4a4f80; padding: 12px; font-size: 18px; color: #cfc6e6; }
+  .side .grp b { font-family: var(--px); font-size: 9px; color: var(--gold); font-weight: normal; display: block; margin-bottom: 6px; }
+  .main { padding: 24px 28px 32px; display: flex; flex-direction: column; gap: 20px; }
+  .topline { display: flex; align-items: center; gap: 16px; }
+  .topline h2 { font-family: var(--px); font-size: 18px; flex: 1; line-height: 1.5; }
+  .topline h2 small { display: block; font-family: var(--vt); font-size: 22px; color: var(--muted); font-weight: normal; }
+  .month { font-family: var(--px); font-size: 11px; border: 3px solid var(--ink); background: var(--parch); padding: 10px 14px; box-shadow: 3px 3px 0 var(--ink); }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .kpi { display: flex; align-items: center; gap: 14px; }
+  .kpi .v { font-family: var(--px); font-size: 22px; margin-top: 8px; }
+  .kpi .s { font-size: 18px; color: var(--muted); }
+  .grid2 { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+  table.mx { width: 100%; border-collapse: collapse; }
+  table.mx th { font-family: var(--px); font-size: 8px; font-weight: normal; padding: 6px 4px 10px; color: var(--muted); text-align: center; vertical-align: bottom; line-height: 1.6; }
+  table.mx th .thi { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  table.mx th:first-child { text-align: left; }
+  table.mx td { border-top: 2px dashed #c9b88f; padding: 7px 4px; text-align: center; }
+  table.mx td:first-child { text-align: left; }
+  .who { display: flex; align-items: center; gap: 10px; font-size: 21px; }
+  .cell { width: 46px; height: 30px; margin: 0 auto; border: 3px solid var(--ink); display: grid; place-items: center; font-family: var(--px); font-size: 9px; background: #fff; }
+  .cell.d { background: var(--green); }
+  .cell.p { background: var(--gold); }
+  .cell.m { background: #f6d9d6; border-style: dashed; color: var(--wine); }
+  .tag { font-family: var(--px); font-size: 8px; padding: 5px 6px; border: 2px solid var(--ink); display: inline-block; }
+  .tag.ok { background: var(--green); color: #fff; }
+  .tag.close { background: var(--gold); }
+  .tag.help { background: var(--wine-l); color: #fff; }
+  .legend { display: flex; gap: 18px; font-size: 18px; color: var(--muted); margin-top: 10px; align-items: center; }
+  .legend i { width: 14px; height: 14px; border: 2px solid var(--ink); display: inline-block; vertical-align: -2px; margin-right: 6px; }
+  .grid3 { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 20px; }
+  .garden { display: flex; justify-content: space-between; align-items: flex-end; gap: 6px; margin-top: 10px; padding: 8px 6px 0; background: linear-gradient(transparent 78%, #c9b88f 78%); }
+  .garden .g { text-align: center; font-family: var(--px); font-size: 8px; line-height: 1.7; }
+  .garden .g.me { outline: 3px dashed var(--wine); outline-offset: 4px; }
+  .actrow { display: grid; grid-template-columns: 26px 110px 1fr 40px; gap: 10px; align-items: center; margin-top: 9px; font-size: 19px; }
+  .actrow .c { font-family: var(--px); font-size: 9px; text-align: right; }
+  .help-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 2px dashed #c9b88f; font-size: 19px; line-height: 1; }
+  .help-row:last-child { border-bottom: 0; }
+  .help-row .n { flex: 1; }
+  .help-row .n small { display: block; color: var(--wine); font-size: 17px; margin-top: 3px; }
+
+  .notes { max-width: 1100px; margin: 80px auto 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; color: var(--ink); }
+  .notes .card { background: var(--parch); }
+  .notes h3 { font-family: var(--px); font-size: 11px; margin-bottom: 10px; line-height: 1.5; }
+  .notes p, .notes li { font-size: 20px; line-height: 1.1; }
+  .notes ul { padding-left: 18px; }
+
+  @media (max-width: 480px) {
+    .hero h1 { font-size: 22px; }
+    .phone { transform: scale(.82); transform-origin: top center; margin-bottom: -150px; }
+    .browser { overflow-x: auto; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="icons" id="heroIcons"></div>
+  <h1>FAITHFUL 7</h1>
+  <p>A monthly faith tracker for church groups &mdash; every member, all 7 goals, growing together.</p>
+</header>
+
+<h2 class="section-title">MOBILE APP<span>What members and group leaders see on their phones</span></h2>
+<div class="phones">
+  <div class="phone-wrap"><div class="phone" id="phone1"></div><div class="phone-cap">1 &middot; MY MONTH</div></div>
+  <div class="phone-wrap"><div class="phone" id="phone2"></div><div class="phone-cap">2 &middot; MY GROUP</div></div>
+  <div class="phone-wrap"><div class="phone" id="phone3"></div><div class="phone-cap">3 &middot; HELP A MEMBER</div></div>
+</div>
+
+<h2 class="section-title">DESKTOP DASHBOARD<span>Group leader view on a computer</span></h2>
+<div class="browser" id="desktop"></div>
+
+<section class="notes">
+  <div class="card"><h3>THE 7 MONTHLY GOALS</h3><ul id="goalList"></ul></div>
+  <div class="card"><h3>PLANT = HEALTH</h3><p>Every member and every group has a pixel plant. It grows from seed to full bloom as goals are completed, and droops when a member is falling behind, so you can see at a glance who needs encouragement.</p></div>
+  <div class="card"><h3>GROUP GOAL</h3><p>Baptisms are tracked as a shared group goal with water drops filling in as the group reaches it, plus encouragement messages with Bible verses to keep everyone pushing.</p></div>
+</section>
+
+<script>
+/* ================= Pixel art engine ================= */
+const PAL = {
+  k:'#1d1b2f', r:'#9a2f3e', D:'#5e1b27', R:'#d0475a', p:'#f19aa4', g:'#e8b04b', G:'#a8761f',
+  w:'#f4e9cf', W:'#ffffff', s:'#e8b088', S:'#c0835c', u:'#3d6fb6', U:'#86bdf0', n:'#2f6b3a',
+  N:'#4f9a5a', l:'#9bd46c', B:'#c0673a', b:'#9a4f2c', o:'#4a3020', c:'#8a8aa0', y:'#d6c46a', Y:'#8f8740'
+};
+function pix(rows, size) {
+  const h = rows.length, w = Math.max(...rows.map(r => r.length));
+  let out = '';
+  rows.forEach((row, y) => {
+    let x = 0;
+    while (x < row.length) {
+      const ch = row[x];
+      if (!PAL[ch]) { x++; continue; }
+      let x2 = x; while (x2 < row.length && row[x2] === ch) x2++;
+      out += `<rect x="${x}" y="${y}" width="${x2 - x}" height="1" fill="${PAL[ch]}"/>`;
+      x = x2;
+    }
+  });
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w * size}" height="${h * size}" shape-rendering="crispEdges" aria-hidden="true">${out}</svg>`;
+}
+
+const ICON = {
+  heart: [".kk...kk.","kRpk.kRRk","kpRRkRRRk","kRRRRRRRk",".kRRRRRk.","..kRRRk..","...kRk...","....k...."],
+  bible: [".kkkkkkkkk.","kDrrrrrrrrk","kDrrrrgrrrk","kDrrrrgrrrk","kDrrgggggrk","kDrrrrgrrrk","kDrrrrgrrrk","kDrrrrgrrrk","kDrrrrrrrrk","kDrrrrrrrrk","kDwwwwwwwwk",".kkkkkkkkk."],
+  hands: ["....kkk....","...kskSk...","...kskSk...","..ksskSSk..","..ksskSSk..",".kssskSSSk.",".kssskSSSk.",".kssskSSSk.",".kssskSSSk.",".kuuukUUUk.",".kuuukUUUk.",".kkkkkkkkk."],
+  calendar: [".k.....k.","kkkkkkkkk","kRRRRRRRk","kkkkkkkkk","kWWWWWWWk","kWkWWWkWk","kWWWWWWWk","kWWWkWWWk","kkkkkkkkk"],
+  coin: ["..kkkkk..",".kgggggk.","kgggGgggk","kggGGGggk","kgggGgggk","kgggGgggk","kgggggggk",".kgggggk.","..kkkkk.."],
+  laptop: [".kkkkkkk.",".kUUUUUk.",".kUWUUUk.",".kUUUUUk.",".kkkkkkk.","kccccccck","kkkkkkkkk"],
+  scroll: ["kkkkkkkk.","kGwwwwwwk","kkwkkkkwk",".kwwwwwwk",".kwkkkkwk",".kwwwwwwk",".kwkkkwwk",".kwwwwwGk",".kkkkkkkk"],
+  globe: ["..kkkkk..",".kuNNuuk.","kuNNNuuuk","kuuNuuNNk","kuuuuNNNk","kNuuuuNuk","kNNuuuuuk",".kuNuuuk.","..kkkkk.."],
+  speech: ["kkkkkkkkk","kWWWgWWWk","kWWgggWWk","kWWWgWWWk","kWWWgWWWk","kkkWkkkkk","..kWk....","..kk....."],
+  lamp: ["....R....","...RgR...","....g....","...kkk...",".kkBBBkkk","kBBBBBBBk","kbBBBBBbk",".kbbbbbk.","..kkkkk.."],
+  drop: ["....k....","...kUk...","...kUk...","..kUUuk..",".kWUUUuk.",".kWUUUuk.",".kUUUuuk.","..kuuuk..","...kkk..."],
+  check: ["......W",".....WW","W...WW.","WW.WW..",".WWW...","..W...."],
+  checkk: ["......k",".....kk","k...kk.","kk.kk..",".kkk...","..k...."],
+  star: ["....k....","...kgk...","kkkkgkkkk","kggggggGk",".kgggGGk.","..kgkGk..",".kgk.kGk.","kkk...kkk"],
+  people: [".kk...kk.","kssk.kSSk","kssk.kSSk",".kk...kk.","kuuk.kRRk","kuuk.kRRk","kuuk.kRRk","kkkk.kkkk"],
+  chart: ["k........","k......g.","k..u..gg.","k..uu.gg.","k.uuu.gg.","k.uuuNgg.","kkkkkkkkk"],
+  gear: ["..kk.kk..",".kcckcck.","kccccccck","kcckkkcck",".kck.kck.","kcckkkcck","kccccccck",".kcckcck.","..kk.kk.."],
+};
+
+function plantRows(stage, wilt) {
+  const W = 16, H = 19;
+  const g = [...Array(H)].map(() => Array(W).fill('.'));
+  const set = (x, y, c) => { if (y >= 0 && y < H && x >= 0 && x < W) g[y][x] = c; };
+  const pot = ["..kooooooooook..","..kkkkkkkkkkkk..","..kBBBBBBBBBBk..","..kkkkkkkkkkkk..","...kbbbbbbbbk...","...kbbbbbbbbk...","....kkkkkkkk...."];
+  pot.forEach((r, i) => [...r].forEach((c, x) => g[12 + i][x] = c));
+  const S = wilt ? 'Y' : 'n', L = wilt ? 'Y' : 'N', HI = wilt ? 'y' : 'l';
+  if (stage === 0) { set(6, 11, 'o'); set(7, 11, 'b'); set(8, 11, 'b'); set(9, 11, 'o'); set(7, 10, 'b'); return g.map(r => r.join('')); }
+  const len = [0, 2, 5, 8, 9][stage];
+  const top = 12 - len;
+  for (let y = top; y < 12; y++) { set(7, y, S); set(8, y, L); }
+  for (let i = 0, y = 10; y > top; y -= 3, i++) {
+    const left = stage >= 3 || i % 2 === 0, right = stage >= 3 || i % 2 === 1;
+    const droop = wilt ? 1 : 0;
+    if (left) { set(6, y, L); set(5, y, L); set(5, y - 1 + droop, HI); set(4, y - 1 + droop, HI); if (stage >= 3) set(3, y - 1 + droop, stage === 4 && i === 1 ? 'p' : HI); }
+    if (right) { set(9, y, L); set(10, y, L); set(10, y - 1 + droop, HI); set(11, y - 1 + droop, HI); if (stage >= 3) set(12, y - 1 + droop, stage === 4 && i === 1 ? 'p' : HI); }
+  }
+  // crown leaves
+  const d = wilt ? 1 : 0;
+  set(6, top + d, HI); set(5, top - 1 + d * 2, HI); set(9, top + d, HI); set(10, top - 1 + d * 2, HI);
+  if (stage === 4) {
+    set(7, 0, 'p'); set(8, 0, 'p'); set(6, 1, 'p'); set(7, 1, 'g'); set(8, 1, 'g'); set(9, 1, 'p'); set(7, 2, 'p'); set(8, 2, 'p');
+  }
+  return g.map(r => r.join(''));
+}
+const plant = (stage, size, wilt) => pix(plantRows(stage, wilt), size);
+const pctStage = p => p >= 90 ? 4 : p >= 70 ? 3 : p >= 45 ? 2 : p >= 20 ? 1 : 0;
+const cntStage = c => c === 7 ? 4 : c >= 5 ? 3 : c >= 3 ? 2 : c >= 1 ? 1 : 0;
+
+/* ================= Data ================= */
+const GOALS = [
+  { k: 'att',   name: 'ATTENDANCE',   short: 'ATTEND', icon: 'calendar', target: 4, unit: 'weeks', desc: 'Every week at service' },
+  { k: 'tithe', name: 'TITHE',        short: 'TITHE',  icon: 'coin',     target: 1, desc: 'Monthly tithe returned' },
+  { k: 'edu',   name: 'EDULMS',       short: 'EDULMS', icon: 'laptop',   target: 1, desc: 'Monthly lesson completed' },
+  { k: 'ga',    name: 'GA',           short: 'GA',     icon: 'scroll',   target: 1, desc: 'GA completed' },
+  { k: 'om',    name: 'ONLINE MISSION', short: 'ONLINE', icon: 'globe',  target: 3, desc: '3 times this month' },
+  { k: 'pr',    name: 'PREACHED',     short: 'PREACH', icon: 'speech',   target: 3, desc: '3 times this month' },
+  { k: 'prep',  name: 'PREPARATION DAY', short: 'PREP', icon: 'lamp',    target: 1, desc: 'Preparation day done' },
+];
+const M = (name, att, tithe, edu, ga, om, pr, prep) => ({ name, v: { att, tithe, edu, ga, om, pr, prep } });
+const MEMBERS = [
+  M('Ana Rodriguez',   4, 1, 1, 1, 3, 3, 1),
+  M('Maria Lopez',     4, 1, 1, 1, 3, 3, 1),
+  M('Sofia Ramirez',   4, 1, 1, 1, 3, 3, 1),
+  M('Miguel Torres',   4, 1, 1, 1, 2, 3, 1),
+  M('Lucia Fernandez', 4, 1, 1, 1, 3, 3, 0),
+  M('Jose Martinez',   4, 1, 0, 1, 3, 2, 1),
+  M('Carlos Mendez',   3, 1, 1, 0, 1, 0, 1),
+  M('Daniel Perez',    2, 0, 0, 0, 0, 0, 1),
+];
+const status = (m, g) => m.v[g.k] >= g.target ? 'd' : m.v[g.k] > 0 ? 'p' : 'm';
+const doneCount = m => GOALS.filter(g => status(m, g) === 'd').length;
+const missing = m => GOALS.filter(g => status(m, g) !== 'd');
+const initials = n => n.split(' ').map(s => s[0]).join('');
+const totalDone = MEMBERS.reduce((a, m) => a + doneCount(m), 0);
+const HEALTH = Math.round(totalDone / (MEMBERS.length * 7) * 100);
+const COMPLETE = MEMBERS.filter(m => doneCount(m) === 7).length;
+const BAPT = { goal: 5, done: 2 };
+
+/* ================= Pieces ================= */
+const statusBar = () => `<div class="status"><span>9:41</span><span class="notch"></span><span class="bat"><i></i><i></i><i></i></span></div>`;
+const navBar = on => `<div class="nav">${[['heart','MY MONTH'],['hands','GROUP'],['drop','GOAL'],['bible','VERSE']].map(([ic, t], i) =>
+  `<div class="${i === on ? 'on' : ''}">${pix(ICON[ic], 3)}${t}</div>`).join('')}</div>`;
+const segbar = m => `<div class="segbar">${GOALS.map(g => `<i class="${status(m, g)}"></i>`).join('')}</div>`;
+const pips = m => `<div class="pips">${GOALS.map(g => `<i class="${status(m, g)}"></i>`).join('')}</div>`;
+function taskWidget(m, g) {
+  const v = m.v[g.k];
+  if (g.target === 1) return `<div class="box ${v ? 'd' : ''}">${v ? pix(ICON.check, 2) : ''}</div>`;
+  const dots = Array.from({ length: g.target }, (_, i) => `<i class="${i < v ? 'd' : ''} ${g.target === 4 ? 'wk' : ''}"></i>`).join('');
+  return `<div class="dots">${dots}${v < g.target ? '<span class="plus">+</span>' : ''}</div>`;
+}
+
+/* ================= Phone 1: My Month ================= */
+const me = MEMBERS.find(m => m.name.startsWith('Miguel'));
+document.getElementById('phone1').innerHTML = `
+  ${statusBar()}
+  <div class="appbar">${pix(ICON.bible, 3)}<div class="title">FAITHFUL 7<small>Grupo Esperanza</small></div><div class="avatar">MT</div></div>
+  <div class="scroll">
+    <div class="card" style="display:flex;gap:14px;align-items:center">
+      <div style="background:#dfeef5;border:3px solid var(--ink);padding:6px 8px 0">${plant(cntStage(doneCount(me)), 5)}</div>
+      <div style="flex:1">
+        <div class="label">NOVEMBER &middot; 12 DAYS LEFT</div>
+        <div class="h" style="margin:8px 0 2px">Hi, Miguel!</div>
+        <div><span class="big">${doneCount(me)}</span><span class="h"> / 7</span></div>
+        <div style="margin:8px 0 6px">${segbar(me)}</div>
+        <div style="font-size:18px;line-height:1">1 more to reach full bloom!</div>
+      </div>
+    </div>
+    <div class="label" style="margin-top:2px">THIS MONTH'S GOALS</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${GOALS.map(g => {
+        const v = me.v[g.k], d = v >= g.target;
+        const sub = g.target > 1 ? `${v} of ${g.target} ${g.unit || 'times'}` : (d ? 'Done' : 'Not yet');
+        return `<div class="task ${d ? 'done' : ''}"><div class="ic">${pix(ICON[g.icon], 3)}</div><div class="t"><b>${g.name}</b><span>${sub}</span></div>${taskWidget(me, g)}</div>`;
+      }).join('')}
+    </div>
+  </div>
+  ${navBar(0)}`;
+
+/* ================= Phone 2: My Group ================= */
+document.getElementById('phone2').innerHTML = `
+  ${statusBar()}
+  <div class="appbar">${pix(ICON.hands, 3)}<div class="title">GRUPO ESPERANZA<small>8 members &middot; November</small></div><div class="avatar" style="background:var(--green)">${pix(ICON.star, 2)}</div></div>
+  <div class="scroll">
+    <div class="card dark" style="display:flex;gap:12px;align-items:center">
+      <div style="background:#39406e;border:3px solid var(--ink);padding:6px 8px 0">${plant(pctStage(HEALTH), 4)}</div>
+      <div style="flex:1">
+        <div class="label">GROUP HEALTH</div>
+        <div style="margin:8px 0"><span class="big" style="color:var(--gold)">${HEALTH}%</span></div>
+        <div class="bar" style="margin-bottom:8px"><b style="width:${HEALTH}%"></b></div>
+        <div class="verse">"Let us not become weary in doing good..."<cite>GALATIANS 6:9</cite></div>
+      </div>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:12px;padding:10px 12px">
+      <div style="flex:1"><div class="label">BAPTISM GOAL</div><div class="h" style="margin-top:6px">${BAPT.done} of ${BAPT.goal} souls</div></div>
+      <div class="drops">${Array.from({ length: BAPT.goal }, (_, i) => `<span class="${i < BAPT.done ? '' : 'off'}">${pix(ICON.drop, 3)}</span>`).join('')}</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center"><div class="label">MEMBERS &middot; ${COMPLETE}/8 COMPLETE</div><span class="chip on">NEEDS HELP</span></div>
+    <div class="card" style="padding:4px 4px">
+      ${MEMBERS.map(m => {
+        const c = doneCount(m), miss = missing(m);
+        const note = c === 7 ? '<small class="ok">All 7 complete</small>' : `<small>Missing: ${miss.map(g => g.short.toLowerCase()).slice(0, 3).join(', ')}${miss.length > 3 ? '...' : ''}</small>`;
+        return `<div class="mrow">${plant(cntStage(c), 2, c <= 3)}<div class="n">${m.name}${note}</div>${pips(m)}<div class="score">${c}/7</div></div>`;
+      }).join('')}
+    </div>
+  </div>
+  ${navBar(1)}`;
+
+/* ================= Phone 3: Help a member ================= */
+const carlos = MEMBERS.find(m => m.name.startsWith('Carlos'));
+document.getElementById('phone3').innerHTML = `
+  ${statusBar()}
+  <div class="appbar"><span class="h" style="color:var(--gold)">&lt;</span><div class="title">MEMBER<small>Grupo Esperanza</small></div>${pix(ICON.heart, 3)}</div>
+  <div class="scroll">
+    <div class="card" style="display:flex;gap:12px;align-items:center">
+      <div class="avatar lg">CM</div>
+      <div style="flex:1">
+        <div class="h">Carlos Mendez</div>
+        <div style="font-size:18px;color:var(--wine);margin:4px 0 6px">Plant needs water &middot; ${doneCount(carlos)}/7</div>
+        ${segbar(carlos)}
+      </div>
+      <div style="background:#efe2c0;border:3px solid var(--ink);padding:4px 5px 0">${plant(cntStage(doneCount(carlos)), 3, true)}</div>
+    </div>
+    <div class="label">STILL NEEDED THIS MONTH</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${missing(carlos).map(g => {
+        const v = carlos.v[g.k];
+        return `<div class="task"><div class="ic">${pix(ICON[g.icon], 3)}</div><div class="t"><b>${g.name}</b><span>${g.target > 1 ? `${v} of ${g.target} ${g.unit || 'times'}` : 'Not yet'}</span></div>${g.target > 1 ? `<span class="tag close">${g.target - v} LEFT</span>` : '<span class="tag help">TODO</span>'}</div>`;
+      }).join('')}
+    </div>
+    <div class="card dark">
+      <div class="label" style="margin-bottom:8px">SEND ENCOURAGEMENT</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        <span class="chip on">GAL 6:9</span><span class="chip">PHIL 4:13</span><span class="chip">1 THESS 5:11</span>
+      </div>
+      <div style="background:var(--paper);color:var(--ink);border:3px solid var(--ink);padding:8px 10px;font-size:19px;line-height:1.05">
+        Carlos, you're doing great! Want to go preach together this Saturday? We've got 12 days, let's finish strong.
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <span class="btn ghost">PAIR UP</span><span class="btn">${pix(ICON.heart, 2)} SEND</span>
+    </div>
+  </div>
+  ${navBar(1)}`;
+
+/* ================= Desktop ================= */
+const GROUPS = [
+  { n: 'VICTORIA', p: 94 }, { n: 'FE', p: 86 }, { n: 'ESPERANZA', p: HEALTH, me: true }, { n: 'GRACIA', p: 52 }, { n: 'LUZ', p: 31 },
+];
+const cell = (m, g) => {
+  const s = status(m, g), v = m.v[g.k];
+  if (s === 'd') return `<div class="cell d">${pix(ICON.check, 2)}</div>`;
+  if (s === 'p') return `<div class="cell p">${v}/${g.target}</div>`;
+  return `<div class="cell m">${g.target > 1 ? `0/${g.target}` : '--'}</div>`;
+};
+const tagFor = c => c === 7 ? '<span class="tag ok">COMPLETE</span>' : c >= 5 ? '<span class="tag close">ALMOST</span>' : '<span class="tag help">NEEDS HELP</span>';
+const side = [['heart', 'DASHBOARD', 1], ['people', 'MEMBERS'], ['drop', 'BAPTISM GOAL'], ['chart', 'REPORTS'], ['bible', 'VERSES'], ['gear', 'SETTINGS']];
+
+document.getElementById('desktop').innerHTML = `
+  <div class="browser-top"><i style="background:var(--wine-l)"></i><i style="background:var(--gold)"></i><i style="background:var(--green)"></i><div class="url">faithful7.app/group/esperanza</div></div>
+  <div class="app">
+    <aside class="side">
+      <div class="brand">${pix(ICON.bible, 3)}FAITHFUL<br>7</div>
+      ${side.map(([ic, t, on]) => `<a class="${on ? 'on' : ''}">${pix(ICON[ic], 2)}${t}</a>`).join('')}
+      <div class="grp"><b>LEADER</b>Pastor Ruben G.<br>Grupo Esperanza</div>
+    </aside>
+    <main class="main">
+      <div class="topline">
+        <h2>Group Dashboard<small>Grupo Esperanza &middot; 8 members &middot; 12 days left this month</small></h2>
+        <span class="month">&lt; NOVEMBER 2026 &gt;</span>
+        <span class="btn gold">${pix(ICON.chart, 2)} EXPORT</span>
+      </div>
+
+      <div class="kpis">
+        <div class="card kpi"><div style="background:#dfeef5;border:3px solid var(--ink);padding:3px 4px 0">${plant(pctStage(HEALTH), 3)}</div><div><div class="label">GROUP HEALTH</div><div class="v">${HEALTH}%</div><div class="s">Growing strong</div></div></div>
+        <div class="card kpi">${pix(ICON.star, 5)}<div><div class="label">ALL 7 REACHED</div><div class="v">${COMPLETE} / 8</div><div class="s">3 almost there</div></div></div>
+        <div class="card kpi">${pix(ICON.drop, 5)}<div><div class="label">BAPTISM GOAL</div><div class="v">${BAPT.done} / ${BAPT.goal}</div><div class="s">Next: Nov 28</div></div></div>
+        <div class="card kpi">${pix(ICON.hands, 5)}<div><div class="label">NEED HELP</div><div class="v">2</div><div class="s">Carlos, Daniel</div></div></div>
+      </div>
+
+      <div class="grid2">
+        <div class="card" style="padding:16px 18px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <div class="h">Member Progress</div>
+            <div style="display:flex;gap:8px"><span class="chip on">ALL</span><span class="chip">NEEDS HELP</span><span class="chip">COMPLETE</span></div>
+          </div>
+          <table class="mx">
+            <thead><tr><th>MEMBER</th>${GOALS.map(g => `<th><div class="thi">${pix(ICON[g.icon], 3)}${g.short}${g.target > 1 ? ` ${g.target}x` : ''}</div></th>`).join('')}<th>TOTAL</th><th>STATUS</th></tr></thead>
+            <tbody>
+              ${MEMBERS.map(m => {
+                const c = doneCount(m);
+                return `<tr><td><div class="who">${plant(cntStage(c), 2, c <= 3)}${m.name}</div></td>${GOALS.map(g => `<td>${cell(m, g)}</td>`).join('')}<td style="font-family:var(--px);font-size:11px">${c}/7</td><td>${tagFor(c)}</td></tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+          <div class="legend"><span><i style="background:var(--green)"></i>Done</span><span><i style="background:var(--gold)"></i>In progress</span><span><i style="background:#f6d9d6;border-style:dashed"></i>Missing</span><span style="margin-left:auto">Members check in on their phone &middot; updated 5 min ago</span></div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:20px">
+          <div class="card dark" style="text-align:center;padding:18px">
+            <div class="label" style="text-align:left">GROUP PLANT</div>
+            <div style="display:flex;justify-content:center;margin:12px 0 10px">${plant(pctStage(HEALTH), 8)}</div>
+            <div class="bar" style="margin:0 6px 10px"><b style="width:${HEALTH}%"></b></div>
+            <div class="h" style="color:var(--gold);margin-bottom:10px">${HEALTH}% &middot; GROWING STRONG</div>
+            <div class="verse">"I planted the seed, Apollos watered it, but God has been making it grow."<cite>1 CORINTHIANS 3:6</cite></div>
+          </div>
+          <div class="card">
+            <div class="label">BAPTISM GOAL &middot; GROUP</div>
+            <div style="display:flex;gap:10px;margin:12px 0">${Array.from({ length: BAPT.goal }, (_, i) => `<span class="${i < BAPT.done ? '' : 'off'}" style="${i < BAPT.done ? '' : 'opacity:.28;filter:grayscale(1)'}">${pix(ICON.drop, 4)}</span>`).join('')}</div>
+            <div style="font-size:19px;line-height:1.1">Baptized: Elena V., Marco D.<br>Studying: Rosa P. (Nov 28), Luis C.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid3">
+        <div class="card">
+          <div class="label">CHURCH GARDEN &middot; ALL GROUPS</div>
+          <div class="garden">
+            ${GROUPS.map(g => `<div class="g ${g.me ? 'me' : ''}">${plant(pctStage(g.p), 4, g.p < 40)}${g.n}<br>${g.p}%</div>`).join('')}
+          </div>
+          <div style="margin-top:22px;border-top:2px dashed #c9b88f;padding-top:14px;font-size:19px;line-height:1.1">
+            <div class="label" style="margin-bottom:8px">THIS WEEK'S ENCOURAGEMENT</div>
+            Grupo Luz's plant is drooping. Every group's plant grows when its members finish their 7 goals, so it's a garden we tend together, not a competition.
+            <div class="verse" style="margin-top:10px">"Therefore encourage one another and build each other up."<cite>1 THESSALONIANS 5:11</cite></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="label">GOAL COMPLETION &middot; BY ACTIVITY</div>
+          ${GOALS.map(g => {
+            const n = MEMBERS.filter(m => status(m, g) === 'd').length;
+            return `<div class="actrow">${pix(ICON[g.icon], 2)}<span>${g.name.charAt(0) + g.name.slice(1).toLowerCase()}</span><div class="bar ${n / 8 < .7 ? 'gold' : ''}" style="height:14px"><b style="width:${n / 8 * 100}%"></b></div><span class="c">${n}/8</span></div>`;
+          }).join('')}
+        </div>
+        <div class="card">
+          <div class="label">WHO NEEDS ENCOURAGEMENT</div>
+          ${MEMBERS.filter(m => doneCount(m) < 7).sort((a, b) => doneCount(a) - doneCount(b)).map(m =>
+            `<div class="help-row"><div class="avatar">${initials(m.name)}</div><div class="n">${m.name}<small>Missing ${missing(m).map(g => g.short.toLowerCase()).join(', ')}</small></div><span class="btn" style="padding:6px 8px;font-size:8px">${pix(ICON.heart, 1)} NUDGE</span></div>`
+          ).join('')}
+        </div>
+      </div>
+    </main>
+  </div>`;
+
+/* ================= Hero + notes ================= */
+document.getElementById('heroIcons').innerHTML = [pix(ICON.bible, 7), pix(ICON.heart, 7), plant(4, 6), pix(ICON.hands, 7), pix(ICON.drop, 7)].join('');
+document.getElementById('goalList').innerHTML = GOALS.map(g => `<li>${g.name.charAt(0) + g.name.slice(1).toLowerCase()} &mdash; ${g.desc}</li>`).join('');
+</script>
+</body>
+</html>
