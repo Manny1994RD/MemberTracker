@@ -1,0 +1,40 @@
+# Church Status for ZimaOS (or any Docker host).
+# ZimaOS: App Store → "+" (Custom install) → Import → paste this file → Install.
+# Then open http://<your-zima-ip>:8383 and create the Jefe de Templo account.
+name: church-status
+
+services:
+  church-status:
+    image: ghcr.io/manny1994rd/membertracker:latest
+    container_name: church-status
+    restart: unless-stopped
+    ports:
+      - "8383:8080"
+    environment:
+      TZ: America/Santo_Domingo
+      # Set to "true" only when you reach the app through HTTPS (for example a reverse proxy).
+      SECURE_COOKIES: "false"
+    volumes:
+      - /DATA/AppData/church-status:/data
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: church-status
+  author: Manny1994RD
+  developer: Manny1994RD
+  category: Utilities
+  title:
+    en_us: Church Status
+    es_es: Church Status
+  tagline:
+    en_us: Monthly goals for the Santiago region and its teams
+    es_es: Metas mensuales de la región Santiago y sus equipos
+  description:
+    en_us: Dashboard for the Jefe de Templo and Santiago team leaders. General Assembly goals by branch, and 7 monthly goals for every team member.
+    es_es: Panel para el Jefe de Templo y los líderes de equipo de Santiago. Metas de Asamblea General por sucursal y 7 metas mensuales por miembro.
+  icon: https://raw.githubusercontent.com/Manny1994RD/MemberTracker/main/public/icon-512.png
+  port_map: "8383"
+  scheme: http
+  index: /

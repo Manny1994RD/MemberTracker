@@ -1,0 +1,16 @@
+{
+  "name": "church-status",
+  "version": "1.0.0",
+  "description": "Church Status: monthly goals dashboard for the Santiago region and its teams (Clean design, Spanish/English).",
+  "private": true,
+  "license": "UNLICENSED",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}

@@ -1,69 +1,117 @@
 # Church Status
 
-## Live demo (`demo/`)
-A working demo in the Clean design, published as a claude.ai page with a shared live database. What one person changes shows up on everyone's screen within a second or two.
-- `demo/app.src.html` is the source; run `python3 demo/build.py` to build `demo/app.html` (the published page) and `demo/index.html` (a file you can open in a browser, which runs offline with example data).
-- Roles: switch with **Viewing as** at the top. The Jefe de Templo sees the region, the monthly report and Santiago's teams. A team leader sees only their own team, plus the region as view only.
-- **Reset demo data** (bottom of the page, owner only) puts the example data back.
+Monthly goals dashboard for the **Santiago region** and its teams, in Spanish and English, with the Clean design.
 
-# Design mockup (`mockup/`)
-
-A design sample for a church tracker used **only by leaders**. Members don't log in.
-
-**This is a mockup only.** It has no backend, login or saving, and all data is sample data.
-
-Open `mockup/index.html` in a browser. It's clickable: click boxes in the team table, or use + and − on the phone, and the totals and plants update. A toolbar at the top switches between:
-- **3 design options:** `1 · 8-Bit`, `2 · Soft 3D` (rounded and friendly, Pixar-like), `3 · Clean` (simple and professional)
-- **Language:** English / Español
-
-## Structure
-**Region** (Santiago) → **Branches** (Santiago, La Vega, Moca, Puerto Plata, Jarabacoa) → **Teams** (optional) → **Members**
-
-## Who logs in
-Only two kinds of people have a login:
-- **Jefe de Templo (overseer):** sets the General Assembly goals, enters every branch's monthly report, and creates the logins for Santiago's team leaders.
+- **Jefe de Templo:** sets the General Assembly goals, enters each branch's monthly report, manages teams, logins and backups.
 - **Santiago team leaders:** one login each. They keep their members' profiles and update each member's 7 monthly goals.
+- Members and branch leaders don't log in.
+- Changes show up live on everyone's screen.
 
-Branch leaders and members don't log in. The setup is built for the Santiago region only, but it leaves room to add other regions later.
+It's a small Node.js server with a built-in SQLite database (one file). It needs no npm packages.
 
-## 1. Santiago Region dashboard
-It shows each branch's results against its goals, with a **Monthly / Quarterly / Yearly** switch. Every goal counts **people**:
-- **Simple Preaching:** people preached to
-- **Meaningful Preaching:** people who came to study
-- **Attendance:** people attending
-- **Tithe:** people tithing (not an amount of money)
-- **Fruit:** souls baptized
+---
 
-The Jefe de Templo enters the monthly numbers for La Vega, Moca, Puerto Plata and Jarabacoa. Santiago's numbers come from its teams.
+## Install on ZimaOS
 
-## 2. Santiago Teams
-The Jefe de Templo adds team leaders and splits Santiago's yearly fruit goal between the teams. The teams' fruit adds up to the branch total.
+You need the app's Docker image published on GitHub first. See [Publish the image from GitHub](#publish-the-image-from-github), which you only do once.
 
-## 3. Team leader
-The team leader fills in each member's month and sees the whole team.
+1. Open the ZimaOS dashboard, go to **App Store**, and click **+** (top right), then **Install a customized app**. The wording can differ slightly between ZimaOS versions.
+2. Click **Import** (top right), paste the contents of [`docker-compose.yml`](docker-compose.yml), and click **Submit**, then **Install**.
+3. When it's running, open `http://<your-zima-ip>:8383`.
+4. Create the **Jefe de Templo** account. Tick **Start with example data** if you want to try it with sample branches, teams and members first.
 
-Each member has 7 monthly goals:
-1. Attendance (the leader picks a goal of 1–4 times)
-2. Tithe
-3. EduLMS
-4. GA Signature (General Assembly)
-5. Online Mission (3x)
-6. Preached (3x)
-7. Preparation Day
+The data is saved in `/DATA/AppData/church-status` on the ZimaOS drive, so it survives updates and restarts.
 
-The team leader's page also has:
-- The team's **fruit goal**, assigned by the branch.
-- An optional **custom team name**, e.g. "Los Valientes". It is shown instead of "Team 3 · Leader name".
-- **Team health shown as a plant.** It grows from a seed to full bloom as members complete their goals, and droops when they fall behind.
+**To update to a new version:** download the newest image in the ZimaOS terminal, then restart the app from the ZimaOS dashboard. Your data stays.
 
-## Screenshots
-`mockup/screenshots/<style>-<language>/` has one folder per style and language: `pixel`, `soft` or `clean`, in `en` or `es`. Each folder has these screenshots:
+```bash
+docker pull ghcr.io/manny1994rd/membertracker:latest
+```
 
-| File | Screen |
+### Alternative: build it on ZimaOS yourself
+If you'd rather not use the published image, open the ZimaOS terminal (or SSH) and run:
+
+```bash
+git clone https://github.com/Manny1994RD/MemberTracker.git church-status
+```
+
+```bash
+cd church-status && docker compose -f docker-compose.build.yml up -d --build
+```
+
+### Reaching it from outside your home network
+Port 8383 only works on your local network. To reach it from anywhere, use a tunnel such as Tailscale or Cloudflare Tunnel, or a reverse proxy with HTTPS. When the app is served over HTTPS, set `SECURE_COOKIES: "true"` in the compose file.
+
+---
+
+## Publish the image from GitHub
+
+The workflow in `.github/workflows/docker-publish.yml` tests the app, then builds the image for both Intel/AMD and ARM machines. It publishes the image as `ghcr.io/manny1994rd/membertracker`.
+
+1. Merge this work into the **`main`** branch. Every push to `main` publishes `:latest`.
+2. Check the run under the repository's **Actions** tab. The first one takes about 3–5 minutes.
+3. Make the image public, so ZimaOS can download it without a password:
+   1. On GitHub, open your profile, go to **Packages**, and open **membertracker**.
+   2. Open **Package settings**, find **Change visibility**, and choose **Public**.
+
+   If you keep it private, you'll need to sign in on ZimaOS first with a GitHub token that has the `read:packages` permission:
+
+   ```bash
+   docker login ghcr.io
+   ```
+4. Optional: to publish a numbered version, push a tag such as `v1.0.0`. That publishes `:v1.0.0`.
+
+---
+
+## Using the app
+
+| Who | What they see |
 |---|---|
-| `desktopRegion.png` | Overseer region dashboard (computer) |
-| `desktopBranch.png` | Branch with its teams and fruit split (computer) |
-| `desktopGroup.png` | Team leader dashboard (computer) |
-| `phoneUpdate.png` | Team leader updates a member (phone) |
-| `phoneGroup.png` | Team overview (phone) |
-| `phoneRegion.png` | Region goals, view only (phone) |
+| Jefe de Templo | **Región** (results by month, quarter or year), **Reporte mensual**, **Equipos**, **Ajustes** |
+| Team leader | **Mi equipo** (their members' 7 goals and fruit) and **Región** (view only) |
+
+- **Branches and goals:** Santiago, La Vega, Moca, Puerto Plata and Jarabacoa are created at setup. You can rename, add or remove branches in **Ajustes**.
+  - The branch marked **Equipos** reports through its teams, and its fruit adds up from the teams. The other branches get a monthly report.
+  - Attendance and tithe goals are *people per month*. On the quarterly and yearly views they show the monthly average.
+  - Preaching and fruit goals are *per year*. Each month's goal is one twelfth.
+- **The 7 monthly goals:** Attendance (the team picks 1–4 times), Tithe, EduLMS, GA Signature, Online Mission (3x), Preached (3x) and Preparation Day.
+- **Logins:** in **Ajustes → Usuarios**, or when you add a team.
+  - Forgotten password: the Jefe de Templo sets a new one under **Editar**.
+  - Everyone can change their own password with the **Contraseña** button.
+- **Backups:** in **Ajustes → Copia de seguridad**, download a JSON file of all reports, teams and members, or restore one. Logins aren't included. You can also copy `/DATA/AppData/church-status` while the app is stopped.
+
+---
+
+## Run it on a computer (for development)
+
+Node.js 22.13 or newer is required.
+
+```bash
+npm start
+```
+
+Then open http://localhost:8080. Data is stored in `./data/church-status.db`.
+
+```bash
+npm test
+```
+
+Settings (environment variables):
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `PORT` | `8080` | Port the server listens on |
+| `DATA_DIR` | `./data` (`/data` in Docker) | Folder for the database file |
+| `SECURE_COOKIES` | `false` | `true` when the app is served over HTTPS |
+| `TZ` | system | Time zone, used for the current month |
+
+## Project layout
+
+| Path | What it is |
+|---|---|
+| `server/` | API, logins, permissions, live updates, database |
+| `public/` | The web app (HTML, CSS, JavaScript, icons) |
+| `test/` | API tests (`npm test`) |
+| `Dockerfile`, `docker-compose.yml`, `docker-compose.build.yml` | Docker and ZimaOS setup |
+| `.github/workflows/` | Builds and publishes the Docker image |
+| `mockup/`, `demo/` | Earlier design mockup (3 styles) and the claude.ai live demo, kept for reference |
