@@ -2,8 +2,9 @@
 
 Monthly goals dashboard for the **Santiago region** and its teams, in Spanish and English, with the Clean design.
 
-- **Jefe de Templo:** sets the General Assembly goals, enters each branch's monthly report, manages teams, logins and backups.
-- **Santiago team leaders:** one login each. They keep their members' profiles and update each member's 7 monthly goals.
+- **Jefe de Templo:** sets the General Assembly goals, enters each branch's monthly report, and manages teams, PINs and backups.
+- **Santiago team leaders:** each has their own PIN. They keep their members' profiles and update each member's 7 monthly goals.
+- **Signing in uses a PIN only**, typed on a keypad. There are no usernames or passwords.
 - Members and branch leaders don't log in.
 - Changes show up live on everyone's screen.
 
@@ -18,7 +19,7 @@ You need the app's Docker image published on GitHub first. See [Publish the imag
 1. Open the ZimaOS dashboard, go to **App Store**, and click **+** (top right), then **Install a customized app**. The wording can differ slightly between ZimaOS versions.
 2. Click **Import** (top right), paste the contents of [`docker-compose.yml`](docker-compose.yml), and click **Submit**, then **Install**.
 3. When it's running, open `http://<your-zima-ip>:8383`.
-4. Create the **Jefe de Templo** account. Tick **Start with example data** if you want to try it with sample branches, teams and members first.
+4. Create the **Jefe de Templo** account with a 6-digit PIN. Tick **Start with example data** if you want to try it with sample branches, teams and members first. The example team leaders sign in with PINs 1111, 2222, 3333, 4444 and 5555.
 
 The data is saved in `/DATA/AppData/church-status` on the ZimaOS drive, so it survives updates and restarts.
 
@@ -75,10 +76,14 @@ The workflow in `.github/workflows/docker-publish.yml` tests the app, then build
   - Attendance and tithe goals are *people per month*. On the quarterly and yearly views they show the monthly average.
   - Preaching and fruit goals are *per year*. Each month's goal is one twelfth.
 - **The 7 monthly goals:** Attendance (the team picks 1–4 times), Tithe, EduLMS, GA Signature, Online Mission (3x), Preached (3x) and Preparation Day.
-- **Logins:** in **Ajustes → Usuarios**, or when you add a team.
-  - Forgotten password: the Jefe de Templo sets a new one under **Editar**.
-  - Everyone can change their own password with the **Contraseña** button.
-- **Backups:** in **Ajustes → Copia de seguridad**, download a JSON file of all reports, teams and members, or restore one. Logins aren't included. You can also copy `/DATA/AppData/church-status` while the app is stopped.
+- **PINs:**
+  - The Jefe de Templo's PIN has 6 digits. Team leaders' PINs have 4 to 8 digits. Every PIN must be different, because the PIN alone tells the app who is signing in.
+  - Give a team leader a PIN in **Ajustes → Quién puede entrar**, or when you add a team.
+  - Forgotten PIN: the Jefe de Templo sets a new one under **Editar o nuevo PIN**.
+  - Everyone can change their own PIN with the **Cambiar PIN** button.
+  - After 8 wrong PINs from one device, or 40 in total, signing in pauses for 15 minutes.
+  - PINs are stored scrambled, so nobody can read them back, not even the Jefe de Templo.
+- **Backups:** in **Ajustes → Copia de seguridad**, download a JSON file of all reports, teams and members, or restore one. PINs aren't included. You can also copy `/DATA/AppData/church-status` while the app is stopped.
 
 ---
 
@@ -109,7 +114,7 @@ Settings (environment variables):
 
 | Path | What it is |
 |---|---|
-| `server/` | API, logins, permissions, live updates, database |
+| `server/` | API, PIN sign-in, permissions, live updates, database |
 | `public/` | The web app (HTML, CSS, JavaScript, icons) |
 | `test/` | API tests (`npm test`) |
 | `Dockerfile`, `docker-compose.yml`, `docker-compose.build.yml` | Docker and ZimaOS setup |

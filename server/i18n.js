@@ -1,0 +1,35 @@
+'use strict';
+// Spanish versions of the messages people can see. The app sends "X-Lang: es" when it shows Spanish.
+const ES = {
+  'Choose a PIN that isn’t the same digit repeated.': 'Elige un PIN que no sea el mismo número repetido.',
+  'Enter a name.': 'Escribe un nombre.',
+  'Give a new 6-digit PIN when making someone Jefe de Templo.': 'Da un nuevo PIN de 6 dígitos al hacer a alguien Jefe de Templo.',
+  'That record no longer exists.': 'Ese registro ya no existe.',
+  'That team doesn’t exist.': 'Ese equipo no existe.',
+  'The PIN can only have numbers.': 'El PIN solo puede tener números.',
+  'The Jefe de Templo PIN needs exactly 6 digits.': 'El PIN del Jefe de Templo necesita exactamente 6 dígitos.',
+  'The PIN needs 4 to 8 digits.': 'El PIN necesita de 4 a 8 dígitos.',
+  'The request is too large.': 'La solicitud es demasiado grande.',
+  'You can’t delete your own account.': 'No puedes borrar tu propia cuenta.',
+  'You can’t remove your own Jefe de Templo access.': 'No puedes quitarte tu propio acceso de Jefe de Templo.',
+  'a member needs a team': 'El miembro necesita un equipo.',
+  'name is required': 'El nombre es obligatorio.',
+  'Only the Jefe de Templo can do this.': 'Solo el Jefe de Templo puede hacer esto.',
+  'Please sign in.': 'Por favor, inicia sesión.',
+  'Setup is already done. Sign in instead.': 'La configuración ya está hecha. Inicia sesión.',
+  'Someone already uses that PIN. Choose a different one.': 'Alguien ya usa ese PIN. Elige otro.',
+  'That PIN isn’t right.': 'Ese PIN no es correcto.',
+  'That account no longer exists.': 'Esa cuenta ya no existe.',
+  'Too many wrong PINs. Wait 15 minutes and try again.': 'Demasiados PIN incorrectos. Espera 15 minutos e intenta de nuevo.',
+  'Your current PIN isn’t right.': 'Tu PIN actual no es correcto.',
+  'Something went wrong on the server.': 'Algo salió mal en el servidor.',
+  'Only the Jefe de Templo can change branch reports.': 'Solo el Jefe de Templo puede cambiar los reportes de las sucursales.',
+  'Only the Jefe de Templo can add or remove teams.': 'Solo el Jefe de Templo puede agregar o quitar equipos.',
+  'You can only change your own team.': 'Solo puedes cambiar tu propio equipo.',
+  'Only the Jefe de Templo can change the fruit goal or the team leader.': 'Solo el Jefe de Templo puede cambiar la meta de fruto o el líder del equipo.',
+  'You can only change members of your own team.': 'Solo puedes cambiar a los miembros de tu equipo.',
+  'You can only add members to your own team.': 'Solo puedes agregar miembros a tu equipo.',
+  'Your account isn’t linked to a team yet.': 'Tu cuenta aún no está vinculada a un equipo.',
+};
+const translate = (message, lang) => (lang === 'es' && ES[message]) || message;
+module.exports = { translate };

@@ -169,3 +169,15 @@ footer.wrap { padding-block: 0 40px; color: var(--muted); font-size: 12.5px; }
   .usermenu .who-me { display: none; }
   .live { order: -1; }
 }
+
+/* PIN keypad */
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.pinpad h1 { text-align: center; }
+.pin-input { width: 100%; text-align: center; font-size: 30px; letter-spacing: .45em; padding: 10px 0 10px .45em; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); font-family: var(--f); font-variant-numeric: tabular-nums; }
+.pin-input:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+.pin-input::placeholder { color: var(--line); letter-spacing: .45em; }
+.keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.keys button { height: 58px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-size: 22px; font-weight: 600; color: var(--ink); }
+.keys button:active { background: var(--inset); }
+.keys button.ok { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-size: 16px; }
+.keys button.ok:disabled { opacity: .45; cursor: default; }

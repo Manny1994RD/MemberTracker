@@ -10,38 +10,31 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { openDatabase } = require('./db');
 const { COLS, ID, BadRequest, clean, merge, denyReason, emptyData, exampleData, isPlainObject } = require('./data');
+const { translate } = require('./i18n');
 
 const VERSION = require('../package.json').version;
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const SESSION_DAYS = 30;
 const COOKIE = 'cs_session';
 
-/* ---------------- passwords & sessions ---------------- */
-function hashPassword(password) {
-  const salt = crypto.randomBytes(16);
-  const key = crypto.scryptSync(password, salt, 64, { N: 16384, r: 8, p: 1 });
-  return `scrypt$${salt.toString('base64')}$${key.toString('base64')}`;
-}
-function verifyPassword(password, stored) {
-  const [kind, salt, key] = String(stored).split('$');
-  if (kind !== 'scrypt' || !salt || !key) return false;
-  const expected = Buffer.from(key, 'base64');
-  const got = crypto.scryptSync(password, Buffer.from(salt, 'base64'), expected.length, { N: 16384, r: 8, p: 1 });
-  return crypto.timingSafeEqual(expected, got);
-}
+/* ---------------- PINs & sessions ---------------- */
+// Each person signs in with a PIN only, so every PIN is unique. PINs are stored as a keyed
+// hash (HMAC-SHA256 with a random secret kept in the database), never as plain digits.
 const sha256 = s => crypto.createHash('sha256').update(s).digest('hex');
 const newId = prefix => prefix + crypto.randomBytes(6).toString('hex');
+const ADMIN_PIN_LENGTH = 6;
+const LEADER_PIN = { min: 4, max: 8 };
 
-function checkPassword(p) {
-  if (typeof p !== 'string' || p.length < 8 || p.length > 200) throw new BadRequest('The password needs at least 8 characters.');
-}
-function checkUsername(u) {
-  if (typeof u !== 'string' || !/^[A-Za-z0-9._-]{3,40}$/.test(u)) throw new BadRequest('The username needs 3–40 letters, numbers, dots, dashes or underscores, with no spaces.');
+function checkPin(pin, role) {
+  if (typeof pin !== 'string' || !/^\d+$/.test(pin)) throw new BadRequest('The PIN can only have numbers.');
+  if (role === 'admin' && pin.length !== ADMIN_PIN_LENGTH) throw new BadRequest(`The Jefe de Templo PIN needs exactly ${ADMIN_PIN_LENGTH} digits.`);
+  if (pin.length < LEADER_PIN.min || pin.length > LEADER_PIN.max) throw new BadRequest(`The PIN needs ${LEADER_PIN.min} to ${LEADER_PIN.max} digits.`);
+  if (role === 'admin' && /^(\d)\1+$/.test(pin)) throw new BadRequest('Choose a PIN that isn’t the same digit repeated.');
 }
 function checkName(n) {
   if (typeof n !== 'string' || !n.trim() || n.length > 120) throw new BadRequest('Enter a name.');
 }
-const publicUser = u => u && { id: u.id, username: u.username, name: u.name, role: u.role, teamId: u.team_id || null };
+const publicUser = u => u && { id: u.id, name: u.name, role: u.role, teamId: u.team_id || null };
 
 /* ---------------- HTTP helpers ---------------- */
 function send(res, status, body, headers = {}) {
@@ -85,6 +78,14 @@ function createApp({ dbFile, secureCookies = false, log = console.log } = {}) {
   const db = openDatabase(dbFile);
   const clients = new Set();
   const loginAttempts = new Map();
+  let failedAll = { n: 0, reset: Date.now() + 15 * 60e3 };
+  let secret = db.getSetting('pin_secret');
+  if (!secret) { secret = crypto.randomBytes(32).toString('hex'); db.putSetting('pin_secret', secret); }
+  const pinHash = pin => crypto.createHmac('sha256', secret).update(String(pin)).digest('hex');
+  function pinFree(pin, exceptUserId) {
+    const other = db.userByPin(pinHash(pin));
+    if (other && other.id !== exceptUserId) throw Object.assign(new Error('Someone already uses that PIN. Choose a different one.'), { status: 409 });
+  }
 
   function sessionUser(req) {
     const token = parseCookies(req.headers.cookie)[COOKIE];
@@ -199,20 +200,19 @@ function createApp({ dbFile, secureCookies = false, log = console.log } = {}) {
 
   route('POST', '/api/setup', async ({ body, res }) => {
     if (db.countUsers() > 0) throw Object.assign(new Error('Setup is already done. Sign in instead.'), { status: 409 });
-    checkName(body.name); checkUsername(body.username); checkPassword(body.password);
-    const user = { id: newId('u'), username: body.username.trim(), name: body.name.trim(), role: 'admin', pass: hashPassword(body.password) };
+    checkName(body.name); checkPin(body.pin, 'admin');
+    const user = { id: newId('u'), name: body.name.trim(), role: 'admin', pin_hash: pinHash(body.pin) };
     seed(body.example ? 'example' : 'empty');
+    db.insertUser(user);
     if (body.example) {
-      // Example team leader logins share the admin's password so they're easy to try.
-      const teams = db.docs('teams');
-      for (const [tid, t] of Object.entries(teams)) {
-        const username = 'lider' + t.num;
-        if (!db.userByName(username)) db.insertUser({ id: newId('u'), username, name: t.leader, role: 'leader', team_id: tid, pass: user.pass });
+      // Example team leaders sign in with PINs 1111, 2222, … 5555.
+      for (const [tid, t] of Object.entries(db.docs('teams'))) {
+        const pin = String(t.num).repeat(4);
+        if (!db.userByPin(pinHash(pin))) db.insertUser({ id: newId('u'), name: t.leader, role: 'leader', team_id: tid, pin_hash: pinHash(pin) });
       }
     }
-    db.insertUser(user);
     startSession(res, db.userById(user.id));
-    log(`Setup complete. Jefe de Templo account "${user.username}" created${body.example ? ' with example data' : ''}.`);
+    log(`Setup complete. Jefe de Templo account for "${user.name}" created${body.example ? ' with example data' : ''}.`);
     return { user: publicUser(db.userById(user.id)) };
   }, { auth: false });
 
@@ -220,11 +220,15 @@ function createApp({ dbFile, secureCookies = false, log = console.log } = {}) {
     const ip = req.socket.remoteAddress || 'x';
     const now = Date.now(), a = loginAttempts.get(ip) || { n: 0, reset: now + 15 * 60e3 };
     if (now > a.reset) { a.n = 0; a.reset = now + 15 * 60e3; }
-    if (a.n >= 10) throw Object.assign(new Error('Too many sign-in attempts. Wait 15 minutes and try again.'), { status: 429 });
-    const user = typeof body.username === 'string' && db.userByName(body.username.trim());
-    if (!user || typeof body.password !== 'string' || !verifyPassword(body.password, user.pass)) {
-      a.n++; loginAttempts.set(ip, a);
-      throw Object.assign(new Error('Wrong username or password.'), { status: 401 });
+    if (now > failedAll.reset) failedAll = { n: 0, reset: now + 15 * 60e3 };
+    // Short PINs are easy to guess, so wrong tries are limited per device and overall.
+    if (a.n >= 8 || failedAll.n >= 40) throw Object.assign(new Error('Too many wrong PINs. Wait 15 minutes and try again.'), { status: 429 });
+    const pin = typeof body.pin === 'string' && /^\d{4,8}$/.test(body.pin) ? body.pin : null;
+    const user = pin && db.userByPin(pinHash(pin));
+    if (!user) {
+      a.n++; loginAttempts.set(ip, a); failedAll.n++;
+      await new Promise(r => setTimeout(r, 400));
+      throw Object.assign(new Error('That PIN isn’t right.'), { status: 401 });
     }
     loginAttempts.delete(ip);
     startSession(res, user);
@@ -233,10 +237,10 @@ function createApp({ dbFile, secureCookies = false, log = console.log } = {}) {
 
   route('POST', '/api/logout', ({ req, res }) => { endSession(req, res); return { ok: true }; }, { auth: false });
   route('GET', '/api/me', ({ user }) => ({ user: publicUser(user) }));
-  route('POST', '/api/me/password', ({ user, body }) => {
-    if (typeof body.current !== 'string' || !verifyPassword(body.current, user.pass)) throw Object.assign(new Error('Your current password isn’t right.'), { status: 400 });
-    checkPassword(body.next);
-    db.updateUser(user.id, { pass: hashPassword(body.next) });
+  route('POST', '/api/me/pin', ({ user, body }) => {
+    if (typeof body.current !== 'string' || pinHash(body.current) !== user.pin_hash) throw Object.assign(new Error('Your current PIN isn’t right.'), { status: 400 });
+    checkPin(body.next, user.role); pinFree(body.next, user.id);
+    db.updateUser(user.id, { pin_hash: pinHash(body.next) });
     return { ok: true };
   });
 
@@ -245,12 +249,11 @@ function createApp({ dbFile, secureCookies = false, log = console.log } = {}) {
 
   route('GET', '/api/users', () => ({ users: db.listUsers().map(u => ({ ...publicUser(u), createdAt: u.created_at })) }), { admin: true });
   route('POST', '/api/users', ({ body }) => {
-    checkName(body.name); checkUsername(body.username); checkPassword(body.password);
     const role = body.role === 'admin' ? 'admin' : 'leader';
-    if (db.userByName(body.username.trim())) throw Object.assign(new Error('That username is already taken.'), { status: 409 });
+    checkName(body.name); checkPin(body.pin, role); pinFree(body.pin);
     const teamId = role === 'leader' ? (body.teamId || null) : null;
     if (teamId && !db.doc('teams', teamId)) throw new BadRequest('That team doesn’t exist.');
-    const u = { id: newId('u'), username: body.username.trim(), name: body.name.trim(), role, team_id: teamId, pass: hashPassword(body.password) };
+    const u = { id: newId('u'), name: body.name.trim(), role, team_id: teamId, pin_hash: pinHash(body.pin) };
     db.insertUser(u);
     return { user: publicUser(db.userById(u.id)) };
   }, { admin: true });
@@ -259,12 +262,6 @@ function createApp({ dbFile, secureCookies = false, log = console.log } = {}) {
     if (!target) throw Object.assign(new Error('That account no longer exists.'), { status: 404 });
     const fields = {};
     if (body.name !== undefined) { checkName(body.name); fields.name = body.name.trim(); }
-    if (body.username !== undefined) {
-      checkUsername(body.username);
-      const other = db.userByName(body.username.trim());
-      if (other && other.id !== target.id) throw Object.assign(new Error('That username is already taken.'), { status: 409 });
-      fields.username = body.username.trim();
-    }
     if (body.role !== undefined) {
       if (target.id === user.id && body.role !== 'admin') throw new BadRequest('You can’t remove your own Jefe de Templo access.');
       fields.role = body.role === 'admin' ? 'admin' : 'leader';
@@ -273,9 +270,11 @@ function createApp({ dbFile, secureCookies = false, log = console.log } = {}) {
       if (body.teamId && !db.doc('teams', body.teamId)) throw new BadRequest('That team doesn’t exist.');
       fields.team_id = body.teamId || null;
     }
-    if (body.password !== undefined) { checkPassword(body.password); fields.pass = hashPassword(body.password); }
+    const role = fields.role || target.role;
+    if (body.pin !== undefined && body.pin !== '') { checkPin(body.pin, role); pinFree(body.pin, target.id); fields.pin_hash = pinHash(body.pin); }
+    else if (role === 'admin' && target.role !== 'admin') throw new BadRequest('Give a new 6-digit PIN when making someone Jefe de Templo.');
     db.updateUser(target.id, fields);
-    if (fields.pass && target.id !== user.id) db.deleteUserSessions(target.id);
+    if (fields.pin_hash && target.id !== user.id) db.deleteUserSessions(target.id);
     if (fields.role || fields.team_id !== undefined) for (const c of clients) if (c.userId === target.id) c.res.write('event: reload\ndata: {}\n\n');
     return { user: publicUser(db.userById(target.id)) };
   }, { admin: true });
@@ -322,7 +321,7 @@ function createApp({ dbFile, secureCookies = false, log = console.log } = {}) {
     } catch (e) {
       const status = e.status || (e instanceof BadRequest ? 400 : 500);
       if (status === 500) log('Error:', e);
-      if (!res.headersSent) send(res, status, { error: status === 500 ? 'Something went wrong on the server.' : e.message });
+      if (!res.headersSent) send(res, status, { error: translate(status === 500 ? 'Something went wrong on the server.' : e.message, req.headers['x-lang']) });
     }
   }
 
@@ -350,7 +349,7 @@ function createApp({ dbFile, secureCookies = false, log = console.log } = {}) {
   return { server, db };
 }
 
-module.exports = { createApp, hashPassword, verifyPassword };
+module.exports = { createApp };
 
 if (require.main === module) {
   const port = +(process.env.PORT || 8080);

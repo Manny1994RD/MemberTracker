@@ -62,7 +62,7 @@ const isAdmin = () => USER && USER.role === 'admin';
 async function api(method, url, body) {
   const res = await fetch(url, {
     method, credentials: 'same-origin',
-    headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},
+    headers: { 'X-Lang': LANG, ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   let data = {};
@@ -193,29 +193,36 @@ const val = id => (document.getElementById(id)?.value ?? '').trim();
    SIGN-IN & SETUP
    ===================================================================== */
 const langSeg = () => `<div class="seg"><button type="button" class="${LANG === 'es' ? 'on' : ''}" data-act="lang" data-l="es">ES</button><button type="button" class="${LANG === 'en' ? 'on' : ''}" data-act="lang" data-l="en">EN</button></div>`;
+let PIN = '';
+const pinAttrs = (len) => `type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="${len}"`;
 function screenSetup() {
   return `<div class="auth"><form class="card" data-form="setup">
     <div class="row" style="justify-content:space-between"><div class="brandmark">${icon('bible', 28)}Church Status</div>${langSeg()}</div>
     <h1>${L('Welcome! Let’s set things up', '¡Bienvenido! Vamos a configurar')}</h1>
-    <p class="small" style="margin:0">${L('Create the Jefe de Templo account. This person has full access and creates the team leader logins.', 'Crea la cuenta del Jefe de Templo. Esta persona tiene acceso completo y crea los usuarios de los líderes de equipo.')}</p>
-    ${field('su-name', L('Full name', 'Nombre completo'), 'autocomplete="name" required')}
-    ${field('su-user', L('Username', 'Usuario'), 'autocomplete="username" autocapitalize="none" required')}
-    ${field('su-pass', L('Password (at least 8 characters)', 'Contraseña (mínimo 8 caracteres)'), 'type="password" autocomplete="new-password" required minlength="8"')}
-    <label class="check"><input type="checkbox" id="su-example"><span>${L('Start with example data, to try the app first. Example team leaders sign in as lider1 … lider5 with this same password. You can erase it later by restoring an empty backup.', 'Empezar con datos de ejemplo, para probar la app primero. Los líderes de ejemplo entran como lider1 … lider5 con esta misma contraseña.')}</span></label>
+    <p class="small" style="margin:0">${L('Create the Jefe de Templo account. This person has full access and gives each team leader a PIN.', 'Crea la cuenta del Jefe de Templo. Esta persona tiene acceso completo y le da un PIN a cada líder de equipo.')}</p>
+    ${field('su-name', L('Full name', 'Nombre completo'), 'autocomplete="name" required maxlength="120"')}
+    ${field('su-pin', L('Choose a 6-digit PIN', 'Elige un PIN de 6 dígitos'), pinAttrs(6) + ' required minlength="6"')}
+    ${field('su-pin2', L('Type the PIN again', 'Escribe el PIN otra vez'), pinAttrs(6) + ' required minlength="6"')}
+    <label class="check"><input type="checkbox" id="su-example"><span>${L('Start with example data, to try the app first. Example team leaders sign in with PINs 1111, 2222, 3333, 4444 and 5555.', 'Empezar con datos de ejemplo, para probar la app primero. Los líderes de ejemplo entran con los PIN 1111, 2222, 3333, 4444 y 5555.')}</span></label>
     <div class="err" role="alert">${esc(AUTH_ERR)}</div>
     <button class="btn" type="submit" ${BUSY ? 'disabled' : ''}>${L('Create account and start', 'Crear cuenta y comenzar')}</button>
   </form></div>`;
 }
 function screenLogin() {
-  return `<div class="auth"><form class="card" data-form="login">
+  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'];
+  return `<div class="auth"><form class="card pinpad" data-form="login">
     <div class="row" style="justify-content:space-between"><div class="brandmark">${icon('bible', 28)}Church Status</div>${langSeg()}</div>
-    <h1>${L('Sign in', 'Iniciar sesión')}</h1>
+    <h1>${L('Enter your PIN', 'Escribe tu PIN')}</h1>
     <p class="small" style="margin:0">${L('For the Jefe de Templo and Santiago team leaders.', 'Para el Jefe de Templo y los líderes de equipo de Santiago.')}</p>
-    ${field('li-user', L('Username', 'Usuario'), 'autocomplete="username" autocapitalize="none" required')}
-    ${field('li-pass', L('Password', 'Contraseña'), 'type="password" autocomplete="current-password" required')}
-    <div class="err" role="alert">${esc(AUTH_ERR)}</div>
-    <button class="btn" type="submit" ${BUSY ? 'disabled' : ''}>${L('Sign in', 'Entrar')}</button>
-    <p class="small" style="margin:0">${L('Forgot your password? Ask the Jefe de Templo to set a new one.', '¿Olvidaste tu contraseña? Pide al Jefe de Templo que te ponga una nueva.')}</p>
+    <label class="sr" for="li-pin">PIN</label>
+    <input id="li-pin" class="pin-input" ${pinAttrs(8)} value="${esc(PIN)}" placeholder="••••" aria-describedby="li-err">
+    <div class="err" id="li-err" role="alert">${esc(AUTH_ERR)}</div>
+    <div class="keys">${keys.map(k => k === 'del'
+      ? `<button type="button" data-act="pinDel" aria-label="${L('Delete', 'Borrar')}">⌫</button>`
+      : k === 'ok'
+        ? `<button type="submit" class="ok" ${BUSY || PIN.length < 4 ? 'disabled' : ''}>${L('Enter', 'Entrar')}</button>`
+        : `<button type="button" data-act="pinKey" data-k="${k}">${k}</button>`).join('')}</div>
+    <p class="small" style="margin:0;text-align:center">${L('Forgot your PIN? Ask the Jefe de Templo for a new one.', '¿Olvidaste tu PIN? Pide uno nuevo al Jefe de Templo.')}</p>
   </form></div>`;
 }
 
@@ -237,7 +244,7 @@ function topBar() {
       <span class="live ${LIVE ? '' : 'off'}" title="${LIVE ? L('Changes appear live', 'Los cambios aparecen en vivo') : L('Reconnecting…', 'Reconectando…')}"><i></i>${LIVE ? L('Live', 'En vivo') : L('Reconnecting', 'Reconectando')}</span>
       ${langSeg()}
       <div class="usermenu"><div class="who-me">${esc(USER.name)}<small>${isAdmin() ? L('Jefe de Templo', 'Jefe de Templo') : L('Team leader', 'Líder de equipo')}</small></div>
-        <button class="btn ghost sm" data-act="passwordOpen">${L('Password', 'Contraseña')}</button>
+        <button class="btn ghost sm" data-act="passwordOpen">${L('Change PIN', 'Cambiar PIN')}</button>
         <button class="btn ghost sm" data-act="logout">${L('Sign out', 'Salir')}</button></div>
     </div>
   </div></header>`;
@@ -340,7 +347,7 @@ function viewTeams() {
         <thead><tr><th>${L('Team', 'Equipo')}</th><th>${L('Leader', 'Líder')}</th><th class="c">${L('Members', 'Miembros')}</th><th>${L('7 goals this month', '7 metas este mes')}</th><th>${L('Fruit this year', 'Fruto este año')}</th><th></th></tr></thead>
         <tbody>${ts.map(t => { const h = teamHealth(t), f = teamFruit(t, yr), g = +t.fruitGoal || 0, ls = leaders(t.id); return `<tr class="click" data-act="openTeam" data-t="${esc(t.id)}" tabindex="0">
           <td><div class="who">${plant(pctStage(h), 28, h < 50)}<div><b>${esc(teamName(t))}</b><div class="small">${L('Team', 'Equipo')} ${t.num}</div></div></div></td>
-          <td>${esc(t.leader)}<div class="small">${ls.length ? ls.map(u => '@' + esc(u.username)).join(', ') : `<span style="color:var(--warn)">${L('No login yet', 'Sin usuario aún')}</span>`}</div></td><td class="c num">${teamMembers(t.id).length}</td>
+          <td>${esc(t.leader)}<div class="small">${ls.length ? L('Has a PIN', 'Tiene PIN') : `<span style="color:var(--warn)">${L('No PIN yet', 'Sin PIN aún')}</span>`}</div></td><td class="c num">${teamMembers(t.id).length}</td>
           <td><div class="mcell"><div class="nums">${h}%<span></span></div>${bar(h / 100)}</div></td>
           <td><div class="mcell"><div class="nums">${f}<span>/ ${g}</span></div>${bar(ratio(f, g))}</div></td>
           <td><span class="btn ghost sm">${L('Open', 'Abrir')}</span></td></tr>`; }).join('')}
@@ -400,14 +407,14 @@ function viewSettings() {
   return `
   <div class="head"><div class="grow"><h1>${L('Settings', 'Ajustes')}</h1><p>${L('Logins, branches and backups.', 'Usuarios, sucursales y copias de seguridad.')}</p></div></div>
   <div class="card">
-    <div class="row" style="flex-wrap:wrap"><div class="grow"><div class="h">${L('Logins', 'Usuarios')}</div><div class="small">${L('Only the Jefe de Templo and team leaders sign in. Members don’t.', 'Solo entran el Jefe de Templo y los líderes de equipo. Los miembros no.')}</div></div>
-      <button class="btn" data-act="userAddOpen">${icon('people', 16)}${L('Add login', 'Agregar usuario')}</button></div>
+    <div class="row" style="flex-wrap:wrap"><div class="grow"><div class="h">${L('Who can sign in', 'Quién puede entrar')}</div><div class="small">${L('Each person signs in with their own PIN. Members don’t sign in.', 'Cada persona entra con su propio PIN. Los miembros no entran.')}</div></div>
+      <button class="btn" data-act="userAddOpen">${icon('people', 16)}${L('Add person', 'Agregar persona')}</button></div>
     <div class="tablewrap" style="margin-top:8px"><table>
-      <thead><tr><th>${L('Name', 'Nombre')}</th><th>${L('Username', 'Usuario')}</th><th>${L('Role', 'Rol')}</th><th>${L('Team', 'Equipo')}</th><th></th></tr></thead>
-      <tbody>${USERS.map(u => `<tr><td><b>${esc(u.name)}</b>${u.id === USER.id ? ` <span class="tag info">${L('You', 'Tú')}</span>` : ''}</td><td>@${esc(u.username)}</td>
+      <thead><tr><th>${L('Name', 'Nombre')}</th><th>${L('Role', 'Rol')}</th><th>${L('Team', 'Equipo')}</th><th></th></tr></thead>
+      <tbody>${USERS.map(u => `<tr><td><b>${esc(u.name)}</b>${u.id === USER.id ? ` <span class="tag info">${L('You', 'Tú')}</span>` : ''}</td>
         <td>${u.role === 'admin' ? L('Jefe de Templo', 'Jefe de Templo') : L('Team leader', 'Líder de equipo')}</td>
         <td>${u.role === 'admin' ? '—' : u.teamId && S.teams[u.teamId] ? esc(teamName({ id: u.teamId, ...S.teams[u.teamId] })) : `<span style="color:var(--warn)">${L('Not linked', 'Sin vincular')}</span>`}</td>
-        <td style="text-align:right"><button class="btn ghost sm" data-act="userEditOpen" data-u="${esc(u.id)}">${L('Edit', 'Editar')}</button></td></tr>`).join('')}</tbody>
+        <td style="text-align:right"><button class="btn ghost sm" data-act="userEditOpen" data-u="${esc(u.id)}">${L('Edit or new PIN', 'Editar o nuevo PIN')}</button></td></tr>`).join('')}</tbody>
     </table></div>
   </div>
   <div class="settings-grid">
@@ -467,30 +474,28 @@ function sheet() {
       ${field('nt-leader', L('Team leader’s full name', 'Nombre completo del líder'), 'maxlength="120" autocomplete="off"')}
       ${field('nt-name', L('Team name (optional)', 'Nombre del equipo (opcional)'), 'maxlength="120" autocomplete="off"')}
       ${field('nt-fruit', L('Yearly fruit goal', 'Meta anual de fruto'), 'type="number" min="0" value="0"')}
-      <div class="lbl" style="margin-top:4px">${L('Leader’s login (optional)', 'Usuario del líder (opcional)')}</div>
-      ${field('nt-user', L('Username', 'Usuario'), 'autocapitalize="none" autocomplete="off"')}
-      ${field('nt-pass', L('Password (at least 8 characters)', 'Contraseña (mínimo 8 caracteres)'), 'type="text" autocomplete="off"')}
-      <div class="small">${L('Give the leader this username and password. They can change the password after signing in.', 'Dale al líder este usuario y contraseña. Puede cambiar la contraseña al entrar.')}</div>
+      ${field('nt-pin', L('Leader’s PIN, 4 to 8 digits (optional)', 'PIN del líder, de 4 a 8 dígitos (opcional)'), 'type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off"')}
+      <div class="small">${L('Give the leader this PIN. They can change it after signing in.', 'Dale este PIN al líder. Puede cambiarlo al entrar.')}</div>
       <div class="row" style="justify-content:flex-end"><button class="btn" data-act="teamAdd" ${BUSY ? 'disabled' : ''}>${L('Add team', 'Agregar equipo')}</button></div>`;
   } else if (SHEET.type === 'user') {
     const u = SHEET.u ? USERS.find(x => x.id === SHEET.u) : null;
     const role = SHEET.role || (u ? u.role : 'leader');
     const ts = TEAMS();
-    body = `<div class="row"><div class="h grow">${u ? L('Edit login', 'Editar usuario') : L('Add login', 'Agregar usuario')}</div>${close}</div>
+    body = `<div class="row"><div class="h grow">${u ? L('Edit person', 'Editar persona') : L('Add person', 'Agregar persona')}</div>${close}</div>
       ${field('us-name', L('Full name', 'Nombre completo'), `value="${esc(u?.name || '')}" maxlength="120" autocomplete="off"`)}
-      ${field('us-user', L('Username', 'Usuario'), `value="${esc(u?.username || '')}" autocapitalize="none" autocomplete="off"`)}
       <div class="small">${L('Role', 'Rol')}</div>
       <div class="seg"><button type="button" class="${role === 'leader' ? 'on' : ''}" data-act="userRole" data-r="leader">${L('Team leader', 'Líder de equipo')}</button><button type="button" class="${role === 'admin' ? 'on' : ''}" data-act="userRole" data-r="admin">${L('Jefe de Templo', 'Jefe de Templo')}</button></div>
       ${role === 'leader' ? `<div class="field"><label for="us-team">${L('Team', 'Equipo')}</label><select class="sel" id="us-team"><option value="">${L('No team', 'Sin equipo')}</option>${ts.map(t => `<option value="${esc(t.id)}" ${(SHEET.team ?? u?.teamId) === t.id ? 'selected' : ''}>${esc(teamName(t))}</option>`).join('')}</select></div>` : ''}
-      ${field('us-pass', u ? L('New password (leave empty to keep it)', 'Nueva contraseña (vacía para no cambiarla)') : L('Password (at least 8 characters)', 'Contraseña (mínimo 8 caracteres)'), 'type="text" autocomplete="off"')}
+      ${field('us-pin', (u ? L('New PIN (leave empty to keep the current one)', 'Nuevo PIN (vacío para dejar el actual)') + ' · ' : '') + (role === 'admin' ? L('6 digits', '6 dígitos') : L('4 to 8 digits', '4 a 8 dígitos')), `type="text" inputmode="numeric" pattern="[0-9]*" maxlength="${role === 'admin' ? 6 : 8}" autocomplete="off"`)}
       <div class="row" style="justify-content:space-between">
-        ${u && u.id !== USER.id ? `<button class="btn ${CONFIRM === 'u-' + u.id ? 'danger' : 'ghost'}" data-act="userDelete">${CONFIRM === 'u-' + u.id ? L('Tap again to delete', 'Toca otra vez para borrar') : L('Delete login', 'Borrar usuario')}</button>` : '<span></span>'}
+        ${u && u.id !== USER.id ? `<button class="btn ${CONFIRM === 'u-' + u.id ? 'danger' : 'ghost'}" data-act="userDelete">${CONFIRM === 'u-' + u.id ? L('Tap again to remove', 'Toca otra vez para quitar') : L('Remove access', 'Quitar acceso')}</button>` : '<span></span>'}
         <button class="btn" data-act="userSave" ${BUSY ? 'disabled' : ''}>${icon('check', 14)}${L('Save', 'Guardar')}</button></div>`;
   } else if (SHEET.type === 'password') {
-    body = `<form data-form="password" style="display:contents"><div class="row"><div class="h grow">${L('Change your password', 'Cambiar tu contraseña')}</div>${close}</div>
-      ${field('pw-cur', L('Current password', 'Contraseña actual'), 'type="password" autocomplete="current-password" required')}
-      ${field('pw-new', L('New password (at least 8 characters)', 'Nueva contraseña (mínimo 8 caracteres)'), 'type="password" autocomplete="new-password" required minlength="8"')}
-      <div class="row" style="justify-content:flex-end"><button class="btn" type="submit">${L('Change password', 'Cambiar contraseña')}</button></div></form>`;
+    const len = isAdmin() ? 6 : 8;
+    body = `<form data-form="password" style="display:contents"><div class="row"><div class="h grow">${L('Change your PIN', 'Cambiar tu PIN')}</div>${close}</div>
+      ${field('pw-cur', L('Current PIN', 'PIN actual'), pinAttrs(8) + ' required')}
+      ${field('pw-new', isAdmin() ? L('New PIN (6 digits)', 'Nuevo PIN (6 dígitos)') : L('New PIN (4 to 8 digits)', 'Nuevo PIN (4 a 8 dígitos)'), pinAttrs(len) + ' required')}
+      <div class="row" style="justify-content:flex-end"><button class="btn" type="submit">${L('Change PIN', 'Cambiar PIN')}</button></div></form>`;
   }
   return `<div class="overlay" data-act="overlay"><div class="sheet" role="dialog" aria-modal="true">${body}</div></div>`;
 }
@@ -504,7 +509,7 @@ function render() {
   const a = document.activeElement, focusId = a && a.id, selStart = a && 'selectionStart' in a ? a.selectionStart : null;
   // Keep what's typed in open forms across re-renders
   const typed = {};
-  app.querySelectorAll('.sheet input[id], .sheet textarea[id], .auth input[id]').forEach(el => { if (el.type !== 'checkbox' && el.type !== 'file') typed[el.id] = el.value; });
+  app.querySelectorAll('.sheet input[id], .sheet textarea[id], .auth input[id]').forEach(el => { if (el.type !== 'checkbox' && el.type !== 'file' && el.id !== 'li-pin') typed[el.id] = el.value; });
   if (SCREEN === 'loading') app.innerHTML = `<div class="auth"><div class="small">${L('Loading…', 'Cargando…')}</div></div>`;
   else if (SCREEN === 'setup') app.innerHTML = screenSetup();
   else if (SCREEN === 'login') app.innerHTML = screenLogin();
@@ -519,7 +524,7 @@ function render() {
     app.innerHTML = `${topBar()}<main class="wrap">${body}</main><footer class="wrap">Church Status · ${L('Santiago Region', 'Región Santiago')}</footer>${sheet()}`;
   }
   for (const [id, v] of Object.entries(typed)) { const el = document.getElementById(id); if (el && el.value !== v) el.value = v; }
-  if (focusId) { const el = document.getElementById(focusId); if (el) { el.focus(); try { if (selStart != null) el.setSelectionRange(selStart, selStart); } catch (e) {} } }
+  if (focusId && focusId !== 'li-pin') { const el = document.getElementById(focusId); if (el) { el.focus(); try { if (selStart != null) el.setSelectionRange(selStart, selStart); } catch (e) {} } }
 }
 
 /* =====================================================================
@@ -536,7 +541,9 @@ app.addEventListener('click', async e => {
   if (!['memberDelete', 'teamDelete', 'userDelete', 'branchDelete'].includes(act)) CONFIRM = null;
   switch (act) {
     case 'lang': LANG = el.dataset.l; try { localStorage.setItem('cs-lang', LANG); } catch (x) {} break;
-    case 'logout': try { await api('POST', '/api/logout', {}); } catch (x) {} stopLive(); USER = null; SCREEN = 'login'; history.replaceState(null, '', location.pathname); break;
+    case 'logout': try { await api('POST', '/api/logout', {}); } catch (x) {} stopLive(); USER = null; PIN = ''; SCREEN = 'login'; history.replaceState(null, '', location.pathname); break;
+    case 'pinKey': if (PIN.length < 8) PIN += el.dataset.k; AUTH_ERR = ''; break;
+    case 'pinDel': PIN = PIN.slice(0, -1); AUTH_ERR = ''; break;
     case 'passwordOpen': SHEET = { type: 'password' }; break;
     case 'period': PERIOD = el.dataset.p; break;
     case 'openReport': REPORT = { branch: el.dataset.b, month: CURRENT_MONTH, draft: {} }; location.hash = 'report'; return;
@@ -590,15 +597,15 @@ app.addEventListener('click', async e => {
     }
     case 'addTeamOpen': SHEET = { type: 'addTeam' }; break;
     case 'teamAdd': {
-      const leader = val('nt-leader'), username = val('nt-user'), password = document.getElementById('nt-pass')?.value || '';
+      const leader = val('nt-leader'), pin = val('nt-pin');
       if (!leader) { toast(L('Enter the team leader’s name.', 'Escribe el nombre del líder.')); return; }
-      if (username && password.length < 8) { toast(L('The password needs at least 8 characters.', 'La contraseña necesita al menos 8 caracteres.')); return; }
+      if (pin && !/^\d{4,8}$/.test(pin)) { toast(L('The PIN needs 4 to 8 digits.', 'El PIN necesita de 4 a 8 dígitos.')); return; }
       const num = TEAMS().reduce((a, t) => Math.max(a, t.num || 0), 0) + 1, id = uid('t');
       BUSY = true; render();
       const ok = await save('teams', id, { name: val('nt-name'), num, leader, fruitGoal: Math.max(0, Math.round(+val('nt-fruit') || 0)), attTarget: 4, fruit: {} }, 'set');
-      if (ok && username) {
-        try { await api('POST', '/api/users', { name: leader, username, password, role: 'leader', teamId: id }); await loadUsers(); toast(L(`Team added. ${leader} can sign in as ${username}.`, `Equipo agregado. ${leader} entra como ${username}.`)); }
-        catch (x) { toast(L(`Team added, but the login wasn’t created: ${x.message}`, `Equipo agregado, pero el usuario no se creó: ${x.message}`)); }
+      if (ok && pin) {
+        try { await api('POST', '/api/users', { name: leader, pin, role: 'leader', teamId: id }); await loadUsers(); toast(L(`Team added. ${leader} can sign in with the PIN you chose.`, `Equipo agregado. ${leader} puede entrar con el PIN que elegiste.`)); }
+        catch (x) { toast(L(`Team added, but the PIN wasn’t saved: ${x.message}`, `Equipo agregado, pero el PIN no se guardó: ${x.message}`)); }
       } else if (ok) toast(L('Team added.', 'Equipo agregado.'));
       BUSY = false; SHEET = null; render(); return;
     }
@@ -608,13 +615,13 @@ app.addEventListener('click', async e => {
     case 'userSave': {
       const u = SHEET.u ? USERS.find(x => x.id === SHEET.u) : null;
       const role = SHEET.role || (u ? u.role : 'leader');
-      const body = { name: val('us-name'), username: val('us-user'), role, teamId: role === 'leader' ? (document.getElementById('us-team')?.value || null) : null };
-      const pass = document.getElementById('us-pass')?.value || '';
-      if (pass || !u) body.password = pass;
+      const body = { name: val('us-name'), role, teamId: role === 'leader' ? (document.getElementById('us-team')?.value || null) : null };
+      const pin = val('us-pin');
+      if (pin || !u) body.pin = pin;
       BUSY = true; render();
       try {
         if (u) await api('PATCH', `/api/users/${encodeURIComponent(u.id)}`, body); else await api('POST', '/api/users', body);
-        await loadUsers(); SHEET = null; toast(L('Login saved.', 'Usuario guardado.'));
+        await loadUsers(); SHEET = null; toast(pin ? L('Saved. Give them the new PIN.', 'Guardado. Dale el nuevo PIN.') : L('Saved.', 'Guardado.'));
         if (u && u.id === USER.id) USER = (await api('GET', '/api/me')).user;
       } catch (x) { toast(x.message); }
       BUSY = false; break;
@@ -622,7 +629,7 @@ app.addEventListener('click', async e => {
     case 'userDelete': {
       const key = 'u-' + SHEET.u;
       if (CONFIRM !== key) { CONFIRM = key; break; }
-      try { await api('DELETE', `/api/users/${encodeURIComponent(SHEET.u)}`); await loadUsers(); SHEET = null; CONFIRM = null; toast(L('Login deleted.', 'Usuario borrado.')); } catch (x) { toast(x.message); }
+      try { await api('DELETE', `/api/users/${encodeURIComponent(SHEET.u)}`); await loadUsers(); SHEET = null; CONFIRM = null; toast(L('Access removed.', 'Acceso quitado.')); } catch (x) { toast(x.message); }
       break;
     }
     case 'branchDelete': {
@@ -663,21 +670,32 @@ app.addEventListener('change', async e => {
     el.value = '';
   }
 });
-app.addEventListener('input', e => { const el = e.target; if (el.dataset.act === 'draft') REPORT.draft[el.id] = el.value; });
+app.addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset.act === 'draft') REPORT.draft[el.id] = el.value;
+  if (el.id === 'li-pin') {
+    PIN = el.value.replace(/\D/g, '').slice(0, 8); el.value = PIN; AUTH_ERR = '';
+    const ok = document.querySelector('.keys .ok'); if (ok) ok.disabled = PIN.length < 4;
+    document.getElementById('li-err').textContent = '';
+  }
+});
 
 app.addEventListener('submit', async e => {
   e.preventDefault();
   const form = e.target.dataset.form;
   if (form === 'login' || form === 'setup') {
+    if (form === 'setup' && document.getElementById('su-pin').value !== document.getElementById('su-pin2').value) { AUTH_ERR = L('The two PINs don’t match.', 'Los dos PIN no coinciden.'); render(); return; }
+    if (form === 'login') PIN = (document.getElementById('li-pin')?.value || PIN).replace(/\D/g, '');
+    if (form === 'login' && PIN.length < 4) return;
     const payload = form === 'login'
-      ? { username: val('li-user'), password: document.getElementById('li-pass').value }
-      : { name: val('su-name'), username: val('su-user'), password: document.getElementById('su-pass').value, example: document.getElementById('su-example').checked };
+      ? { pin: PIN }
+      : { name: val('su-name'), pin: document.getElementById('su-pin').value, example: document.getElementById('su-example').checked };
     BUSY = true; AUTH_ERR = ''; render();
     if (form === 'setup' && payload.example) document.getElementById('su-example').checked = true;
     try {
       const out = await api('POST', form === 'login' ? '/api/login' : '/api/setup', payload);
-      USER = out.user; BUSY = false; await enterApp(); return;
-    } catch (x) { AUTH_ERR = x.message; BUSY = false; render(); return; }
+      USER = out.user; BUSY = false; PIN = ''; await enterApp(); return;
+    } catch (x) { AUTH_ERR = x.message; BUSY = false; if (form === 'login') PIN = ''; render(); return; }
   }
   if (form === 'addMember') {
     const inp = document.getElementById('new-member'), name = inp.value.trim();
@@ -694,7 +712,7 @@ app.addEventListener('submit', async e => {
     if (await save('branches', id, { name, order, hasTeams: false, goals: { simple: 0, mean: 0, att: 0, tithe: 0, fruit: 0 }, months: {} }, 'set')) toast(L('Branch added.', 'Sucursal agregada.'));
   }
   if (form === 'password') {
-    try { await api('POST', '/api/me/password', { current: document.getElementById('pw-cur').value, next: document.getElementById('pw-new').value }); SHEET = null; render(); toast(L('Password changed.', 'Contraseña cambiada.')); }
+    try { await api('POST', '/api/me/pin', { current: document.getElementById('pw-cur').value, next: document.getElementById('pw-new').value }); SHEET = null; render(); toast(L('PIN changed.', 'PIN cambiado.')); }
     catch (x) { toast(x.message); }
   }
 });

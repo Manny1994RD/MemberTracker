@@ -12,12 +12,15 @@ function openDatabase(file) {
     PRAGMA foreign_keys = ON;
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
-      username TEXT NOT NULL UNIQUE COLLATE NOCASE,
       name TEXT NOT NULL,
       role TEXT NOT NULL CHECK (role IN ('admin', 'leader')),
       team_id TEXT,
-      pass TEXT NOT NULL,
+      pin_hash TEXT NOT NULL UNIQUE,
       created_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS sessions (
       token_hash TEXT PRIMARY KEY,
@@ -36,9 +39,11 @@ function openDatabase(file) {
   const q = {
     countUsers: db.prepare('SELECT COUNT(*) AS n FROM users'),
     userById: db.prepare('SELECT * FROM users WHERE id = ?'),
-    userByName: db.prepare('SELECT * FROM users WHERE username = ?'),
-    listUsers: db.prepare('SELECT id, username, name, role, team_id, created_at FROM users ORDER BY role, name'),
-    insertUser: db.prepare('INSERT INTO users (id, username, name, role, team_id, pass, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'),
+    userByPin: db.prepare('SELECT * FROM users WHERE pin_hash = ?'),
+    listUsers: db.prepare('SELECT id, name, role, team_id, created_at FROM users ORDER BY role, name'),
+    insertUser: db.prepare('INSERT INTO users (id, name, role, team_id, pin_hash, created_at) VALUES (?, ?, ?, ?, ?, ?)'),
+    getSetting: db.prepare('SELECT value FROM settings WHERE key = ?'),
+    putSetting: db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value'),
     deleteUser: db.prepare('DELETE FROM users WHERE id = ?'),
     clearTeam: db.prepare('UPDATE users SET team_id = NULL WHERE team_id = ?'),
     insertSession: db.prepare('INSERT INTO sessions (token_hash, user_id, expires) VALUES (?, ?, ?)'),
@@ -57,11 +62,13 @@ function openDatabase(file) {
     raw: db,
     countUsers: () => q.countUsers.get().n,
     userById: id => q.userById.get(id),
-    userByName: name => q.userByName.get(name),
+    userByPin: hash => q.userByPin.get(hash),
     listUsers: () => q.listUsers.all(),
-    insertUser: u => q.insertUser.run(u.id, u.username, u.name, u.role, u.team_id ?? null, u.pass, Date.now()),
+    insertUser: u => q.insertUser.run(u.id, u.name, u.role, u.team_id ?? null, u.pin_hash, Date.now()),
+    getSetting: key => q.getSetting.get(key)?.value ?? null,
+    putSetting: (key, value) => q.putSetting.run(key, value),
     updateUser(id, fields) {
-      const allowed = ['username', 'name', 'role', 'team_id', 'pass'];
+      const allowed = ['name', 'role', 'team_id', 'pin_hash'];
       const keys = Object.keys(fields).filter(k => allowed.includes(k));
       if (!keys.length) return;
       db.prepare(`UPDATE users SET ${keys.map(k => `${k} = ?`).join(', ')} WHERE id = ?`).run(...keys.map(k => fields[k] ?? null), id);
