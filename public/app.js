@@ -56,8 +56,9 @@ const periodLabel = () => {
    STATE & SERVER
    ===================================================================== */
 const S = { branches: {}, teams: {}, members: {} };
-let USER = null, SCREEN = 'loading', LIVE = false, USERS = [];
-const isAdmin = () => USER && USER.role === 'admin';
+let ACCESS = null, SCREEN = 'loading', LIVE = false, STATS = {}, CODED = [];
+const isMain = () => !!ACCESS?.main;
+const hasTeam = tid => !!ACCESS?.teams?.includes(tid);
 
 async function api(method, url, body) {
   const res = await fetch(url, {
@@ -67,7 +68,7 @@ async function api(method, url, body) {
   });
   let data = {};
   try { data = await res.json(); } catch (e) {}
-  if (res.status === 401 && SCREEN === 'app') { USER = null; SCREEN = 'login'; stopLive(); render(); }
+  if (res.status === 401 && SCREEN === 'app' && !url.startsWith('/api/unlock')) { ACCESS = null; SCREEN = 'login'; stopLive(); render(); }
   if (!res.ok) throw Object.assign(new Error(data.error || L('Couldn’t reach the server.', 'No se pudo conectar con el servidor.')), { status: res.status });
   return data;
 }
@@ -106,7 +107,7 @@ async function save(col, id, data, op = 'update') {
 
 async function loadData() {
   const d = await api('GET', '/api/data');
-  S.branches = d.branches; S.teams = d.teams; S.members = d.members;
+  S.branches = d.branches; S.teams = d.teams; S.members = d.members; STATS = d.teamStats || {}; CODED = d.teamsWithCodes || [];
 }
 let ES = null;
 function startLive() {
@@ -120,8 +121,9 @@ function startLive() {
     if (data === null) delete S[col][id]; else S[col][id] = data;
     render();
   });
+  ES.addEventListener('stats', ev => { STATS = JSON.parse(ev.data); render(); });
   ES.addEventListener('reload', async () => {
-    try { USER = (await api('GET', '/api/me')).user; await loadData(); render(); } catch (e) {}
+    try { ACCESS = (await api('GET', '/api/me')).access; await loadData(); render(); } catch (e) {}
   });
 }
 function stopLive() { if (ES) { ES.close(); ES = null; } LIVE = false; }
@@ -154,7 +156,11 @@ const goalTarget = (t, g) => g.k === 'att' ? (t?.attTarget || 4) : g.target;
 const mval = (m, k, month) => ((m.months || {})[month] || {})[k] || 0;
 const mstatus = (m, t, g, month) => { const v = mval(m, g.k, month), tg = goalTarget(t, g); return v >= tg ? 'd' : v > 0 ? 'p' : 'm'; };
 const mdone = (m, t, month) => GOALS().filter(g => mstatus(m, t, g, month) === 'd').length;
-const teamHealth = (t, month = CURRENT_MONTH) => { const ms = teamMembers(t.id); return ms.length ? Math.round(ms.reduce((a, m) => a + mdone(m, t, month), 0) / (ms.length * 7) * 100) : 0; };
+const teamHealth = (t, month = CURRENT_MONTH) => {
+  if (!hasTeam(t.id) && month === CURRENT_MONTH) return STATS[t.id]?.health ?? 0;
+  const ms = teamMembers(t.id); return ms.length ? Math.round(ms.reduce((a, m) => a + mdone(m, t, month), 0) / (ms.length * 7) * 100) : 0;
+};
+const teamCount = t => hasTeam(t.id) ? teamMembers(t.id).length : (STATS[t.id]?.members ?? 0);
 const teamName = t => t.name || `${L('Team', 'Equipo')} ${t.num}`;
 const initials = n => String(n || '?').split(' ').filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase();
 const first = n => String(n || '').split(' ')[0];
@@ -172,12 +178,8 @@ function readHash() {
   const h = location.hash.replace('#', '');
   if (h.startsWith('team-')) { VIEW = 'team'; VIEW_TEAM = h.slice(5); }
   else if (['region', 'report', 'teams', 'settings'].includes(h)) VIEW = h;
-  else if (isAdmin()) VIEW = 'region';
-  else { VIEW = 'team'; VIEW_TEAM = USER?.teamId; }
-  if (!isAdmin()) {
-    if (VIEW === 'report' || VIEW === 'teams') VIEW = 'team';
-    if (VIEW === 'team') VIEW_TEAM = USER?.teamId;
-  }
+  else { VIEW = isMain() ? 'region' : 'team'; VIEW_TEAM = ACCESS?.teams?.[0]; }
+  if (!isMain() && ['report', 'teams', 'settings'].includes(VIEW)) { VIEW = 'team'; VIEW_TEAM = ACCESS?.teams?.[0]; }
 }
 let toastTimer;
 function toast(msg) {
@@ -193,36 +195,26 @@ const val = id => (document.getElementById(id)?.value ?? '').trim();
    SIGN-IN & SETUP
    ===================================================================== */
 const langSeg = () => `<div class="seg"><button type="button" class="${LANG === 'es' ? 'on' : ''}" data-act="lang" data-l="es">ES</button><button type="button" class="${LANG === 'en' ? 'on' : ''}" data-act="lang" data-l="en">EN</button></div>`;
-let PIN = '';
-const pinAttrs = (len) => `type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="${len}"`;
-function screenSetup() {
-  return `<div class="auth"><form class="card" data-form="setup">
-    <div class="row" style="justify-content:space-between"><div class="brandmark">${icon('bible', 28)}Church Status</div>${langSeg()}</div>
-    <h1>${L('Welcome! Let’s set things up', '¡Bienvenido! Vamos a configurar')}</h1>
-    <p class="small" style="margin:0">${L('Create the Jefe de Templo account. This person has full access and gives each team leader a PIN.', 'Crea la cuenta del Jefe de Templo. Esta persona tiene acceso completo y le da un PIN a cada líder de equipo.')}</p>
-    ${field('su-name', L('Full name', 'Nombre completo'), 'autocomplete="name" required maxlength="120"')}
-    ${field('su-pin', L('Choose a 6-digit PIN', 'Elige un PIN de 6 dígitos'), pinAttrs(6) + ' required minlength="6"')}
-    ${field('su-pin2', L('Type the PIN again', 'Escribe el PIN otra vez'), pinAttrs(6) + ' required minlength="6"')}
-    <label class="check"><input type="checkbox" id="su-example"><span>${L('Start with example data, to try the app first. Example team leaders sign in with PINs 1111, 2222, 3333, 4444 and 5555.', 'Empezar con datos de ejemplo, para probar la app primero. Los líderes de ejemplo entran con los PIN 1111, 2222, 3333, 4444 y 5555.')}</span></label>
-    <div class="err" role="alert">${esc(AUTH_ERR)}</div>
-    <button class="btn" type="submit" ${BUSY ? 'disabled' : ''}>${L('Create account and start', 'Crear cuenta y comenzar')}</button>
-  </form></div>`;
-}
-function screenLogin() {
+let CODE_IN = '';
+const codeAttrs = len => `type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="${len}"`;
+// Number keypad used to enter the app code and team codes
+function codePad(form, submitLabel) {
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'];
-  return `<div class="auth"><form class="card pinpad" data-form="login">
-    <div class="row" style="justify-content:space-between"><div class="brandmark">${icon('bible', 28)}Church Status</div>${langSeg()}</div>
-    <h1>${L('Enter your PIN', 'Escribe tu PIN')}</h1>
-    <p class="small" style="margin:0">${L('For the Jefe de Templo and Santiago team leaders.', 'Para el Jefe de Templo y los líderes de equipo de Santiago.')}</p>
-    <label class="sr" for="li-pin">PIN</label>
-    <input id="li-pin" class="pin-input" ${pinAttrs(8)} value="${esc(PIN)}" placeholder="••••" aria-describedby="li-err">
-    <div class="err" id="li-err" role="alert">${esc(AUTH_ERR)}</div>
+  return `<label class="sr" for="code-in">${L('Code', 'Código')}</label>
+    <input id="code-in" class="pin-input" ${codeAttrs(8)} value="${esc(CODE_IN)}" placeholder="••••" aria-describedby="code-err">
+    <div class="err" id="code-err" role="alert">${esc(AUTH_ERR)}</div>
     <div class="keys">${keys.map(k => k === 'del'
       ? `<button type="button" data-act="pinDel" aria-label="${L('Delete', 'Borrar')}">⌫</button>`
       : k === 'ok'
-        ? `<button type="submit" class="ok" ${BUSY || PIN.length < 4 ? 'disabled' : ''}>${L('Enter', 'Entrar')}</button>`
-        : `<button type="button" data-act="pinKey" data-k="${k}">${k}</button>`).join('')}</div>
-    <p class="small" style="margin:0;text-align:center">${L('Forgot your PIN? Ask the Jefe de Templo for a new one.', '¿Olvidaste tu PIN? Pide uno nuevo al Jefe de Templo.')}</p>
+        ? `<button type="submit" class="ok" ${BUSY || CODE_IN.length < 4 ? 'disabled' : ''}>${submitLabel}</button>`
+        : `<button type="button" data-act="pinKey" data-k="${k}">${k}</button>`).join('')}</div>`;
+}
+function screenLogin() {
+  return `<div class="auth"><form class="card pinpad" data-form="login">
+    <div class="row" style="justify-content:space-between"><div class="brandmark">${icon('bible', 28)}Church Status</div>${langSeg()}</div>
+    <h1>${L('Enter the code', 'Escribe el código')}</h1>
+    <p class="small" style="margin:0;text-align:center">${L('Use the app code, or your team’s code to go straight to your team.', 'Usa el código de la app, o el código de tu equipo para ir directo a tu equipo.')}</p>
+    ${codePad('login', L('Enter', 'Entrar'))}
   </form></div>`;
 }
 
@@ -233,19 +225,20 @@ const periodSeg = () => `<div class="seg" role="group" aria-label="${L('Period',
   .map(([k, t]) => `<button class="${PERIOD === k ? 'on' : ''}" data-act="period" data-p="${k}">${t}</button>`).join('')}</div>`;
 
 function topBar() {
-  const tabs = isAdmin()
+  const myTeams = (ACCESS?.teams || []).filter(t => S.teams[t]);
+  const tabs = isMain()
     ? [['region', 'pin', L('Region', 'Región')], ['report', 'pencil', L('Monthly report', 'Reporte mensual')], ['teams', 'people', L('Teams', 'Equipos')], ['settings', 'gear', L('Settings', 'Ajustes')]]
-    : [['team', 'people', L('My team', 'Mi equipo')], ['region', 'pin', L('Region', 'Región')]];
-  const cur = VIEW === 'team' ? (isAdmin() ? 'teams' : 'team') : VIEW;
+    : [...myTeams.map(t => [`team-${t}`, 'people', teamName({ id: t, ...S.teams[t] })]), ['region', 'pin', L('Region', 'Región')]];
+  const cur = VIEW === 'team' ? (isMain() ? 'teams' : `team-${VIEW_TEAM}`) : VIEW;
+  const who = isMain() ? L('App code', 'Código de la app') : L('Team code', 'Código de equipo');
   return `<header class="top"><div class="wrap">
     <div class="brand">${icon('bible', 26)}<div>Church Status<small>${L('Santiago Region', 'Región Santiago')}</small></div></div>
-    <nav class="tabs">${tabs.map(([h, ic, t]) => `<a href="#${h}" class="${cur === h ? 'on' : ''}">${icon(ic, 16)}${t}</a>`).join('')}</nav>
+    <nav class="tabs">${tabs.map(([h, ic, t]) => `<a href="#${h}" class="${cur === h ? 'on' : ''}">${icon(ic, 16)}${esc(t)}</a>`).join('')}</nav>
     <div class="right">
       <span class="live ${LIVE ? '' : 'off'}" title="${LIVE ? L('Changes appear live', 'Los cambios aparecen en vivo') : L('Reconnecting…', 'Reconectando…')}"><i></i>${LIVE ? L('Live', 'En vivo') : L('Reconnecting', 'Reconectando')}</span>
       ${langSeg()}
-      <div class="usermenu"><div class="who-me">${esc(USER.name)}<small>${isAdmin() ? L('Jefe de Templo', 'Jefe de Templo') : L('Team leader', 'Líder de equipo')}</small></div>
-        <button class="btn ghost sm" data-act="passwordOpen">${L('Change PIN', 'Cambiar PIN')}</button>
-        <button class="btn ghost sm" data-act="logout">${L('Sign out', 'Salir')}</button></div>
+      <div class="usermenu"><div class="who-me">${who}<small>${myTeams.length ? `${myTeams.length} ${L('team(s) open', 'equipo(s) abiertos')}` : '&nbsp;'}</small></div>
+        <button class="btn ghost sm" data-act="logout">${L('Lock', 'Cerrar')}</button></div>
     </div>
   </div></header>`;
 }
@@ -255,7 +248,7 @@ function viewRegion() {
   return `
   <div class="head"><div class="grow"><h1>${L('Santiago Region', 'Región Santiago')}</h1><p>${L('General Assembly goals', 'Metas de Asamblea General')} · ${bs.length} ${L('branches', 'sucursales')} · ${periodLabel()}</p></div>
     ${periodSeg()}
-    ${isAdmin() ? `<a class="btn" href="#report">${icon('pencil', 16)}${L('Enter monthly report', 'Ingresar reporte mensual')}</a>` : `<span class="tag info">${L('View only', 'Solo lectura')}</span>`}
+    ${isMain() ? `<a class="btn" href="#report">${icon('pencil', 16)}${L('Enter monthly report', 'Ingresar reporte mensual')}</a>` : `<span class="tag info">${L('View only', 'Solo lectura')}</span>`}
   </div>
   <div class="grid kpis">
     ${METRICS().map(m => { const c = regionVal(m.k), g = regionGoal(m.k); return `<div class="card kpi">
@@ -265,11 +258,11 @@ function viewRegion() {
   <div class="grid split">
     <div class="card">
       <div class="h">${L('Branch progress', 'Progreso por sucursal')}</div>
-      <div class="small" style="margin-bottom:8px">${isAdmin() ? L('Click a branch to enter its monthly report.', 'Haz clic en una sucursal para ingresar su reporte mensual.') : L('Updated by the Jefe de Templo.', 'Actualizado por el Jefe de Templo.')}</div>
+      <div class="small" style="margin-bottom:8px">${isMain() ? L('Click a branch to enter its monthly report.', 'Haz clic en una sucursal para ingresar su reporte mensual.') : L('Updated by the Jefe de Templo.', 'Actualizado por el Jefe de Templo.')}</div>
       <div class="tablewrap"><table>
         <thead><tr><th>${L('Branch', 'Sucursal')}</th>${METRICS().map(m => `<th class="c"><div class="thi">${icon(m.icon, 18)}${m.short}</div></th>`).join('')}<th class="c">${L('Overall', 'Total')}</th></tr></thead>
         <tbody>
-          ${bs.map(b => { const p = branchPct(b); return `<tr class="${isAdmin() ? 'click' : ''}" ${isAdmin() ? `data-act="openReport" data-b="${esc(b.id)}" tabindex="0"` : ''}>
+          ${bs.map(b => { const p = branchPct(b); return `<tr class="${isMain() ? 'click' : ''}" ${isMain() ? `data-act="openReport" data-b="${esc(b.id)}" tabindex="0"` : ''}>
             <td><div class="who">${plant(pctStage(p), 28, p < 45)}<div><b>${esc(b.name)}</b><div class="small">${b.hasTeams ? `${TEAMS().length} ${L('teams report here', 'equipos reportan aquí')}` : L('Monthly report', 'Reporte mensual')}</div></div></div></td>
             ${METRICS().map(m => { const c = branchVal(b, m.k), g = branchGoal(b, m.k); return `<td><div class="mcell"><div class="nums">${fmt(c)}<span>/ ${fmt(g)}</span></div>${bar(ratio(c, g))}</div></td>`; }).join('')}
             <td class="c"><span class="tag ${p >= 80 ? 'ok' : p >= 55 ? 'warn' : 'bad'}">${p}%</span></td></tr>`; }).join('')}
@@ -334,23 +327,22 @@ function viewTeams() {
   const yr = monthsToDate();
   const assigned = ts.reduce((a, t) => a + (+t.fruitGoal || 0), 0), branchFruitGoal = +(tb.goals || {}).fruit || 0;
   const fruitYear = ts.reduce((a, t) => a + teamFruit(t, yr), 0);
-  const members = ts.reduce((a, t) => a + teamMembers(t.id).length, 0);
-  const leaders = tid => USERS.filter(u => u.teamId === tid);
+  const members = ts.reduce((a, t) => a + teamCount(t), 0);
   return `
   <div class="head"><div class="grow"><h1>${L('Teams', 'Equipos')}${tb.name ? ` · ${esc(tb.name)}` : ''}</h1><p>${ts.length} ${L('teams', 'equipos')} · ${members} ${L('members', 'miembros')} · ${monthLabel(CURRENT_MONTH)}</p></div>
     <button class="btn" data-act="addTeamOpen">${icon('people', 16)}${L('Add team', 'Agregar equipo')}</button></div>
   ${ts.length ? `<div class="grid split">
     <div class="card">
       <div class="h">${L('Teams', 'Equipos')}</div>
-      <div class="small" style="margin-bottom:8px">${L('Each team leader signs in to update their own members. Open a team to see what they see.', 'Cada líder de equipo entra para actualizar a sus miembros. Abre un equipo para ver lo que ellos ven.')}</div>
+      <div class="small" style="margin-bottom:8px">${L('Opening a team asks for that team’s code.', 'Abrir un equipo pide el código de ese equipo.')}</div>
       <div class="tablewrap"><table>
         <thead><tr><th>${L('Team', 'Equipo')}</th><th>${L('Leader', 'Líder')}</th><th class="c">${L('Members', 'Miembros')}</th><th>${L('7 goals this month', '7 metas este mes')}</th><th>${L('Fruit this year', 'Fruto este año')}</th><th></th></tr></thead>
-        <tbody>${ts.map(t => { const h = teamHealth(t), f = teamFruit(t, yr), g = +t.fruitGoal || 0, ls = leaders(t.id); return `<tr class="click" data-act="openTeam" data-t="${esc(t.id)}" tabindex="0">
+        <tbody>${ts.map(t => { const h = teamHealth(t), f = teamFruit(t, yr), g = +t.fruitGoal || 0; return `<tr class="click" data-act="openTeam" data-t="${esc(t.id)}" tabindex="0">
           <td><div class="who">${plant(pctStage(h), 28, h < 50)}<div><b>${esc(teamName(t))}</b><div class="small">${L('Team', 'Equipo')} ${t.num}</div></div></div></td>
-          <td>${esc(t.leader)}<div class="small">${ls.length ? L('Has a PIN', 'Tiene PIN') : `<span style="color:var(--warn)">${L('No PIN yet', 'Sin PIN aún')}</span>`}</div></td><td class="c num">${teamMembers(t.id).length}</td>
+          <td>${esc(t.leader)}<div class="small">${CODED.includes(t.id) ? L('Has a code', 'Tiene código') : `<span style="color:var(--warn)">${L('No code yet', 'Sin código aún')}</span>`}</div></td><td class="c num">${teamCount(t)}</td>
           <td><div class="mcell"><div class="nums">${h}%<span></span></div>${bar(h / 100)}</div></td>
           <td><div class="mcell"><div class="nums">${f}<span>/ ${g}</span></div>${bar(ratio(f, g))}</div></td>
-          <td><span class="btn ghost sm">${L('Open', 'Abrir')}</span></td></tr>`; }).join('')}
+          <td><span class="btn ghost sm">${hasTeam(t.id) ? L('Open', 'Abrir') : `🔒 ${L('Open', 'Abrir')}`}</span></td></tr>`; }).join('')}
           <tr><td><b>${L('Total', 'Total')}</b></td><td></td><td class="c num"><b>${members}</b></td><td></td><td><div class="mcell"><div class="nums">${fruitYear}<span>/ ${branchFruitGoal}</span></div></div></td><td></td></tr>
         </tbody></table></div>
     </div>
@@ -360,22 +352,25 @@ function viewTeams() {
       ${ts.map(t => `<div class="list-row"><span class="grow">${esc(teamName(t))}</span><input class="input num" style="width:80px" type="number" min="0" id="fg-${esc(t.id)}" value="${+t.fruitGoal || 0}" data-act="fruitGoal" data-t="${esc(t.id)}" aria-label="${L('Fruit goal', 'Meta de fruto')} ${esc(teamName(t))}"></div>`).join('')}
       <div style="margin-top:12px"><span class="tag ${assigned === branchFruitGoal ? 'ok' : 'warn'}">${L(`Assigned ${assigned} of ${branchFruitGoal}`, `Asignado ${assigned} de ${branchFruitGoal}`)}</span></div>
     </div>
-  </div>` : `<div class="card empty">${plant(1, 60)}<div class="h">${L('No teams yet', 'Aún no hay equipos')}</div><div class="small">${L('Add the first team and create its leader’s login.', 'Agrega el primer equipo y crea el usuario de su líder.')}</div></div>`}`;
+  </div>` : `<div class="card empty">${plant(1, 60)}<div class="h">${L('No teams yet', 'Aún no hay equipos')}</div><div class="small">${L('Add the first team and give it a code.', 'Agrega el primer equipo y dale un código.')}</div></div>`}`;
 }
 
 function viewTeam() {
   const t = S.teams[VIEW_TEAM] ? { id: VIEW_TEAM, ...S.teams[VIEW_TEAM] } : null;
-  if (!t) {
-    if (!isAdmin()) return `<div class="card empty">${plant(0, 60)}<div class="h">${L('Your account isn’t linked to a team yet', 'Tu cuenta aún no está vinculada a un equipo')}</div><div class="small">${L('Ask the Jefe de Templo to link it. Meanwhile you can see the region results.', 'Pide al Jefe de Templo que la vincule. Mientras tanto puedes ver los resultados de la región.')}</div><a class="btn" href="#region">${L('See region', 'Ver región')}</a></div>`;
-    return `<div class="card empty"><div class="h">${L('That team no longer exists', 'Ese equipo ya no existe')}</div><a class="btn" href="#teams">${L('All teams', 'Todos los equipos')}</a></div>`;
-  }
+  if (!t) return `<div class="card empty"><div class="h">${L('That team no longer exists', 'Ese equipo ya no existe')}</div><a class="btn" href="#${isMain() ? 'teams' : 'region'}">${isMain() ? L('All teams', 'Todos los equipos') : L('See region', 'Ver región')}</a></div>`;
+  if (!hasTeam(t.id)) return `<div class="auth" style="min-height:auto;padding:10px 0"><form class="card pinpad" data-form="unlock" data-t="${esc(t.id)}">
+      <div class="row">${plant(pctStage(teamHealth(t)), 34)}<div><div class="h">${esc(teamName(t))}</div><div class="small">${L('Team', 'Equipo')} ${t.num} · ${esc(t.leader)}</div></div></div>
+      <h1 style="font-size:19px">${L('Enter this team’s code', 'Escribe el código de este equipo')}</h1>
+      ${codePad('unlock', L('Open', 'Abrir'))}
+      ${isMain() ? `<a href="#teams" class="small" style="text-align:center;color:var(--accent);text-decoration:none">‹ ${L('All teams', 'Todos los equipos')}</a>` : ''}
+    </form></div>`;
   const mo = TEAM_MONTH, ms = teamMembers(t.id), h = teamHealth(t, mo), yr = monthsToDate();
   const fYear = teamFruit(t, yr), fMonth = (t.fruit || {})[mo] || 0, fg = +t.fruitGoal || 0;
   const complete = ms.filter(m => mdone(m, t, mo) === 7).length;
   const follow = ms.filter(m => mdone(m, t, mo) <= 3);
   return `
   <div class="head"><div class="grow">
-      ${isAdmin() ? `<a href="#teams" class="small" style="color:var(--accent);text-decoration:none">‹ ${L('All teams', 'Todos los equipos')}</a>` : ''}
+      ${isMain() ? `<a href="#teams" class="small" style="color:var(--accent);text-decoration:none">‹ ${L('All teams', 'Todos los equipos')}</a>` : ''}
       <h1>${esc(teamName(t))}</h1><p>${L('Team', 'Equipo')} ${t.num} · ${L('Leader', 'Líder')}: ${esc(t.leader)}</p></div>
     <div class="monthnav"><button data-act="monthPrev" aria-label="${L('Previous month', 'Mes anterior')}">‹</button><span>${monthLabel(mo)}</span><button data-act="monthNext" aria-label="${L('Next month', 'Mes siguiente')}" ${mo >= CURRENT_MONTH ? 'disabled' : ''}>›</button></div>
     <button class="btn ghost" data-act="teamSettings">${icon('gear', 16)}${L('Team settings', 'Ajustes del equipo')}</button>
@@ -403,21 +398,22 @@ function viewTeam() {
 
 function viewSettings() {
   const bs = BRANCHES(), ts = TEAMS();
-  const teamOpt = sel => `<option value="">${L('No team', 'Sin equipo')}</option>` + ts.map(t => `<option value="${esc(t.id)}" ${sel === t.id ? 'selected' : ''}>${esc(teamName(t))}</option>`).join('');
   return `
-  <div class="head"><div class="grow"><h1>${L('Settings', 'Ajustes')}</h1><p>${L('Logins, branches and backups.', 'Usuarios, sucursales y copias de seguridad.')}</p></div></div>
-  <div class="card">
-    <div class="row" style="flex-wrap:wrap"><div class="grow"><div class="h">${L('Who can sign in', 'Quién puede entrar')}</div><div class="small">${L('Each person signs in with their own PIN. Members don’t sign in.', 'Cada persona entra con su propio PIN. Los miembros no entran.')}</div></div>
-      <button class="btn" data-act="userAddOpen">${icon('people', 16)}${L('Add person', 'Agregar persona')}</button></div>
-    <div class="tablewrap" style="margin-top:8px"><table>
-      <thead><tr><th>${L('Name', 'Nombre')}</th><th>${L('Role', 'Rol')}</th><th>${L('Team', 'Equipo')}</th><th></th></tr></thead>
-      <tbody>${USERS.map(u => `<tr><td><b>${esc(u.name)}</b>${u.id === USER.id ? ` <span class="tag info">${L('You', 'Tú')}</span>` : ''}</td>
-        <td>${u.role === 'admin' ? L('Jefe de Templo', 'Jefe de Templo') : L('Team leader', 'Líder de equipo')}</td>
-        <td>${u.role === 'admin' ? '—' : u.teamId && S.teams[u.teamId] ? esc(teamName({ id: u.teamId, ...S.teams[u.teamId] })) : `<span style="color:var(--warn)">${L('Not linked', 'Sin vincular')}</span>`}</td>
-        <td style="text-align:right"><button class="btn ghost sm" data-act="userEditOpen" data-u="${esc(u.id)}">${L('Edit or new PIN', 'Editar o nuevo PIN')}</button></td></tr>`).join('')}</tbody>
-    </table></div>
-  </div>
+  <div class="head"><div class="grow"><h1>${L('Settings', 'Ajustes')}</h1><p>${L('Codes, branches and backups.', 'Códigos, sucursales y copias de seguridad.')}</p></div></div>
   <div class="settings-grid">
+    <div class="card">
+      <div class="h">${L('App code', 'Código de la app')}</div>
+      <p class="small">${L('Opens the region results, monthly reports, the teams overview and these settings. It doesn’t open team members.', 'Abre los resultados de la región, los reportes mensuales, el resumen de equipos y estos ajustes. No abre los miembros de los equipos.')}</p>
+      <form class="inline-form" data-form="mainCode"><input class="input num" id="mc-new" ${codeAttrs(8)} placeholder="${L('New code', 'Nuevo código')}" aria-label="${L('New app code', 'Nuevo código de la app')}"><input class="input num" id="mc-new2" ${codeAttrs(8)} placeholder="${L('Repeat it', 'Repítelo')}" aria-label="${L('Repeat the new app code', 'Repite el nuevo código')}"><button class="btn" type="submit">${L('Change', 'Cambiar')}</button></form>
+      <p class="small" style="margin-top:8px">${L('4 to 8 digits. Everyone who uses the app code needs the new one.', 'De 4 a 8 dígitos. Todos los que usan el código de la app necesitarán el nuevo.')}</p>
+    </div>
+    <div class="card">
+      <div class="h">${L('Team codes', 'Códigos de equipo')}</div>
+      <p class="small">${L('Each team’s code opens its members and adjustments. Codes are stored scrambled, so they can’t be shown here, only replaced.', 'El código de cada equipo abre sus miembros y ajustes. Los códigos se guardan cifrados: no se pueden mostrar, solo reemplazar.')}</p>
+      ${ts.length ? ts.map(t => `<form class="list-row" data-form="teamCode" data-t="${esc(t.id)}"><div class="grow"><b>${esc(teamName(t))}</b><div class="small">${CODED.includes(t.id) ? L('Has a code', 'Tiene código') : `<span style="color:var(--warn)">${L('No code yet', 'Sin código aún')}</span>`}</div></div>
+        <input class="input num" style="width:120px" id="tc-${esc(t.id)}" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" placeholder="${L('New', 'Nuevo')}" aria-label="${L('New code for', 'Nuevo código para')} ${esc(teamName(t))}"><button class="btn ghost sm" type="submit">${L('Save', 'Guardar')}</button></form>`).join('')
+        : `<p class="small">${L('No teams yet.', 'Aún no hay equipos.')}</p>`}
+    </div>
     <div class="card">
       <div class="h">${L('Branches', 'Sucursales')}</div>
       <div class="small" style="margin-bottom:6px">${L('The branch marked “Teams” reports through its teams; the others get a monthly report.', 'La sucursal marcada “Equipos” reporta a través de sus equipos; las demás con un reporte mensual.')}</div>
@@ -428,11 +424,20 @@ function viewSettings() {
     </div>
     <div class="card">
       <div class="h">${L('Backup', 'Copia de seguridad')}</div>
-      <p class="small">${L('Download a copy of all reports, teams and members. Keep it somewhere safe. Logins are not included.', 'Descarga una copia de todos los reportes, equipos y miembros. Guárdala en un lugar seguro. Los usuarios no se incluyen.')}</p>
+      <p class="small">${L('Download a copy of all reports, teams and members. Keep it somewhere safe. Codes are not included.', 'Descarga una copia de todos los reportes, equipos y miembros. Guárdala en un lugar seguro. Los códigos no se incluyen.')}</p>
       <a class="btn ghost" href="/api/export" download>${L('Download backup', 'Descargar copia')}</a>
       <p class="small" style="margin-top:16px">${L('Restore replaces everything with the contents of a backup file.', 'Restaurar reemplaza todo con el contenido de una copia.')}</p>
       <label class="btn ghost" for="restore-file" style="cursor:pointer">${L('Restore from a backup…', 'Restaurar desde una copia…')}</label>
       <input type="file" id="restore-file" accept="application/json,.json" data-act="restore" hidden>
+    </div>
+    <div class="card">
+      <div class="h">${L('Example data', 'Datos de ejemplo')}</div>
+      <p class="small">${L('Fill the app with example branches, teams and members to try it, or erase everything to start fresh. Both replace all current data.', 'Llena la app con sucursales, equipos y miembros de ejemplo para probarla, o borra todo para empezar de nuevo. Ambas opciones reemplazan todos los datos actuales.')}</p>
+      <div class="row" style="flex-wrap:wrap">
+        <button class="btn ${CONFIRM === 'example' ? 'danger' : 'ghost'}" data-act="loadExample">${CONFIRM === 'example' ? L('Tap again to replace everything', 'Toca otra vez para reemplazar todo') : L('Load example data', 'Cargar datos de ejemplo')}</button>
+        <button class="btn ${CONFIRM === 'empty' ? 'danger' : 'ghost'}" data-act="startEmpty">${CONFIRM === 'empty' ? L('Tap again to erase everything', 'Toca otra vez para borrar todo') : L('Start empty', 'Empezar vacío')}</button>
+      </div>
+      <p class="small" style="margin-top:8px">${L('Example team codes: 1111, 2222, 3333, 4444 and 5555.', 'Códigos de los equipos de ejemplo: 1111, 2222, 3333, 4444 y 5555.')}</p>
     </div>
   </div>`;
 }
@@ -463,39 +468,21 @@ function sheet() {
     const t = { id: VIEW_TEAM, ...S.teams[VIEW_TEAM] };
     body = `<div class="row"><div class="h grow">${L('Team settings', 'Ajustes del equipo')}</div>${close}</div>
       ${field('ts-name', L('Team name (optional)', 'Nombre del equipo (opcional)'), `value="${esc(t.name)}" placeholder="${L('Team', 'Equipo')} ${t.num}" maxlength="120" autocomplete="off"`)}
-      ${isAdmin() ? field('ts-leader', L('Team leader', 'Líder del equipo'), `value="${esc(t.leader)}" maxlength="120" autocomplete="off"`) + field('ts-fruit', L('Yearly fruit goal', 'Meta anual de fruto'), `type="number" min="0" value="${+t.fruitGoal || 0}"`) : ''}
+      ${isMain() ? field('ts-leader', L('Team leader', 'Líder del equipo'), `value="${esc(t.leader)}" maxlength="120" autocomplete="off"`) + field('ts-fruit', L('Yearly fruit goal', 'Meta anual de fruto'), `type="number" min="0" value="${+t.fruitGoal || 0}"`) : ''}
+      ${field('ts-code', L('New team code (leave empty to keep it)', 'Nuevo código del equipo (vacío para dejarlo igual)'), 'type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off"')}
       <div class="small">${L('Attendance goal per month', 'Meta de asistencia por mes')}</div>
       <div class="seg">${[1, 2, 3, 4].map(n => `<button type="button" class="${(SHEET.att || t.attTarget || 4) === n ? 'on' : ''}" data-act="attTarget" data-n="${n}">${n}</button>`).join('')}</div>
       <div class="row" style="justify-content:space-between">
-        ${isAdmin() ? `<button class="btn ${CONFIRM === 't-' + t.id ? 'danger' : 'ghost'}" data-act="teamDelete">${CONFIRM === 't-' + t.id ? L('Tap again: removes the team and its members', 'Toca otra vez: quita el equipo y sus miembros') : L('Remove team', 'Quitar equipo')}</button>` : '<span></span>'}
+        ${isMain() ? `<button class="btn ${CONFIRM === 't-' + t.id ? 'danger' : 'ghost'}" data-act="teamDelete">${CONFIRM === 't-' + t.id ? L('Tap again: removes the team and its members', 'Toca otra vez: quita el equipo y sus miembros') : L('Remove team', 'Quitar equipo')}</button>` : '<span></span>'}
         <button class="btn" data-act="teamSave">${icon('check', 14)}${L('Save', 'Guardar')}</button></div>`;
   } else if (SHEET.type === 'addTeam') {
     body = `<div class="row"><div class="h grow">${L('Add team', 'Agregar equipo')}</div>${close}</div>
       ${field('nt-leader', L('Team leader’s full name', 'Nombre completo del líder'), 'maxlength="120" autocomplete="off"')}
       ${field('nt-name', L('Team name (optional)', 'Nombre del equipo (opcional)'), 'maxlength="120" autocomplete="off"')}
       ${field('nt-fruit', L('Yearly fruit goal', 'Meta anual de fruto'), 'type="number" min="0" value="0"')}
-      ${field('nt-pin', L('Leader’s PIN, 4 to 8 digits (optional)', 'PIN del líder, de 4 a 8 dígitos (opcional)'), 'type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off"')}
-      <div class="small">${L('Give the leader this PIN. They can change it after signing in.', 'Dale este PIN al líder. Puede cambiarlo al entrar.')}</div>
+      ${field('nt-code', L('Team code, 4 to 8 digits', 'Código del equipo, de 4 a 8 dígitos'), 'type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off"')}
+      <div class="small">${L('Give this code to the team leader. It opens the team’s members and adjustments.', 'Dale este código al líder del equipo. Abre los miembros y ajustes del equipo.')}</div>
       <div class="row" style="justify-content:flex-end"><button class="btn" data-act="teamAdd" ${BUSY ? 'disabled' : ''}>${L('Add team', 'Agregar equipo')}</button></div>`;
-  } else if (SHEET.type === 'user') {
-    const u = SHEET.u ? USERS.find(x => x.id === SHEET.u) : null;
-    const role = SHEET.role || (u ? u.role : 'leader');
-    const ts = TEAMS();
-    body = `<div class="row"><div class="h grow">${u ? L('Edit person', 'Editar persona') : L('Add person', 'Agregar persona')}</div>${close}</div>
-      ${field('us-name', L('Full name', 'Nombre completo'), `value="${esc(u?.name || '')}" maxlength="120" autocomplete="off"`)}
-      <div class="small">${L('Role', 'Rol')}</div>
-      <div class="seg"><button type="button" class="${role === 'leader' ? 'on' : ''}" data-act="userRole" data-r="leader">${L('Team leader', 'Líder de equipo')}</button><button type="button" class="${role === 'admin' ? 'on' : ''}" data-act="userRole" data-r="admin">${L('Jefe de Templo', 'Jefe de Templo')}</button></div>
-      ${role === 'leader' ? `<div class="field"><label for="us-team">${L('Team', 'Equipo')}</label><select class="sel" id="us-team"><option value="">${L('No team', 'Sin equipo')}</option>${ts.map(t => `<option value="${esc(t.id)}" ${(SHEET.team ?? u?.teamId) === t.id ? 'selected' : ''}>${esc(teamName(t))}</option>`).join('')}</select></div>` : ''}
-      ${field('us-pin', (u ? L('New PIN (leave empty to keep the current one)', 'Nuevo PIN (vacío para dejar el actual)') + ' · ' : '') + (role === 'admin' ? L('6 digits', '6 dígitos') : L('4 to 8 digits', '4 a 8 dígitos')), `type="text" inputmode="numeric" pattern="[0-9]*" maxlength="${role === 'admin' ? 6 : 8}" autocomplete="off"`)}
-      <div class="row" style="justify-content:space-between">
-        ${u && u.id !== USER.id ? `<button class="btn ${CONFIRM === 'u-' + u.id ? 'danger' : 'ghost'}" data-act="userDelete">${CONFIRM === 'u-' + u.id ? L('Tap again to remove', 'Toca otra vez para quitar') : L('Remove access', 'Quitar acceso')}</button>` : '<span></span>'}
-        <button class="btn" data-act="userSave" ${BUSY ? 'disabled' : ''}>${icon('check', 14)}${L('Save', 'Guardar')}</button></div>`;
-  } else if (SHEET.type === 'password') {
-    const len = isAdmin() ? 6 : 8;
-    body = `<form data-form="password" style="display:contents"><div class="row"><div class="h grow">${L('Change your PIN', 'Cambiar tu PIN')}</div>${close}</div>
-      ${field('pw-cur', L('Current PIN', 'PIN actual'), pinAttrs(8) + ' required')}
-      ${field('pw-new', isAdmin() ? L('New PIN (6 digits)', 'Nuevo PIN (6 dígitos)') : L('New PIN (4 to 8 digits)', 'Nuevo PIN (4 a 8 dígitos)'), pinAttrs(len) + ' required')}
-      <div class="row" style="justify-content:flex-end"><button class="btn" type="submit">${L('Change PIN', 'Cambiar PIN')}</button></div></form>`;
   }
   return `<div class="overlay" data-act="overlay"><div class="sheet" role="dialog" aria-modal="true">${body}</div></div>`;
 }
@@ -509,45 +496,56 @@ function render() {
   const a = document.activeElement, focusId = a && a.id, selStart = a && 'selectionStart' in a ? a.selectionStart : null;
   // Keep what's typed in open forms across re-renders
   const typed = {};
-  app.querySelectorAll('.sheet input[id], .sheet textarea[id], .auth input[id]').forEach(el => { if (el.type !== 'checkbox' && el.type !== 'file' && el.id !== 'li-pin') typed[el.id] = el.value; });
+  app.querySelectorAll('.sheet input[id], .sheet textarea[id], .auth input[id]').forEach(el => { if (el.type !== 'checkbox' && el.type !== 'file' && el.id !== 'code-in') typed[el.id] = el.value; });
   if (SCREEN === 'loading') app.innerHTML = `<div class="auth"><div class="small">${L('Loading…', 'Cargando…')}</div></div>`;
-  else if (SCREEN === 'setup') app.innerHTML = screenSetup();
   else if (SCREEN === 'login') app.innerHTML = screenLogin();
   else {
     readHash();
     let body;
-    if (VIEW === 'report' && isAdmin()) body = viewReport();
-    else if (VIEW === 'teams' && isAdmin()) body = viewTeams();
-    else if (VIEW === 'settings' && isAdmin()) body = viewSettings();
+    if (VIEW === 'report' && isMain()) body = viewReport();
+    else if (VIEW === 'teams' && isMain()) body = viewTeams();
+    else if (VIEW === 'settings' && isMain()) body = viewSettings();
     else if (VIEW === 'team') body = viewTeam();
     else body = viewRegion();
     app.innerHTML = `${topBar()}<main class="wrap">${body}</main><footer class="wrap">Church Status · ${L('Santiago Region', 'Región Santiago')}</footer>${sheet()}`;
   }
   for (const [id, v] of Object.entries(typed)) { const el = document.getElementById(id); if (el && el.value !== v) el.value = v; }
-  if (focusId && focusId !== 'li-pin') { const el = document.getElementById(focusId); if (el) { el.focus(); try { if (selStart != null) el.setSelectionRange(selStart, selStart); } catch (e) {} } }
+  if (focusId && focusId !== 'code-in') { const el = document.getElementById(focusId); if (el) { el.focus(); try { if (selStart != null) el.setSelectionRange(selStart, selStart); } catch (e) {} } }
 }
 
 /* =====================================================================
    EVENTS
    ===================================================================== */
 const app = document.getElementById('app');
-async function loadUsers() { if (isAdmin()) { try { USERS = (await api('GET', '/api/users')).users; } catch (e) {} } }
+
+async function enterCode(form, teamId) {
+  const code = CODE_IN;
+  if (code.length < 4) return;
+  BUSY = true; AUTH_ERR = ''; render();
+  try {
+    const out = form === 'login'
+      ? await api('POST', '/api/login', { code })
+      : await api('POST', '/api/unlock', { teamId, code });
+    ACCESS = out.access; CODE_IN = ''; BUSY = false;
+    if (form === 'login') { await enterApp(); return; }
+    await loadData(); TEAM_MONTH = CURRENT_MONTH; render();
+  } catch (x) { AUTH_ERR = x.message; CODE_IN = ''; BUSY = false; render(); }
+}
 
 app.addEventListener('click', async e => {
   const el = e.target.closest('[data-act]'); if (!el) return;
   const act = el.dataset.act;
   if (act === 'overlay' && e.target !== el) return;
   if (el.tagName === 'SELECT' || el.tagName === 'INPUT') return;
-  if (!['memberDelete', 'teamDelete', 'userDelete', 'branchDelete'].includes(act)) CONFIRM = null;
+  if (!['memberDelete', 'teamDelete', 'branchDelete', 'loadExample', 'startEmpty'].includes(act)) CONFIRM = null;
   switch (act) {
     case 'lang': LANG = el.dataset.l; try { localStorage.setItem('cs-lang', LANG); } catch (x) {} break;
-    case 'logout': try { await api('POST', '/api/logout', {}); } catch (x) {} stopLive(); USER = null; PIN = ''; SCREEN = 'login'; history.replaceState(null, '', location.pathname); break;
-    case 'pinKey': if (PIN.length < 8) PIN += el.dataset.k; AUTH_ERR = ''; break;
-    case 'pinDel': PIN = PIN.slice(0, -1); AUTH_ERR = ''; break;
-    case 'passwordOpen': SHEET = { type: 'password' }; break;
+    case 'logout': try { await api('POST', '/api/logout', {}); } catch (x) {} stopLive(); ACCESS = null; CODE_IN = ''; AUTH_ERR = ''; SCREEN = 'login'; history.replaceState(null, '', location.pathname); break;
+    case 'pinKey': if (CODE_IN.length < 8) CODE_IN += el.dataset.k; AUTH_ERR = ''; break;
+    case 'pinDel': CODE_IN = CODE_IN.slice(0, -1); AUTH_ERR = ''; break;
     case 'period': PERIOD = el.dataset.p; break;
     case 'openReport': REPORT = { branch: el.dataset.b, month: CURRENT_MONTH, draft: {} }; location.hash = 'report'; return;
-    case 'openTeam': TEAM_MONTH = CURRENT_MONTH; location.hash = 'team-' + el.dataset.t; return;
+    case 'openTeam': TEAM_MONTH = CURRENT_MONTH; CODE_IN = ''; AUTH_ERR = ''; location.hash = 'team-' + el.dataset.t; return;
     case 'pickBranch': REPORT = { branch: el.dataset.b, month: REPORT.month, draft: {} }; break;
     case 'resetDraft': REPORT.draft = {}; break;
     case 'saveReport': {
@@ -581,62 +579,54 @@ app.addEventListener('click', async e => {
     case 'teamSettings': SHEET = { type: 'team' }; break;
     case 'attTarget': SHEET = { ...SHEET, att: +el.dataset.n }; break;
     case 'teamSave': {
+      const code = val('ts-code');
+      if (code && !/^\d{4,8}$/.test(code)) { toast(L('The code needs 4 to 8 digits.', 'El código necesita de 4 a 8 dígitos.')); return; }
       const patch = { name: val('ts-name') };
       if (SHEET.att) patch.attTarget = SHEET.att;
-      if (isAdmin()) { if (val('ts-leader')) patch.leader = val('ts-leader'); patch.fruitGoal = Math.max(0, Math.round(+val('ts-fruit') || 0)); }
+      if (isMain()) { if (val('ts-leader')) patch.leader = val('ts-leader'); patch.fruitGoal = Math.max(0, Math.round(+val('ts-fruit') || 0)); }
+      const id = VIEW_TEAM;
+      if (code) {
+        try { await api('POST', `/api/codes/team/${encodeURIComponent(id)}`, { code }); if (!CODED.includes(id)) CODED.push(id); }
+        catch (x) { toast(x.message); return; }
+      }
       SHEET = null;
-      if (await save('teams', VIEW_TEAM, patch)) toast(L('Team saved.', 'Equipo guardado.'));
+      if (await save('teams', id, patch)) toast(code ? L('Team saved. Share the new code with the team.', 'Equipo guardado. Comparte el nuevo código con el equipo.') : L('Team saved.', 'Equipo guardado.'));
       return;
     }
     case 'teamDelete': {
       const key = 't-' + VIEW_TEAM;
       if (CONFIRM !== key) { CONFIRM = key; break; }
       const id = VIEW_TEAM; SHEET = null; CONFIRM = null; location.hash = 'teams';
-      if (await save('teams', id, null, 'delete')) { for (const [mid, m] of Object.entries(S.members)) if (m.teamId === id) delete S.members[mid]; await loadUsers(); toast(L('Team removed.', 'Equipo quitado.')); }
+      if (await save('teams', id, null, 'delete')) { for (const [mid, m] of Object.entries(S.members)) if (m.teamId === id) delete S.members[mid]; toast(L('Team removed.', 'Equipo quitado.')); }
       return;
     }
     case 'addTeamOpen': SHEET = { type: 'addTeam' }; break;
     case 'teamAdd': {
-      const leader = val('nt-leader'), pin = val('nt-pin');
+      const leader = val('nt-leader'), code = val('nt-code');
       if (!leader) { toast(L('Enter the team leader’s name.', 'Escribe el nombre del líder.')); return; }
-      if (pin && !/^\d{4,8}$/.test(pin)) { toast(L('The PIN needs 4 to 8 digits.', 'El PIN necesita de 4 a 8 dígitos.')); return; }
+      if (!/^\d{4,8}$/.test(code)) { toast(L('Give the team a code of 4 to 8 digits.', 'Dale al equipo un código de 4 a 8 dígitos.')); return; }
       const num = TEAMS().reduce((a, t) => Math.max(a, t.num || 0), 0) + 1, id = uid('t');
       BUSY = true; render();
       const ok = await save('teams', id, { name: val('nt-name'), num, leader, fruitGoal: Math.max(0, Math.round(+val('nt-fruit') || 0)), attTarget: 4, fruit: {} }, 'set');
-      if (ok && pin) {
-        try { await api('POST', '/api/users', { name: leader, pin, role: 'leader', teamId: id }); await loadUsers(); toast(L(`Team added. ${leader} can sign in with the PIN you chose.`, `Equipo agregado. ${leader} puede entrar con el PIN que elegiste.`)); }
-        catch (x) { toast(L(`Team added, but the PIN wasn’t saved: ${x.message}`, `Equipo agregado, pero el PIN no se guardó: ${x.message}`)); }
-      } else if (ok) toast(L('Team added.', 'Equipo agregado.'));
+      if (ok) {
+        try { await api('POST', `/api/codes/team/${encodeURIComponent(id)}`, { code }); CODED.push(id); toast(L('Team added. Share its code with the team leader.', 'Equipo agregado. Comparte su código con el líder del equipo.')); }
+        catch (x) { toast(L(`Team added, but the code wasn’t saved: ${x.message} Set it in Settings.`, `Equipo agregado, pero el código no se guardó: ${x.message} Ponlo en Ajustes.`)); }
+      }
       BUSY = false; SHEET = null; render(); return;
-    }
-    case 'userAddOpen': SHEET = { type: 'user', u: null }; break;
-    case 'userEditOpen': SHEET = { type: 'user', u: el.dataset.u }; break;
-    case 'userRole': SHEET = { ...SHEET, role: el.dataset.r, team: document.getElementById('us-team')?.value }; break;
-    case 'userSave': {
-      const u = SHEET.u ? USERS.find(x => x.id === SHEET.u) : null;
-      const role = SHEET.role || (u ? u.role : 'leader');
-      const body = { name: val('us-name'), role, teamId: role === 'leader' ? (document.getElementById('us-team')?.value || null) : null };
-      const pin = val('us-pin');
-      if (pin || !u) body.pin = pin;
-      BUSY = true; render();
-      try {
-        if (u) await api('PATCH', `/api/users/${encodeURIComponent(u.id)}`, body); else await api('POST', '/api/users', body);
-        await loadUsers(); SHEET = null; toast(pin ? L('Saved. Give them the new PIN.', 'Guardado. Dale el nuevo PIN.') : L('Saved.', 'Guardado.'));
-        if (u && u.id === USER.id) USER = (await api('GET', '/api/me')).user;
-      } catch (x) { toast(x.message); }
-      BUSY = false; break;
-    }
-    case 'userDelete': {
-      const key = 'u-' + SHEET.u;
-      if (CONFIRM !== key) { CONFIRM = key; break; }
-      try { await api('DELETE', `/api/users/${encodeURIComponent(SHEET.u)}`); await loadUsers(); SHEET = null; CONFIRM = null; toast(L('Access removed.', 'Acceso quitado.')); } catch (x) { toast(x.message); }
-      break;
     }
     case 'branchDelete': {
       const key = 'b-' + el.dataset.b;
       if (CONFIRM !== key) { CONFIRM = key; break; }
       CONFIRM = null; if (await save('branches', el.dataset.b, null, 'delete')) toast(L('Branch removed.', 'Sucursal quitada.'));
       return;
+    }
+    case 'loadExample': case 'startEmpty': {
+      const key = act === 'loadExample' ? 'example' : 'empty';
+      if (CONFIRM !== key) { CONFIRM = key; break; }
+      CONFIRM = null;
+      try { await api('POST', '/api/example', { empty: key === 'empty' }); await loadData(); toast(key === 'empty' ? L('Everything was erased.', 'Se borró todo.') : L('Example data loaded.', 'Datos de ejemplo cargados.')); }
+      catch (x) { toast(x.message); }
+      break;
     }
     case 'fruitInc': case 'fruitDec': {
       const t = S.teams[VIEW_TEAM]; const cur = (t.fruit || {})[TEAM_MONTH] || 0;
@@ -670,32 +660,24 @@ app.addEventListener('change', async e => {
     el.value = '';
   }
 });
+
 app.addEventListener('input', e => {
   const el = e.target;
   if (el.dataset.act === 'draft') REPORT.draft[el.id] = el.value;
-  if (el.id === 'li-pin') {
-    PIN = el.value.replace(/\D/g, '').slice(0, 8); el.value = PIN; AUTH_ERR = '';
-    const ok = document.querySelector('.keys .ok'); if (ok) ok.disabled = PIN.length < 4;
-    document.getElementById('li-err').textContent = '';
+  if (el.id === 'code-in') {
+    CODE_IN = el.value.replace(/\D/g, '').slice(0, 8); el.value = CODE_IN; AUTH_ERR = '';
+    const ok = document.querySelector('.keys .ok'); if (ok) ok.disabled = CODE_IN.length < 4;
+    const err = document.getElementById('code-err'); if (err) err.textContent = '';
   }
 });
 
 app.addEventListener('submit', async e => {
   e.preventDefault();
   const form = e.target.dataset.form;
-  if (form === 'login' || form === 'setup') {
-    if (form === 'setup' && document.getElementById('su-pin').value !== document.getElementById('su-pin2').value) { AUTH_ERR = L('The two PINs don’t match.', 'Los dos PIN no coinciden.'); render(); return; }
-    if (form === 'login') PIN = (document.getElementById('li-pin')?.value || PIN).replace(/\D/g, '');
-    if (form === 'login' && PIN.length < 4) return;
-    const payload = form === 'login'
-      ? { pin: PIN }
-      : { name: val('su-name'), pin: document.getElementById('su-pin').value, example: document.getElementById('su-example').checked };
-    BUSY = true; AUTH_ERR = ''; render();
-    if (form === 'setup' && payload.example) document.getElementById('su-example').checked = true;
-    try {
-      const out = await api('POST', form === 'login' ? '/api/login' : '/api/setup', payload);
-      USER = out.user; BUSY = false; PIN = ''; await enterApp(); return;
-    } catch (x) { AUTH_ERR = x.message; BUSY = false; if (form === 'login') PIN = ''; render(); return; }
+  if (form === 'login' || form === 'unlock') {
+    const inp = document.getElementById('code-in');
+    if (inp) CODE_IN = inp.value.replace(/\D/g, '').slice(0, 8);
+    return enterCode(form, e.target.dataset.t);
   }
   if (form === 'addMember') {
     const inp = document.getElementById('new-member'), name = inp.value.trim();
@@ -711,8 +693,17 @@ app.addEventListener('submit', async e => {
     inp.value = '';
     if (await save('branches', id, { name, order, hasTeams: false, goals: { simple: 0, mean: 0, att: 0, tithe: 0, fruit: 0 }, months: {} }, 'set')) toast(L('Branch added.', 'Sucursal agregada.'));
   }
-  if (form === 'password') {
-    try { await api('POST', '/api/me/pin', { current: document.getElementById('pw-cur').value, next: document.getElementById('pw-new').value }); SHEET = null; render(); toast(L('PIN changed.', 'PIN cambiado.')); }
+  if (form === 'mainCode') {
+    const a = val('mc-new'), b = val('mc-new2');
+    if (!/^\d{4,8}$/.test(a)) { toast(L('The code needs 4 to 8 digits.', 'El código necesita de 4 a 8 dígitos.')); return; }
+    if (a !== b) { toast(L('The two codes don’t match.', 'Los dos códigos no coinciden.')); return; }
+    try { await api('POST', '/api/codes/main', { code: a }); document.getElementById('mc-new').value = ''; document.getElementById('mc-new2').value = ''; toast(L('App code changed.', 'Código de la app cambiado.')); }
+    catch (x) { toast(x.message); }
+  }
+  if (form === 'teamCode') {
+    const tid = e.target.dataset.t, inp = document.getElementById('tc-' + tid), code = inp.value.trim();
+    if (!/^\d{4,8}$/.test(code)) { toast(L('The code needs 4 to 8 digits.', 'El código necesita de 4 a 8 dígitos.')); return; }
+    try { await api('POST', `/api/codes/team/${encodeURIComponent(tid)}`, { code }); inp.value = ''; if (!CODED.includes(tid)) CODED.push(tid); render(); toast(L('Team code saved. Share it with the team.', 'Código guardado. Compártelo con el equipo.')); }
     catch (x) { toast(x.message); }
   }
 });
@@ -720,7 +711,7 @@ app.addEventListener('keydown', e => {
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('tr[data-act]')) { e.preventDefault(); e.target.click(); }
   if (e.key === 'Escape' && SHEET) { SHEET = null; render(); }
 });
-window.addEventListener('hashchange', () => { SHEET = null; if (location.hash === '#settings') loadUsers().then(render); render(); });
+window.addEventListener('hashchange', () => { SHEET = null; CODE_IN = ''; AUTH_ERR = ''; render(); });
 
 /* =====================================================================
    START
@@ -728,16 +719,14 @@ window.addEventListener('hashchange', () => { SHEET = null; if (location.hash ==
 async function enterApp() {
   SCREEN = 'loading'; render();
   await loadData();
-  await loadUsers();
   SCREEN = 'app';
-  if (!location.hash) location.hash = isAdmin() ? 'region' : 'team';
+  if (!location.hash) location.hash = isMain() ? 'region' : 'team-' + (ACCESS.teams[0] || '');
   startLive(); render();
 }
 (async () => {
   try {
-    const status = await api('GET', '/api/status');
-    if (status.setup) { SCREEN = 'setup'; render(); return; }
-    try { USER = (await api('GET', '/api/me')).user; } catch (e) { SCREEN = 'login'; render(); return; }
+    await api('GET', '/api/status');
+    try { ACCESS = (await api('GET', '/api/me')).access; } catch (e) { SCREEN = 'login'; render(); return; }
     await enterApp();
   } catch (e) {
     document.getElementById('app').innerHTML = `<div class="auth"><div class="card"><div class="h">${L('Can’t reach the Church Status server', 'No se puede conectar con el servidor de Church Status')}</div><div class="small">${esc(e.message)}</div><a class="btn" href="/">${L('Try again', 'Intentar de nuevo')}</a></div></div>`;

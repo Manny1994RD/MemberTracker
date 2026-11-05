@@ -1,6 +1,6 @@
 # Church Status for ZimaOS (or any Docker host).
 # ZimaOS: App Store → "+" (Custom install) → Import → paste this file → Install.
-# Then open http://<your-zima-ip>:8383 and create the Jefe de Templo account.
+# Then open http://<your-zima-ip>:8383 and enter the app code 1925 (change it later in Ajustes).
 name: church-status
 
 services:
@@ -12,6 +12,8 @@ services:
       - "8383:8080"
     environment:
       TZ: America/Santo_Domingo
+      # App code used on the first start only. Change it later in the app (Ajustes).
+      APP_CODE: "1925"
       # Set to "true" only when you reach the app through HTTPS (for example a reverse proxy).
       SECURE_COOKIES: "false"
     volumes:

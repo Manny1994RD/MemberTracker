@@ -2,10 +2,10 @@
 
 Monthly goals dashboard for the **Santiago region** and its teams, in Spanish and English, with the Clean design.
 
-- **Jefe de Templo:** sets the General Assembly goals, enters each branch's monthly report, and manages teams, PINs and backups.
-- **Santiago team leaders:** each has their own PIN. They keep their members' profiles and update each member's 7 monthly goals.
-- **Signing in uses a PIN only**, typed on a keypad. There are no usernames or passwords.
-- Members and branch leaders don't log in.
+- **App code (1925 to start):** opens the region results, the monthly reports, the teams overview and settings.
+- **Team codes:** each Santiago team has its own code. A team's members and adjustments open only with that team's code.
+- Codes are typed on a number keypad. There are no usernames or passwords.
+- Members and branch leaders don't use the app.
 - Changes show up live on everyone's screen.
 
 It's a small Node.js server with a built-in SQLite database (one file). It needs no npm packages.
@@ -19,7 +19,8 @@ You need the app's Docker image published on GitHub first. See [Publish the imag
 1. Open the ZimaOS dashboard, go to **App Store**, and click **+** (top right), then **Install a customized app**. The wording can differ slightly between ZimaOS versions.
 2. Click **Import** (top right), paste the contents of [`docker-compose.yml`](docker-compose.yml), and click **Submit**, then **Install**.
 3. When it's running, open `http://<your-zima-ip>:8383`.
-4. Create the **Jefe de Templo** account with a 6-digit PIN. Tick **Start with example data** if you want to try it with sample branches, teams and members first. The example team leaders sign in with PINs 1111, 2222, 3333, 4444 and 5555.
+4. Enter the app code **1925**. Then go to **Ajustes** and change it to your own.
+5. Optional: in **Ajustes → Datos de ejemplo**, load example branches, teams and members to try the app. The example teams' codes are 1111, 2222, 3333, 4444 and 5555. **Empezar vacío** erases everything when you're ready to use it for real.
 
 The data is saved in `/DATA/AppData/church-status` on the ZimaOS drive, so it survives updates and restarts.
 
@@ -68,22 +69,23 @@ The workflow in `.github/workflows/docker-publish.yml` tests the app, then build
 
 | Who | What they see |
 |---|---|
-| Jefe de Templo | **Región** (results by month, quarter or year), **Reporte mensual**, **Equipos**, **Ajustes** |
-| Team leader | **Mi equipo** (their members' 7 goals and fruit) and **Región** (view only) |
+| App code | **Región** (results by month, quarter or year), **Reporte mensual**, **Equipos** (overview; each team opens with its code), **Ajustes** |
+| Team code | That team's page (members' 7 goals, fruit, adjustments) and **Región** (view only) |
 
 - **Branches and goals:** Santiago, La Vega, Moca, Puerto Plata and Jarabacoa are created at setup. You can rename, add or remove branches in **Ajustes**.
   - The branch marked **Equipos** reports through its teams, and its fruit adds up from the teams. The other branches get a monthly report.
   - Attendance and tithe goals are *people per month*. On the quarterly and yearly views they show the monthly average.
   - Preaching and fruit goals are *per year*. Each month's goal is one twelfth.
 - **The 7 monthly goals:** Attendance (the team picks 1–4 times), Tithe, EduLMS, GA Signature, Online Mission (3x), Preached (3x) and Preparation Day.
-- **PINs:**
-  - The Jefe de Templo's PIN has 6 digits. Team leaders' PINs have 4 to 8 digits. Every PIN must be different, because the PIN alone tells the app who is signing in.
-  - Give a team leader a PIN in **Ajustes → Quién puede entrar**, or when you add a team.
-  - Forgotten PIN: the Jefe de Templo sets a new one under **Editar o nuevo PIN**.
-  - Everyone can change their own PIN with the **Cambiar PIN** button.
-  - After 8 wrong PINs from one device, or 40 in total, signing in pauses for 15 minutes.
-  - PINs are stored scrambled, so nobody can read them back, not even the Jefe de Templo.
-- **Backups:** in **Ajustes → Copia de seguridad**, download a JSON file of all reports, teams and members, or restore one. PINs aren't included. You can also copy `/DATA/AppData/church-status` while the app is stopped.
+- **Codes:**
+  - **App code:** opens everything except team members. Change it in **Ajustes → Código de la app**. To start with a different code than 1925 on a new install, set `APP_CODE` in the compose file.
+  - **Team codes:** opening a team from **Equipos** asks for that team's code, even with the app code. A team leader can also type their team code on the first screen to go straight to their team. They then see only their team and the region results.
+  - A team gets its code when it's added. To replace a code, use **Ajustes → Códigos de equipo**, or **Ajustes del equipo** on the team's page.
+  - Every code is 4 to 8 digits and must be different from all the others.
+  - After 8 wrong codes from one device, or 40 in total, entering a code pauses for 15 minutes.
+  - Codes are stored scrambled, so they can be replaced but never shown.
+  - **Cerrar** (top right) locks the app again on that device.
+- **Backups:** in **Ajustes → Copia de seguridad**, download a JSON file of all reports, teams and members, or restore one. Codes aren't included. You can also copy `/DATA/AppData/church-status` while the app is stopped.
 
 ---
 
@@ -107,6 +109,7 @@ Settings (environment variables):
 |---|---|---|
 | `PORT` | `8080` | Port the server listens on |
 | `DATA_DIR` | `./data` (`/data` in Docker) | Folder for the database file |
+| `APP_CODE` | `1925` | The app code on a new install. After that, change it in Ajustes |
 | `SECURE_COOKIES` | `false` | `true` when the app is served over HTTPS |
 | `TZ` | system | Time zone, used for the current month |
 
@@ -114,7 +117,7 @@ Settings (environment variables):
 
 | Path | What it is |
 |---|---|
-| `server/` | API, PIN sign-in, permissions, live updates, database |
+| `server/` | API, access codes, permissions, live updates, database |
 | `public/` | The web app (HTML, CSS, JavaScript, icons) |
 | `test/` | API tests (`npm test`) |
 | `Dockerfile`, `docker-compose.yml`, `docker-compose.build.yml` | Docker and ZimaOS setup |

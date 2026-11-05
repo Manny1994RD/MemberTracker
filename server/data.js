@@ -75,24 +75,40 @@ function merge(base, patch) {
   return out;
 }
 
-// Who may write what. Returns an error message, or null when allowed.
-function denyReason(user, col, op, existing, next) {
-  if (user.role === 'admin') return null;
-  if (col === 'branches') return 'Only the Jefe de Templo can change branch reports.';
+// Who may write what. `access` is { main: bool, teams: [team ids opened with their code] }.
+// Returns an error message, or null when allowed.
+function denyReason(access, col, op, existing, next) {
+  if (col === 'branches') return access.main ? null : 'This needs the app code.';
   if (col === 'teams') {
-    if (op !== 'update' || !existing) return 'Only the Jefe de Templo can add or remove teams.';
-    if (user.team_id !== existing.__id) return 'You can only change your own team.';
-    const bad = Object.keys(next).filter(k => !LEADER_TEAM_FIELDS.includes(k));
-    if (bad.length) return 'Only the Jefe de Templo can change the fruit goal or the team leader.';
+    if (access.main) return null;
+    if (op !== 'update' || !existing) return 'This needs the app code.';
+    if (!access.teams.includes(existing.__id)) return 'Enter this team’s code first.';
+    if (Object.keys(next).some(k => !LEADER_TEAM_FIELDS.includes(k))) return 'Changing the fruit goal or the team leader needs the app code.';
     return null;
   }
   if (col === 'members') {
-    if (existing && existing.teamId !== user.team_id) return 'You can only change members of your own team.';
-    if (next && next.teamId !== undefined && next.teamId !== user.team_id) return 'You can only add members to your own team.';
-    if (!user.team_id) return 'Your account isn’t linked to a team yet.';
+    // Members always need the team's own code, even with the app code.
+    if (existing && !access.teams.includes(existing.teamId)) return 'Enter this team’s code first.';
+    if (next && next.teamId !== undefined && !access.teams.includes(next.teamId)) return 'Enter this team’s code first.';
+    if (existing && next && next.teamId !== undefined && next.teamId !== existing.teamId) return 'A member can’t be moved to another team here.';
     return null;
   }
   return 'Not allowed.';
+}
+
+// Summary of each team for the current month, shown without opening the team.
+const MEMBER_GOALS = { att: null, tithe: 1, edu: 1, ga: 1, om: 3, pr: 3, prep: 1 };
+function teamStats(teams, members, month) {
+  const out = {};
+  for (const [tid, t] of Object.entries(teams)) out[tid] = { members: 0, done: 0 };
+  for (const m of Object.values(members)) {
+    const st = out[m.teamId]; if (!st) continue;
+    const t = teams[m.teamId], v = (m.months || {})[month] || {};
+    st.members++;
+    for (const [k, target] of Object.entries(MEMBER_GOALS)) if ((v[k] || 0) >= (target ?? (t.attTarget || 4))) st.done++;
+  }
+  for (const st of Object.values(out)) { st.health = st.members ? Math.round(st.done / (st.members * 7) * 100) : 0; delete st.done; }
+  return out;
 }
 
 const BRANCHES = [
@@ -177,7 +193,9 @@ function exampleData(now = new Date()) {
       };
     }
   }
-  return { branches, teams, members };
+  // Example team codes: 1111, 2222, … 5555
+  const teamCodes = Object.fromEntries(Object.entries(teams).map(([id, t]) => [id, String(t.num).repeat(4)]));
+  return { branches, teams, members, teamCodes };
 }
 
-module.exports = { COLS, ID, BadRequest, clean, merge, denyReason, emptyData, exampleData, isPlainObject };
+module.exports = { COLS, ID, BadRequest, clean, merge, denyReason, teamStats, emptyData, exampleData, isPlainObject };

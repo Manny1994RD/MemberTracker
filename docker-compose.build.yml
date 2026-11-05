@@ -13,6 +13,8 @@ services:
       - "8383:8080"
     environment:
       TZ: America/Santo_Domingo
+      # App code used on the first start only. Change it later in the app (Ajustes).
+      APP_CODE: "1925"
       SECURE_COOKIES: "false"
     volumes:
       - /DATA/AppData/church-status:/data
