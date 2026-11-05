@@ -385,13 +385,17 @@ function viewTeam() {
   <div class="card">
     <div class="row" style="flex-wrap:wrap;margin-bottom:6px"><div class="grow" style="min-width:min(260px,100%)"><div class="h">${L('Members · 7 monthly goals', 'Miembros · 7 metas mensuales')}</div><div class="small">${L('Tap any box to update it. Tap a name to edit the member’s profile.', 'Toca una casilla para actualizarla. Toca un nombre para editar el perfil.')}</div></div>
       <form class="row" data-form="addMember" style="gap:8px;flex:1 1 260px;max-width:380px"><input class="input" id="new-member" placeholder="${L('New member name', 'Nombre del nuevo miembro')}" autocomplete="off" aria-label="${L('New member name', 'Nombre del nuevo miembro')}" maxlength="120"><button class="btn" type="submit">${L('Add', 'Agregar')}</button></form></div>
-    <div class="tablewrap"><table>
+    <div class="tablewrap members-table"><table>
       <thead><tr><th>${L('Member', 'Miembro')}</th>${GOALS().map(g => `<th class="c"><div class="thi">${icon(g.icon, 18)}${g.short}${goalTarget(t, g) > 1 ? ` ${goalTarget(t, g)}x` : ''}</div></th>`).join('')}<th class="c">${L('Total', 'Total')}</th></tr></thead>
       <tbody>${ms.map(m => { const c = mdone(m, t, mo); return `<tr>
         <td><button class="who" data-act="memberOpen" data-m="${esc(m.id)}" style="border:0;background:transparent;padding:0;text-align:left">${plant(cntStage(c), 24, c <= 3)}<b>${esc(m.name)}</b></button></td>
         ${GOALS().map(g => { const s = mstatus(m, t, g, mo), v = mval(m, g.k, mo), tg = goalTarget(t, g); return `<td><button class="cell ${s}" data-act="goalOpen" data-m="${esc(m.id)}" data-k="${g.k}" aria-label="${esc(m.name)} · ${g.name}">${s === 'd' ? icon('check', 14).replace('#fff', 'currentColor') : tg > 1 ? `${v}/${tg}` : '—'}</button></td>`; }).join('')}
         <td class="c"><span class="tag ${c === 7 ? 'ok' : c >= 5 ? 'warn' : 'bad'}">${c}/7</span></td></tr>`; }).join('') || `<tr><td colspan="9" class="muted" style="padding:20px 8px">${L('No members yet. Add the first one above.', 'Aún no hay miembros. Agrega el primero arriba.')}</td></tr>`}</tbody>
     </table></div>
+    <div class="mcards">${ms.map(m => { const c = mdone(m, t, mo); return `<div class="mcard">
+      <div class="row"><button class="who grow" data-act="memberOpen" data-m="${esc(m.id)}" style="border:0;background:transparent;padding:0;text-align:left">${plant(cntStage(c), 26, c <= 3)}<b>${esc(m.name)}</b></button><span class="tag ${c === 7 ? 'ok' : c >= 5 ? 'warn' : 'bad'}">${c}/7</span></div>
+      <div class="mgoals">${GOALS().map(g => { const s = mstatus(m, t, g, mo), v = mval(m, g.k, mo), tg = goalTarget(t, g); return `<button class="mgoal ${s}" data-act="goalOpen" data-m="${esc(m.id)}" data-k="${g.k}" aria-label="${esc(m.name)} · ${g.name}">${icon(g.icon, 18)}<span>${g.short}</span><b>${s === 'd' ? '✓' : tg > 1 ? `${v}/${tg}` : '—'}</b></button>`; }).join('')}</div>
+    </div>`; }).join('') || `<p class="muted">${L('No members yet. Add the first one above.', 'Aún no hay miembros. Agrega el primero arriba.')}</p>`}</div>
     <div class="legend"><span><i style="background:var(--ok)"></i>${L('Done', 'Hecho')}</span><span><i style="background:var(--warn-bar)"></i>${L('In progress', 'En progreso')}</span><span><i style="background:var(--bad-soft);border:1px dashed var(--bad)"></i>${L('Missing', 'Falta')}</span></div>
   </div>`;
 }

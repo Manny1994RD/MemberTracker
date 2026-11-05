@@ -181,3 +181,22 @@ footer.wrap { padding-block: 0 40px; color: var(--muted); font-size: 12.5px; }
 .keys button:active { background: var(--inset); }
 .keys button.ok { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-size: 16px; }
 .keys button.ok:disabled { opacity: .45; cursor: default; }
+
+/* Team members on phones: one card per member, all 7 goals visible as big buttons */
+.mcards { display: none; }
+@media (max-width: 700px) {
+  .members-table { display: none; }
+  .mcards { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+  .mcard { border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 10px; background: var(--surface-2); }
+  .mgoals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .mgoal { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 7px 2px 6px; display: flex; flex-direction: column; align-items: center; gap: 3px; min-height: 66px; font: inherit; color: var(--ink); }
+  .mgoal span { font-size: 10.5px; color: var(--muted); line-height: 1.1; text-align: center; }
+  .mgoal b { font-size: 13px; }
+  .mgoal.d { background: var(--ok-soft); border-color: var(--ok-line); color: var(--ok); }
+  .mgoal.p { background: var(--warn-soft); border-color: var(--warn-line); color: var(--warn); }
+  .mgoal.m { background: var(--bad-soft); border: 1px dashed var(--bad-line); color: var(--bad); }
+  .stepper button { width: 44px; height: 44px; }
+  .sheet { padding: 16px; }
+  .overlay { align-items: flex-end; }
+  .sheet { border-radius: 16px 16px 12px 12px; }
+}
