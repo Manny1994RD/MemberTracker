@@ -55,10 +55,11 @@ const periodLabel = () => {
 /* =====================================================================
    STATE & SERVER
    ===================================================================== */
-const S = { branches: {}, teams: {}, members: {} };
-let ACCESS = null, SCREEN = 'loading', LIVE = false, STATS = {}, CODED = [];
+const S = { branches: {}, groups: {}, teams: {}, members: {} };
+let ACCESS = null, SCREEN = 'loading', LIVE = false, STATS = {}, CODED = [], CODED_G = [];
 const isMain = () => !!ACCESS?.main;
-const hasTeam = tid => !!ACCESS?.teams?.includes(tid);
+// A team is open with its own code or its group's code.
+const hasTeam = tid => !!ACCESS?.teams?.includes(tid) || (!!S.teams[tid] && !!ACCESS?.groups?.includes(S.teams[tid].groupId));
 
 async function api(method, url, body) {
   const res = await fetch(url, {
@@ -75,9 +76,16 @@ async function api(method, url, body) {
 
 const sorted = (col, key) => Object.entries(S[col]).map(([id, d]) => ({ id, ...d })).sort((a, b) => (a[key] ?? 0) > (b[key] ?? 0) ? 1 : (a[key] ?? 0) < (b[key] ?? 0) ? -1 : String(a.name).localeCompare(String(b.name)));
 const BRANCHES = () => sorted('branches', 'order');
-const TEAMS = () => sorted('teams', 'num');
+const GROUPS = () => sorted('groups', 'order');
+const branchOrder = id => S.branches[id]?.order ?? 999, groupOrder = id => S.groups[id]?.order ?? 999;
+const TEAMS = () => Object.entries(S.teams).map(([id, d]) => ({ id, ...d }))
+  .sort((a, b) => branchOrder(a.branchId) - branchOrder(b.branchId) || groupOrder(a.groupId) - groupOrder(b.groupId) || (a.num || 0) - (b.num || 0));
+const teamsOfBranch = bid => TEAMS().filter(t => t.branchId === bid);
+const groupsOfBranch = bid => GROUPS().filter(g => g.branchId === bid);
+const branchHasTeams = b => TEAMS().some(t => t.branchId === b.id);
+const groupName = t => S.groups[t.groupId]?.name || '';
+const openTeams = () => TEAMS().filter(t => hasTeam(t.id));
 const teamMembers = tid => Object.entries(S.members).map(([id, d]) => ({ id, ...d })).filter(m => m.teamId === tid).sort((a, b) => a.name.localeCompare(b.name));
-const teamsBranch = () => BRANCHES().find(b => b.hasTeams);
 
 function deepMerge(a, b) {
   const out = { ...(a || {}) };
@@ -107,7 +115,7 @@ async function save(col, id, data, op = 'update') {
 
 async function loadData() {
   const d = await api('GET', '/api/data');
-  S.branches = d.branches; S.teams = d.teams; S.members = d.members; STATS = d.teamStats || {}; CODED = d.teamsWithCodes || [];
+  S.branches = d.branches; S.groups = d.groups || {}; S.teams = d.teams; S.members = d.members; STATS = d.teamStats || {}; CODED = d.teamsWithCodes || []; CODED_G = d.groupsWithCodes || [];
 }
 let ES = null;
 function startLive() {
@@ -132,7 +140,7 @@ function stopLive() { if (ES) { ES.close(); ES = null; } LIVE = false; }
 function teamFruit(t, months) { return months.reduce((a, m) => a + ((t.fruit || {})[m] || 0), 0); }
 function branchVal(b, k) {
   const ms = periodMonths();
-  if (k === 'fruit' && b.hasTeams) return TEAMS().reduce((a, t) => a + teamFruit(t, ms), 0);
+  if (k === 'fruit' && branchHasTeams(b)) return teamsOfBranch(b.id).reduce((a, t) => a + teamFruit(t, ms), 0);
   const vals = ms.map(m => (b.months || {})[m]?.[k]).filter(v => typeof v === 'number');
   if (metric(k).kind === 'avg') return vals.length ? Math.round(vals.reduce((a, v) => a + v, 0) / vals.length) : 0;
   return vals.reduce((a, v) => a + v, 0);
@@ -178,8 +186,8 @@ function readHash() {
   const h = location.hash.replace('#', '');
   if (h.startsWith('team-')) { VIEW = 'team'; VIEW_TEAM = h.slice(5); }
   else if (['region', 'report', 'teams', 'settings'].includes(h)) VIEW = h;
-  else { VIEW = isMain() ? 'region' : 'team'; VIEW_TEAM = ACCESS?.teams?.[0]; }
-  if (!isMain() && ['report', 'teams', 'settings'].includes(VIEW)) { VIEW = 'team'; VIEW_TEAM = ACCESS?.teams?.[0]; }
+  else { VIEW = isMain() ? 'region' : 'team'; VIEW_TEAM = openTeams()[0]?.id; }
+  if (!isMain() && ['report', 'teams', 'settings'].includes(VIEW)) { VIEW = 'team'; VIEW_TEAM = openTeams()[0]?.id; }
 }
 let toastTimer;
 function toast(msg) {
@@ -213,7 +221,7 @@ function screenLogin() {
   return `<div class="auth"><form class="card pinpad" data-form="login">
     <div class="row" style="justify-content:space-between"><div class="brandmark">${icon('bible', 28)}Church Status</div>${langSeg()}</div>
     <h1>${L('Enter the code', 'Escribe el código')}</h1>
-    <p class="small" style="margin:0;text-align:center">${L('Use the app code, or your team’s code to go straight to your team.', 'Usa el código de la app, o el código de tu equipo para ir directo a tu equipo.')}</p>
+    <p class="small" style="margin:0;text-align:center">${L('Use the app code, or your group’s or team’s code to go straight to your teams.', 'Usa el código de la app, o el código de tu grupo o equipo para ir directo a tus equipos.')}</p>
     ${codePad('login', L('Enter', 'Entrar'))}
   </form></div>`;
 }
@@ -225,12 +233,12 @@ const periodSeg = () => `<div class="seg" role="group" aria-label="${L('Period',
   .map(([k, t]) => `<button class="${PERIOD === k ? 'on' : ''}" data-act="period" data-p="${k}">${t}</button>`).join('')}</div>`;
 
 function topBar() {
-  const myTeams = (ACCESS?.teams || []).filter(t => S.teams[t]);
+  const myTeams = openTeams().map(t => t.id);
   const tabs = isMain()
     ? [['region', 'pin', L('Region', 'Región')], ['report', 'pencil', L('Monthly report', 'Reporte mensual')], ['teams', 'people', L('Teams', 'Equipos')], ['settings', 'gear', L('Settings', 'Ajustes')]]
-    : [...myTeams.map(t => [`team-${t}`, 'people', teamName({ id: t, ...S.teams[t] })]), ['region', 'pin', L('Region', 'Región')]];
+    : [...myTeams.map(t => [`team-${t}`, 'people', teamName(S.teams[t])]), ['region', 'pin', L('Region', 'Región')]];
   const cur = VIEW === 'team' ? (isMain() ? 'teams' : `team-${VIEW_TEAM}`) : VIEW;
-  const who = isMain() ? L('App code', 'Código de la app') : L('Team code', 'Código de equipo');
+  const who = isMain() ? L('App code', 'Código de la app') : ACCESS?.groups?.length ? L('Group code', 'Código de grupo') : L('Team code', 'Código de equipo');
   return `<header class="top"><div class="wrap">
     <div class="brand">${icon('bible', 26)}<div>Church Status<small>${L('Santiago Region', 'Región Santiago')}</small></div></div>
     <nav class="tabs">${tabs.map(([h, ic, t]) => `<a href="#${h}" class="${cur === h ? 'on' : ''}">${icon(ic, 16)}${esc(t)}</a>`).join('')}</nav>
@@ -244,7 +252,7 @@ function topBar() {
 }
 
 function viewRegion() {
-  const rp = regionPct(), bs = BRANCHES(), tb = teamsBranch();
+  const rp = regionPct(), bs = BRANCHES();
   return `
   <div class="head"><div class="grow"><h1>${L('Santiago Region', 'Región Santiago')}</h1><p>${L('General Assembly goals', 'Metas de Asamblea General')} · ${bs.length} ${L('branches', 'sucursales')} · ${periodLabel()}</p></div>
     ${periodSeg()}
@@ -263,13 +271,13 @@ function viewRegion() {
         <thead><tr><th>${L('Branch', 'Sucursal')}</th>${METRICS().map(m => `<th class="c"><div class="thi">${icon(m.icon, 18)}${m.short}</div></th>`).join('')}<th class="c">${L('Overall', 'Total')}</th></tr></thead>
         <tbody>
           ${bs.map(b => { const p = branchPct(b); return `<tr class="${isMain() ? 'click' : ''}" ${isMain() ? `data-act="openReport" data-b="${esc(b.id)}" tabindex="0"` : ''}>
-            <td><div class="who">${plant(pctStage(p), 28, p < 45)}<div><b>${esc(b.name)}</b><div class="small">${b.hasTeams ? `${TEAMS().length} ${L('teams report here', 'equipos reportan aquí')}` : L('Monthly report', 'Reporte mensual')}</div></div></div></td>
+            <td><div class="who">${plant(pctStage(p), 28, p < 45)}<div><b>${esc(b.name)}</b><div class="small">${branchHasTeams(b) ? `${teamsOfBranch(b.id).length} ${L('teams', 'equipos')}` : L('Monthly report', 'Reporte mensual')}</div></div></div></td>
             ${METRICS().map(m => { const c = branchVal(b, m.k), g = branchGoal(b, m.k); return `<td><div class="mcell"><div class="nums">${fmt(c)}<span>/ ${fmt(g)}</span></div>${bar(ratio(c, g))}</div></td>`; }).join('')}
             <td class="c"><span class="tag ${p >= 80 ? 'ok' : p >= 55 ? 'warn' : 'bad'}">${p}%</span></td></tr>`; }).join('')}
           <tr><td><b>${L('Region total', 'Total región')}</b></td>${METRICS().map(m => `<td><div class="mcell"><div class="nums">${fmt(regionVal(m.k))}<span>/ ${fmt(regionGoal(m.k))}</span></div></div></td>`).join('')}<td class="c"><span class="tag ${rp >= 80 ? 'ok' : rp >= 55 ? 'warn' : 'bad'}">${rp}%</span></td></tr>
         </tbody>
       </table></div>
-      <div class="legend"><span><i style="background:var(--ok)"></i>${L('On track (80%+)', 'En camino (80%+)')}</span><span><i style="background:var(--warn-bar)"></i>55–79%</span><span><i style="background:var(--bad)"></i>${L('Below 55%', 'Menos de 55%')}</span>${tb ? `<span>${L(`${esc(tb.name)}’s fruit comes from its teams.`, `El fruto de ${esc(tb.name)} viene de sus equipos.`)}</span>` : ''}</div>
+      <div class="legend"><span><i style="background:var(--ok)"></i>${L('On track (80%+)', 'En camino (80%+)')}</span><span><i style="background:var(--warn-bar)"></i>55–79%</span><span><i style="background:var(--bad)"></i>${L('Below 55%', 'Menos de 55%')}</span><span>${L('Fruit adds up from each branch’s teams.', 'El fruto se suma desde los equipos de cada sucursal.')}</span></div>
     </div>
     <div class="grid">
       <div class="card hero">
@@ -284,12 +292,12 @@ function viewRegion() {
   </div>`;
 }
 
-function teamFruitMonth(m) { return TEAMS().reduce((a, t) => a + ((t.fruit || {})[m] || 0), 0); }
-function monthVal(b, k, m) { if (k === 'fruit' && b.hasTeams) return teamFruitMonth(m); return +((b.months || {})[m] || {})[k] || 0; }
+function teamFruitMonth(b, m) { return teamsOfBranch(b.id).reduce((a, t) => a + ((t.fruit || {})[m] || 0), 0); }
+function monthVal(b, k, m) { if (k === 'fruit' && branchHasTeams(b)) return teamFruitMonth(b, m); return +((b.months || {})[m] || {})[k] || 0; }
 function viewReport() {
   const bs = BRANCHES();
   if (!bs.length) return `<div class="card empty"><div class="h">${L('No branches yet', 'Aún no hay sucursales')}</div><a class="btn" href="#settings">${L('Add branches in Settings', 'Agrega sucursales en Ajustes')}</a></div>`;
-  const b = bs.find(x => x.id === REPORT.branch) || bs.find(x => !x.hasTeams) || bs[0];
+  const b = bs.find(x => x.id === REPORT.branch) || bs[0];
   REPORT.branch = b.id;
   const m = REPORT.month, cur = (b.months || {})[m] || {}, d = REPORT.draft;
   const v = k => d[`v-${k}`] ?? (cur[k] ?? '');
@@ -307,9 +315,9 @@ function viewReport() {
       </div>
       <div class="formrow headrow"><span></span><span></span><span class="lbl" style="text-align:center">${monthLabel(m).split(' ')[0]}</span><span class="lbl" style="text-align:center">${L('Goal', 'Meta')}</span></div>
       ${METRICS().map(x => {
-        const fromTeams = x.k === 'fruit' && b.hasTeams;
+        const fromTeams = x.k === 'fruit' && branchHasTeams(b);
         return `<div class="formrow">${icon(x.icon, 22)}<div><div style="font-weight:500">${x.name}</div><div class="small">${x.desc}${fromTeams ? ` · ${L('comes from the teams', 'viene de los equipos')}` : ''}</div></div>
-          ${fromTeams ? `<div class="input num" style="background:var(--inset)">${teamFruitMonth(m)}</div>` : `<input class="input num" id="v-${x.k}" type="number" min="0" inputmode="numeric" value="${esc(v(x.k))}" data-act="draft" aria-label="${x.name}">`}
+          ${fromTeams ? `<div class="input num" style="background:var(--inset)">${teamFruitMonth(b, m)}</div>` : `<input class="input num" id="v-${x.k}" type="number" min="0" inputmode="numeric" value="${esc(v(x.k))}" data-act="draft" aria-label="${x.name}">`}
           <div><input class="input num" id="g-${x.k}" type="number" min="0" inputmode="numeric" value="${esc(gv(x.k))}" data-act="draft" aria-label="${L('Goal', 'Meta')} ${x.name}"><div class="small" style="text-align:center">${x.kind === 'avg' ? L('per month', 'por mes') : L('per year', 'por año')}</div></div></div>`;
       }).join('')}
       <div class="row" style="margin-top:14px;justify-content:flex-end"><button class="btn ghost" data-act="resetDraft">${L('Undo changes', 'Deshacer cambios')}</button><button class="btn" data-act="saveReport">${icon('check', 14)}${L('Save report', 'Guardar reporte')}</button></div>
@@ -322,45 +330,53 @@ function viewReport() {
   </div>`;
 }
 
+let TEAMS_BRANCH = null;
 function viewTeams() {
-  const ts = TEAMS(), tb = teamsBranch() || { goals: {} };
-  const yr = monthsToDate();
-  const assigned = ts.reduce((a, t) => a + (+t.fruitGoal || 0), 0), branchFruitGoal = +(tb.goals || {}).fruit || 0;
-  const fruitYear = ts.reduce((a, t) => a + teamFruit(t, yr), 0);
+  const bs = BRANCHES();
+  const b = bs.find(x => x.id === TEAMS_BRANCH) || bs.find(x => branchHasTeams(x)) || bs[0];
+  if (!b) return `<div class="card empty"><div class="h">${L('No branches yet', 'Aún no hay sucursales')}</div></div>`;
+  TEAMS_BRANCH = b.id;
+  const ts = teamsOfBranch(b.id), gs = groupsOfBranch(b.id), yr = monthsToDate();
+  const assigned = ts.reduce((a, t) => a + (+t.fruitGoal || 0), 0), branchFruitGoal = +(b.goals || {}).fruit || 0;
   const members = ts.reduce((a, t) => a + teamCount(t), 0);
+  const row = t => { const h = teamHealth(t), f = teamFruit(t, yr), g = +t.fruitGoal || 0; return `<tr class="click" data-act="openTeam" data-t="${esc(t.id)}" tabindex="0">
+      <td><div class="who">${plant(pctStage(h), 28, h < 50)}<div><b>${esc(teamName(t))}</b><div class="small">${t.note ? esc(t.note) : CODED.includes(t.id) ? L('Has a code', 'Tiene código') : `<span style="color:var(--warn)">${L('No code yet', 'Sin código aún')}</span>`}</div></div></div></td>
+      <td>${esc(t.leader) || '<span class="muted">—</span>'}</td><td class="c num">${teamCount(t)}</td>
+      <td><div class="mcell"><div class="nums">${h}%<span></span></div>${bar(h / 100)}</div></td>
+      <td><div class="mcell"><div class="nums">${f}<span>/ ${g}</span></div>${bar(ratio(f, g))}</div></td>
+      <td><span class="btn ghost sm">${hasTeam(t.id) ? L('Open', 'Abrir') : `🔒 ${L('Open', 'Abrir')}`}</span></td></tr>`; };
+  const head = `<thead><tr><th>${L('Team', 'Equipo')}</th><th>${L('Leader', 'Líder')}</th><th class="c">${L('Members', 'Miembros')}</th><th>${L('7 goals this month', '7 metas este mes')}</th><th>${L('Fruit this year', 'Fruto este año')}</th><th></th></tr></thead>`;
+  const loose = ts.filter(t => !S.groups[t.groupId]);
   return `
-  <div class="head"><div class="grow"><h1>${L('Teams', 'Equipos')}${tb.name ? ` · ${esc(tb.name)}` : ''}</h1><p>${ts.length} ${L('teams', 'equipos')} · ${members} ${L('members', 'miembros')} · ${monthLabel(CURRENT_MONTH)}</p></div>
+  <div class="head"><div class="grow"><h1>${L('Teams', 'Equipos')}</h1><p>${L('Pick a branch. Opening a team asks for the team’s or its group’s code.', 'Elige una sucursal. Abrir un equipo pide el código del equipo o de su grupo.')}</p></div>
     <button class="btn" data-act="addTeamOpen">${icon('people', 16)}${L('Add team', 'Agregar equipo')}</button></div>
+  <div class="chips">${bs.map(x => `<button class="chip ${x.id === b.id ? 'on' : ''}" data-act="pickTeamsBranch" data-b="${esc(x.id)}">${esc(x.name)} <span class="muted">${teamsOfBranch(x.id).length}</span></button>`).join('')}</div>
   ${ts.length ? `<div class="grid split">
-    <div class="card">
-      <div class="h">${L('Teams', 'Equipos')}</div>
-      <div class="small" style="margin-bottom:8px">${L('Opening a team asks for that team’s code.', 'Abrir un equipo pide el código de ese equipo.')}</div>
-      <div class="tablewrap"><table>
-        <thead><tr><th>${L('Team', 'Equipo')}</th><th>${L('Leader', 'Líder')}</th><th class="c">${L('Members', 'Miembros')}</th><th>${L('7 goals this month', '7 metas este mes')}</th><th>${L('Fruit this year', 'Fruto este año')}</th><th></th></tr></thead>
-        <tbody>${ts.map(t => { const h = teamHealth(t), f = teamFruit(t, yr), g = +t.fruitGoal || 0; return `<tr class="click" data-act="openTeam" data-t="${esc(t.id)}" tabindex="0">
-          <td><div class="who">${plant(pctStage(h), 28, h < 50)}<div><b>${esc(teamName(t))}</b><div class="small">${L('Team', 'Equipo')} ${t.num}</div></div></div></td>
-          <td>${esc(t.leader)}<div class="small">${CODED.includes(t.id) ? L('Has a code', 'Tiene código') : `<span style="color:var(--warn)">${L('No code yet', 'Sin código aún')}</span>`}</div></td><td class="c num">${teamCount(t)}</td>
-          <td><div class="mcell"><div class="nums">${h}%<span></span></div>${bar(h / 100)}</div></td>
-          <td><div class="mcell"><div class="nums">${f}<span>/ ${g}</span></div>${bar(ratio(f, g))}</div></td>
-          <td><span class="btn ghost sm">${hasTeam(t.id) ? L('Open', 'Abrir') : `🔒 ${L('Open', 'Abrir')}`}</span></td></tr>`; }).join('')}
-          <tr><td><b>${L('Total', 'Total')}</b></td><td></td><td class="c num"><b>${members}</b></td><td></td><td><div class="mcell"><div class="nums">${fruitYear}<span>/ ${branchFruitGoal}</span></div></div></td><td></td></tr>
-        </tbody></table></div>
+    <div class="grid">
+      ${gs.map(g => { const gt = ts.filter(t => t.groupId === g.id); return `<div class="card">
+        <div class="row" style="flex-wrap:wrap"><div class="grow"><div class="h">${esc(g.name)} ${g.future ? `<span class="tag warn">${L('Future group', 'Futuro grupo')}</span>` : ''}</div>
+          <div class="small">${gt.length} ${L('teams', 'equipos')} · ${gt.reduce((a, t) => a + teamCount(t), 0)} ${L('members', 'miembros')}${g.leader ? ` · ${L('Leader', 'Líder')}: ${esc(g.leader)}` : ''} · ${CODED_G.includes(g.id) ? L('Group code set', 'Con código de grupo') : `<span style="color:var(--warn)">${L('No group code', 'Sin código de grupo')}</span>`}</div></div>
+          <button class="btn ghost sm" data-act="groupSettings" data-g="${esc(g.id)}">${icon('gear', 14)}${L('Group', 'Grupo')}</button></div>
+        <div class="tablewrap"><table>${head}<tbody>${gt.map(row).join('') || `<tr><td colspan="6" class="muted">${L('No teams in this group.', 'Este grupo no tiene equipos.')}</td></tr>`}</tbody></table></div>
+      </div>`; }).join('')}
+      ${loose.length ? `<div class="card"><div class="h">${L('Teams without a group', 'Equipos sin grupo')}</div><div class="tablewrap"><table>${head}<tbody>${loose.map(row).join('')}</tbody></table></div></div>` : ''}
     </div>
     <div class="card">
-      <div class="lbl">${L('Split the yearly fruit goal', 'Repartir la meta anual de fruto')}</div>
+      <div class="lbl">${L('Split the yearly fruit goal', 'Repartir la meta anual de fruto')} · ${esc(b.name)}</div>
       <div class="row" style="justify-content:space-between;margin:10px 0"><span>${L('Branch fruit goal', 'Meta de fruto de la sucursal')}</span><b class="num">${branchFruitGoal}</b></div>
-      ${ts.map(t => `<div class="list-row"><span class="grow">${esc(teamName(t))}</span><input class="input num" style="width:80px" type="number" min="0" id="fg-${esc(t.id)}" value="${+t.fruitGoal || 0}" data-act="fruitGoal" data-t="${esc(t.id)}" aria-label="${L('Fruit goal', 'Meta de fruto')} ${esc(teamName(t))}"></div>`).join('')}
+      ${ts.map(t => `<div class="list-row"><span class="grow">${esc(teamName(t))}<div class="small">${esc(groupName(t))}</div></span><input class="input num" style="width:80px" type="number" min="0" id="fg-${esc(t.id)}" value="${+t.fruitGoal || 0}" data-act="fruitGoal" data-t="${esc(t.id)}" aria-label="${L('Fruit goal', 'Meta de fruto')} ${esc(teamName(t))}"></div>`).join('')}
       <div style="margin-top:12px"><span class="tag ${assigned === branchFruitGoal ? 'ok' : 'warn'}">${L(`Assigned ${assigned} of ${branchFruitGoal}`, `Asignado ${assigned} de ${branchFruitGoal}`)}</span></div>
+      <p class="small">${members} ${L('members in', 'miembros en')} ${ts.length} ${L('teams', 'equipos')}</p>
     </div>
-  </div>` : `<div class="card empty">${plant(1, 60)}<div class="h">${L('No teams yet', 'Aún no hay equipos')}</div><div class="small">${L('Add the first team and give it a code.', 'Agrega el primer equipo y dale un código.')}</div></div>`}`;
+  </div>` : `<div class="card empty">${plant(1, 60)}<div class="h">${L('No teams in this branch yet', 'Esta sucursal aún no tiene equipos')}</div><div class="small">${L('Import them from Excel in Settings, or add the first team here.', 'Impórtalos desde Excel en Ajustes, o agrega el primer equipo aquí.')}</div></div>`}`;
 }
 
 function viewTeam() {
   const t = S.teams[VIEW_TEAM] ? { id: VIEW_TEAM, ...S.teams[VIEW_TEAM] } : null;
   if (!t) return `<div class="card empty"><div class="h">${L('That team no longer exists', 'Ese equipo ya no existe')}</div><a class="btn" href="#${isMain() ? 'teams' : 'region'}">${isMain() ? L('All teams', 'Todos los equipos') : L('See region', 'Ver región')}</a></div>`;
   if (!hasTeam(t.id)) return `<div class="auth" style="min-height:auto;padding:10px 0"><form class="card pinpad" data-form="unlock" data-t="${esc(t.id)}">
-      <div class="row">${plant(pctStage(teamHealth(t)), 34)}<div><div class="h">${esc(teamName(t))}</div><div class="small">${L('Team', 'Equipo')} ${t.num} · ${esc(t.leader)}</div></div></div>
-      <h1 style="font-size:19px">${L('Enter this team’s code', 'Escribe el código de este equipo')}</h1>
+      <div class="row">${plant(pctStage(teamHealth(t)), 34)}<div><div class="h">${esc(teamName(t))}</div><div class="small">${esc(groupName(t))} · ${esc(S.branches[t.branchId]?.name || '')}</div></div></div>
+      <h1 style="font-size:19px">${L('Enter the team’s or the group’s code', 'Escribe el código del equipo o del grupo')}</h1>
       ${codePad('unlock', L('Open', 'Abrir'))}
       ${isMain() ? `<a href="#teams" class="small" style="text-align:center;color:var(--accent);text-decoration:none">‹ ${L('All teams', 'Todos los equipos')}</a>` : ''}
     </form></div>`;
@@ -371,7 +387,7 @@ function viewTeam() {
   return `
   <div class="head"><div class="grow">
       ${isMain() ? `<a href="#teams" class="small" style="color:var(--accent);text-decoration:none">‹ ${L('All teams', 'Todos los equipos')}</a>` : ''}
-      <h1>${esc(teamName(t))}</h1><p>${L('Team', 'Equipo')} ${t.num} · ${L('Leader', 'Líder')}: ${esc(t.leader)}</p></div>
+      <h1>${esc(teamName(t))}</h1><p>${esc(groupName(t))} · ${esc(S.branches[t.branchId]?.name || '')}${t.leader ? ` · ${L('Leader', 'Líder')}: ${esc(t.leader)}` : ''}${t.note ? ` · <span class="tag warn">${esc(t.note)}</span>` : ''}</p></div>
     <div class="monthnav"><button data-act="monthPrev" aria-label="${L('Previous month', 'Mes anterior')}">‹</button><span>${monthLabel(mo)}</span><button data-act="monthNext" aria-label="${L('Next month', 'Mes siguiente')}" ${mo >= CURRENT_MONTH ? 'disabled' : ''}>›</button></div>
     <button class="btn ghost" data-act="teamSettings">${icon('gear', 16)}${L('Team settings', 'Ajustes del equipo')}</button>
   </div>
@@ -388,12 +404,12 @@ function viewTeam() {
     <div class="tablewrap members-table"><table>
       <thead><tr><th>${L('Member', 'Miembro')}</th>${GOALS().map(g => `<th class="c"><div class="thi">${icon(g.icon, 18)}${g.short}${goalTarget(t, g) > 1 ? ` ${goalTarget(t, g)}x` : ''}</div></th>`).join('')}<th class="c">${L('Total', 'Total')}</th></tr></thead>
       <tbody>${ms.map(m => { const c = mdone(m, t, mo); return `<tr>
-        <td><button class="who" data-act="memberOpen" data-m="${esc(m.id)}" style="border:0;background:transparent;padding:0;text-align:left">${plant(cntStage(c), 24, c <= 3)}<b>${esc(m.name)}</b></button></td>
+        <td><button class="who" data-act="memberOpen" data-m="${esc(m.id)}" style="border:0;background:transparent;padding:0;text-align:left">${plant(cntStage(c), 24, c <= 3)}<b>${esc(m.name)}</b>${m.tag ? ` <span class="tag info">${esc(m.tag)}</span>` : ''}</button></td>
         ${GOALS().map(g => { const s = mstatus(m, t, g, mo), v = mval(m, g.k, mo), tg = goalTarget(t, g); return `<td><button class="cell ${s}" data-act="goalOpen" data-m="${esc(m.id)}" data-k="${g.k}" aria-label="${esc(m.name)} · ${g.name}">${s === 'd' ? icon('check', 14).replace('#fff', 'currentColor') : tg > 1 ? `${v}/${tg}` : '—'}</button></td>`; }).join('')}
         <td class="c"><span class="tag ${c === 7 ? 'ok' : c >= 5 ? 'warn' : 'bad'}">${c}/7</span></td></tr>`; }).join('') || `<tr><td colspan="9" class="muted" style="padding:20px 8px">${L('No members yet. Add the first one above.', 'Aún no hay miembros. Agrega el primero arriba.')}</td></tr>`}</tbody>
     </table></div>
     <div class="mcards">${ms.map(m => { const c = mdone(m, t, mo); return `<div class="mcard">
-      <div class="row"><button class="who grow" data-act="memberOpen" data-m="${esc(m.id)}" style="border:0;background:transparent;padding:0;text-align:left">${plant(cntStage(c), 26, c <= 3)}<b>${esc(m.name)}</b></button><span class="tag ${c === 7 ? 'ok' : c >= 5 ? 'warn' : 'bad'}">${c}/7</span></div>
+      <div class="row"><button class="who grow" data-act="memberOpen" data-m="${esc(m.id)}" style="border:0;background:transparent;padding:0;text-align:left">${plant(cntStage(c), 26, c <= 3)}<b>${esc(m.name)}</b>${m.tag ? ` <span class="tag info">${esc(m.tag)}</span>` : ''}</button><span class="tag ${c === 7 ? 'ok' : c >= 5 ? 'warn' : 'bad'}">${c}/7</span></div>
       <div class="mgoals">${GOALS().map(g => { const s = mstatus(m, t, g, mo), v = mval(m, g.k, mo), tg = goalTarget(t, g); return `<button class="mgoal ${s}" data-act="goalOpen" data-m="${esc(m.id)}" data-k="${g.k}" aria-label="${esc(m.name)} · ${g.name}">${icon(g.icon, 18)}<span>${g.short}</span><b>${s === 'd' ? '✓' : tg > 1 ? `${v}/${tg}` : '—'}</b></button>`; }).join('')}</div>
     </div>`; }).join('') || `<p class="muted">${L('No members yet. Add the first one above.', 'Aún no hay miembros. Agrega el primero arriba.')}</p>`}</div>
     <div class="legend"><span><i style="background:var(--ok)"></i>${L('Done', 'Hecho')}</span><span><i style="background:var(--warn-bar)"></i>${L('In progress', 'En progreso')}</span><span><i style="background:var(--bad-soft);border:1px dashed var(--bad)"></i>${L('Missing', 'Falta')}</span></div>
@@ -401,34 +417,47 @@ function viewTeam() {
 }
 
 function viewSettings() {
-  const bs = BRANCHES(), ts = TEAMS();
+  const bs = BRANCHES();
+  const missing = Object.keys(S.teams).filter(t => !CODED.includes(t)).length + Object.keys(S.groups).filter(g => !CODED_G.includes(g)).length;
+  const codeRow = (kind, id, label, sub, has) => `<form class="list-row" data-form="${kind}Code" data-id="${esc(id)}"><div class="grow"><b>${esc(label)}</b><div class="small">${sub ? esc(sub) + ' · ' : ''}${has ? L('Has a code', 'Tiene código') : `<span style="color:var(--warn)">${L('No code yet', 'Sin código aún')}</span>`}</div></div>
+      <input class="input num" style="width:110px" id="${kind}c-${esc(id)}" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" placeholder="${L('New', 'Nuevo')}" aria-label="${L('New code for', 'Nuevo código para')} ${esc(label)}"><button class="btn ghost sm" type="submit">${L('Save', 'Guardar')}</button></form>`;
   return `
-  <div class="head"><div class="grow"><h1>${L('Settings', 'Ajustes')}</h1><p>${L('Codes, branches and backups.', 'Códigos, sucursales y copias de seguridad.')}</p></div></div>
+  <div class="head"><div class="grow"><h1>${L('Settings', 'Ajustes')}</h1><p>${L('Codes, Excel import, branches and backups.', 'Códigos, importar Excel, sucursales y copias de seguridad.')}</p></div></div>
   <div class="settings-grid">
+    <div class="card">
+      <div class="h">${L('Import teams from Excel', 'Importar equipos desde Excel')}</div>
+      <p class="small">${L('Upload the church directory (.xlsx): one sheet per branch, groups with “EQUIPO 1, 2…” columns and members below. You’ll see a summary before anything changes.', 'Sube el directorio de la iglesia (.xlsx): una hoja por sucursal, grupos con columnas “EQUIPO 1, 2…” y los miembros debajo. Verás un resumen antes de cambiar nada.')}</p>
+      <label class="btn" for="excel-file" style="cursor:pointer">${icon('people', 16)}${L('Choose Excel file…', 'Elegir archivo Excel…')}</label>
+      <input type="file" id="excel-file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" data-act="excelPick" hidden>
+      <p class="small" style="margin-top:8px">${L('Importing again with an updated Excel adds new teams and people and keeps goals already entered, codes, and anyone added in the app.', 'Importar de nuevo un Excel actualizado agrega equipos y personas nuevas y conserva las metas ya anotadas, los códigos y a quien se haya agregado en la app.')}</p>
+    </div>
     <div class="card">
       <div class="h">${L('App code', 'Código de la app')}</div>
       <p class="small">${L('Opens the region results, monthly reports, the teams overview and these settings. It doesn’t open team members.', 'Abre los resultados de la región, los reportes mensuales, el resumen de equipos y estos ajustes. No abre los miembros de los equipos.')}</p>
       <form class="inline-form" data-form="mainCode"><input class="input num" id="mc-new" ${codeAttrs(8)} placeholder="${L('New code', 'Nuevo código')}" aria-label="${L('New app code', 'Nuevo código de la app')}"><input class="input num" id="mc-new2" ${codeAttrs(8)} placeholder="${L('Repeat it', 'Repítelo')}" aria-label="${L('Repeat the new app code', 'Repite el nuevo código')}"><button class="btn" type="submit">${L('Change', 'Cambiar')}</button></form>
       <p class="small" style="margin-top:8px">${L('4 to 8 digits. Everyone who uses the app code needs the new one.', 'De 4 a 8 dígitos. Todos los que usan el código de la app necesitarán el nuevo.')}</p>
     </div>
-    <div class="card">
-      <div class="h">${L('Team codes', 'Códigos de equipo')}</div>
-      <p class="small">${L('Each team’s code opens its members and adjustments. Codes are stored scrambled, so they can’t be shown here, only replaced.', 'El código de cada equipo abre sus miembros y ajustes. Los códigos se guardan cifrados: no se pueden mostrar, solo reemplazar.')}</p>
-      ${ts.length ? ts.map(t => `<form class="list-row" data-form="teamCode" data-t="${esc(t.id)}"><div class="grow"><b>${esc(teamName(t))}</b><div class="small">${CODED.includes(t.id) ? L('Has a code', 'Tiene código') : `<span style="color:var(--warn)">${L('No code yet', 'Sin código aún')}</span>`}</div></div>
-        <input class="input num" style="width:120px" id="tc-${esc(t.id)}" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" placeholder="${L('New', 'Nuevo')}" aria-label="${L('New code for', 'Nuevo código para')} ${esc(teamName(t))}"><button class="btn ghost sm" type="submit">${L('Save', 'Guardar')}</button></form>`).join('')
-        : `<p class="small">${L('No teams yet.', 'Aún no hay equipos.')}</p>`}
-    </div>
+  </div>
+  <div class="card">
+    <div class="row" style="flex-wrap:wrap"><div class="grow"><div class="h">${L('Group and team codes', 'Códigos de grupo y de equipo')}</div>
+      <div class="small">${L('A group code opens all the teams in that group; a team code opens just that team. Codes are stored scrambled, so they can only be replaced, not shown.', 'Un código de grupo abre todos los equipos de ese grupo; un código de equipo abre solo ese equipo. Los códigos se guardan cifrados: solo se pueden reemplazar, no mostrar.')}</div></div>
+      <button class="btn" data-act="generateCodes" ${missing ? '' : 'disabled'}>${L(`Create the ${missing} missing codes`, `Crear los ${missing} códigos que faltan`)}</button></div>
+    ${bs.map(b => { const gs = groupsOfBranch(b.id), ts = teamsOfBranch(b.id); if (!ts.length && !gs.length) return ''; return `<details class="codes-branch"><summary><b>${esc(b.name)}</b> <span class="muted">· ${gs.length} ${L('groups', 'grupos')} · ${ts.length} ${L('teams', 'equipos')}</span></summary>
+      ${gs.map(g => codeRow('group', g.id, `${L('Group', 'Grupo')}: ${g.name}`, '', CODED_G.includes(g.id)) + ts.filter(t => t.groupId === g.id).map(t => `<div style="padding-left:22px">${codeRow('team', t.id, teamName(t), g.name, CODED.includes(t.id))}</div>`).join('')).join('')}
+      ${ts.filter(t => !S.groups[t.groupId]).map(t => codeRow('team', t.id, teamName(t), '', CODED.includes(t.id))).join('')}
+    </details>`; }).join('')}
+  </div>
+  <div class="settings-grid">
     <div class="card">
       <div class="h">${L('Branches', 'Sucursales')}</div>
-      <div class="small" style="margin-bottom:6px">${L('The branch marked “Teams” reports through its teams; the others get a monthly report.', 'La sucursal marcada “Equipos” reporta a través de sus equipos; las demás con un reporte mensual.')}</div>
+      <div class="small" style="margin-bottom:6px">${L('Removing a branch also removes its groups, teams and members.', 'Quitar una sucursal también quita sus grupos, equipos y miembros.')}</div>
       ${bs.map(b => `<div class="list-row"><input class="input" id="bn-${esc(b.id)}" value="${esc(b.name)}" data-act="branchName" data-b="${esc(b.id)}" aria-label="${L('Branch name', 'Nombre de la sucursal')}" maxlength="120">
-        <label class="check" style="white-space:nowrap"><input type="radio" name="teamsBranch" data-act="teamsBranch" data-b="${esc(b.id)}" ${b.hasTeams ? 'checked' : ''}>${L('Teams', 'Equipos')}</label>
         <button class="btn ${CONFIRM === 'b-' + b.id ? 'danger' : 'ghost'} sm" data-act="branchDelete" data-b="${esc(b.id)}">${CONFIRM === 'b-' + b.id ? L('Tap again', 'Toca otra vez') : L('Remove', 'Quitar')}</button></div>`).join('')}
       <form class="inline-form" data-form="addBranch" style="margin-top:10px"><input class="input" id="new-branch" placeholder="${L('New branch name', 'Nombre de la nueva sucursal')}" aria-label="${L('New branch name', 'Nombre de la nueva sucursal')}" maxlength="120"><button class="btn" type="submit">${L('Add branch', 'Agregar sucursal')}</button></form>
     </div>
     <div class="card">
       <div class="h">${L('Backup', 'Copia de seguridad')}</div>
-      <p class="small">${L('Download a copy of all reports, teams and members. Keep it somewhere safe. Codes are not included.', 'Descarga una copia de todos los reportes, equipos y miembros. Guárdala en un lugar seguro. Los códigos no se incluyen.')}</p>
+      <p class="small">${L('Download a copy of all reports, groups, teams and members. Keep it somewhere safe. Codes are not included.', 'Descarga una copia de todos los reportes, grupos, equipos y miembros. Guárdala en un lugar seguro. Los códigos no se incluyen.')}</p>
       <a class="btn ghost" href="/api/export" download>${L('Download backup', 'Descargar copia')}</a>
       <p class="small" style="margin-top:16px">${L('Restore replaces everything with the contents of a backup file.', 'Restaurar reemplaza todo con el contenido de una copia.')}</p>
       <label class="btn ghost" for="restore-file" style="cursor:pointer">${L('Restore from a backup…', 'Restaurar desde una copia…')}</label>
@@ -436,12 +465,11 @@ function viewSettings() {
     </div>
     <div class="card">
       <div class="h">${L('Example data', 'Datos de ejemplo')}</div>
-      <p class="small">${L('Fill the app with example branches, teams and members to try it, or erase everything to start fresh. Both replace all current data.', 'Llena la app con sucursales, equipos y miembros de ejemplo para probarla, o borra todo para empezar de nuevo. Ambas opciones reemplazan todos los datos actuales.')}</p>
+      <p class="small">${L('Fill the app with example data to try it, or erase everything to start fresh. Both replace all current data.', 'Llena la app con datos de ejemplo para probarla, o borra todo para empezar de nuevo. Ambas opciones reemplazan todos los datos actuales.')}</p>
       <div class="row" style="flex-wrap:wrap">
         <button class="btn ${CONFIRM === 'example' ? 'danger' : 'ghost'}" data-act="loadExample">${CONFIRM === 'example' ? L('Tap again to replace everything', 'Toca otra vez para reemplazar todo') : L('Load example data', 'Cargar datos de ejemplo')}</button>
         <button class="btn ${CONFIRM === 'empty' ? 'danger' : 'ghost'}" data-act="startEmpty">${CONFIRM === 'empty' ? L('Tap again to erase everything', 'Toca otra vez para borrar todo') : L('Start empty', 'Empezar vacío')}</button>
       </div>
-      <p class="small" style="margin-top:8px">${L('Example team codes: 1111, 2222, 3333, 4444 and 5555.', 'Códigos de los equipos de ejemplo: 1111, 2222, 3333, 4444 y 5555.')}</p>
     </div>
   </div>`;
 }
@@ -480,13 +508,49 @@ function sheet() {
         ${isMain() ? `<button class="btn ${CONFIRM === 't-' + t.id ? 'danger' : 'ghost'}" data-act="teamDelete">${CONFIRM === 't-' + t.id ? L('Tap again: removes the team and its members', 'Toca otra vez: quita el equipo y sus miembros') : L('Remove team', 'Quitar equipo')}</button>` : '<span></span>'}
         <button class="btn" data-act="teamSave">${icon('check', 14)}${L('Save', 'Guardar')}</button></div>`;
   } else if (SHEET.type === 'addTeam') {
-    body = `<div class="row"><div class="h grow">${L('Add team', 'Agregar equipo')}</div>${close}</div>
-      ${field('nt-leader', L('Team leader’s full name', 'Nombre completo del líder'), 'maxlength="120" autocomplete="off"')}
-      ${field('nt-name', L('Team name (optional)', 'Nombre del equipo (opcional)'), 'maxlength="120" autocomplete="off"')}
+    const bid = TEAMS_BRANCH || BRANCHES()[0]?.id, gs = groupsOfBranch(bid);
+    body = `<div class="row"><div class="h grow">${L('Add team', 'Agregar equipo')} · ${esc(S.branches[bid]?.name || '')}</div>${close}</div>
+      <div class="field"><label for="nt-group">${L('Group', 'Grupo')}</label><select class="sel" id="nt-group">${gs.map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('')}<option value="__new">${L('New group…', 'Grupo nuevo…')}</option></select></div>
+      ${field('nt-newgroup', L('New group name (only for a new group)', 'Nombre del grupo nuevo (solo si es nuevo)'), 'maxlength="120" autocomplete="off" placeholder="Adultas · Nombre del líder"')}
+      ${field('nt-leader', L('Team leader’s full name (optional)', 'Nombre completo del líder (opcional)'), 'maxlength="120" autocomplete="off"')}
       ${field('nt-fruit', L('Yearly fruit goal', 'Meta anual de fruto'), 'type="number" min="0" value="0"')}
-      ${field('nt-code', L('Team code, 4 to 8 digits', 'Código del equipo, de 4 a 8 dígitos'), 'type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off"')}
-      <div class="small">${L('Give this code to the team leader. It opens the team’s members and adjustments.', 'Dale este código al líder del equipo. Abre los miembros y ajustes del equipo.')}</div>
+      ${field('nt-code', L('Team code, 4 to 8 digits (optional)', 'Código del equipo, de 4 a 8 dígitos (opcional)'), 'type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off"')}
+      <div class="small">${L('The team gets the next number in its group. Without a code, it opens with its group’s code, or create one later in Settings.', 'El equipo recibe el siguiente número de su grupo. Sin código, se abre con el código de su grupo, o créalo luego en Ajustes.')}</div>
       <div class="row" style="justify-content:flex-end"><button class="btn" data-act="teamAdd" ${BUSY ? 'disabled' : ''}>${L('Add team', 'Agregar equipo')}</button></div>`;
+  }
+  else if (SHEET.type === 'group') {
+    const g = { id: SHEET.g, ...S.groups[SHEET.g] };
+    body = `<div class="row"><div class="h grow">${L('Group settings', 'Ajustes del grupo')}</div>${close}</div>
+      ${field('gs-name', L('Group name', 'Nombre del grupo'), `value="${esc(g.name)}" maxlength="120" autocomplete="off"`)}
+      ${field('gs-leader', L('Group leader', 'Líder del grupo'), `value="${esc(g.leader)}" maxlength="120" autocomplete="off"`)}
+      ${field('gs-code', L('New group code (leave empty to keep it)', 'Nuevo código del grupo (vacío para dejarlo igual)'), 'type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off"')}
+      <label class="check"><input type="checkbox" id="gs-future" ${g.future ? 'checked' : ''}>${L('Future group (planned, not yet open)', 'Futuro grupo (planificado, aún no abierto)')}</label>
+      <div class="row" style="justify-content:space-between">
+        <button class="btn ${CONFIRM === 'g-' + g.id ? 'danger' : 'ghost'}" data-act="groupDelete">${CONFIRM === 'g-' + g.id ? L('Tap again: removes its teams and members', 'Toca otra vez: quita sus equipos y miembros') : L('Remove group', 'Quitar grupo')}</button>
+        <button class="btn" data-act="groupSave">${icon('check', 14)}${L('Save', 'Guardar')}</button></div>`;
+  } else if (SHEET.type === 'codes') {
+    const rows = SHEET.codes.map(c => c.kind === 'group'
+      ? { branch: S.branches[S.groups[c.id]?.branchId]?.name || '', what: `${L('Group', 'Grupo')}: ${S.groups[c.id]?.name || ''}`, code: c.code, order: `${branchOrder(S.groups[c.id]?.branchId)}-${groupOrder(c.id)}-0` }
+      : { branch: S.branches[S.teams[c.id]?.branchId]?.name || '', what: `${groupName(S.teams[c.id] || {})} · ${teamName(S.teams[c.id] || {})}`, code: c.code, order: `${branchOrder(S.teams[c.id]?.branchId)}-${groupOrder(S.teams[c.id]?.groupId)}-${S.teams[c.id]?.num || 0}` })
+      .sort((a, b) => a.order.localeCompare(b.order, undefined, { numeric: true }));
+    body = `<div class="row"><div class="h grow">${L('New codes', 'Códigos nuevos')}</div>${close}</div>
+      <p class="small" style="margin:0"><b>${L('Write these down or copy them now: they can’t be shown again.', 'Anótalos o cópialos ahora: no se pueden volver a mostrar.')}</b> ${L('Give each group leader their group code, and each team leader their team code.', 'Dale a cada líder de grupo el código de su grupo, y a cada líder de equipo el de su equipo.')}</p>
+      <div class="tablewrap" style="max-height:50vh;overflow:auto"><table><thead><tr><th>${L('Branch', 'Sucursal')}</th><th>${L('Group / team', 'Grupo / equipo')}</th><th class="c">${L('Code', 'Código')}</th></tr></thead>
+      <tbody>${rows.map(r => `<tr><td>${esc(r.branch)}</td><td>${esc(r.what)}</td><td class="c"><b class="num" style="font-size:16px">${esc(r.code)}</b></td></tr>`).join('')}</tbody></table></div>
+      <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-act="copyCodes">${L('Copy list', 'Copiar lista')}</button><button class="btn" data-act="close">${L('Done', 'Listo')}</button></div>
+      <textarea id="codes-text" class="input" rows="3" readonly style="font-size:12px">${esc(rows.map(r => `${r.branch}\t${r.what}\t${r.code}`).join('\n'))}</textarea>`;
+  } else if (SHEET.type === 'import') {
+    const p = SHEET.preview;
+    body = `<div class="row"><div class="h grow">${L('Import from Excel', 'Importar desde Excel')}</div>${close}</div>
+      <div class="small">${esc(SHEET.fileName)}</div>
+      <div class="tablewrap"><table><thead><tr><th>${L('Branch', 'Sucursal')}</th><th class="c">${L('Groups', 'Grupos')}</th><th class="c">${L('Teams', 'Equipos')}</th><th class="c">${L('People', 'Personas')}</th></tr></thead>
+      <tbody>${p.summary.map(b => `<tr><td>${esc(b.name)}</td><td class="c num">${b.groups}</td><td class="c num">${b.teams}</td><td class="c num">${b.members}</td></tr>`).join('')}</tbody></table></div>
+      ${p.skipped?.length ? `<p class="small" style="margin:0">${L('Sheets without teams (not imported):', 'Hojas sin equipos (no se importan):')} ${esc(p.skipped.join(', '))}</p>` : ''}
+      ${p.warnings?.length ? `<div class="banner" style="background:var(--warn-soft);display:block"><b>${L('Check in the Excel', 'Revisar en el Excel')}</b><ul class="small" style="margin:6px 0 0;padding-left:18px">${p.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul></div>` : ''}
+      <p class="small" style="margin:0">${L('“Add and update” keeps everything already in the app (goals, codes, people added here) and adds what’s new. “Replace” first removes all groups, teams, members and their codes.', '“Agregar y actualizar” conserva todo lo que ya está en la app (metas, códigos, personas agregadas aquí) y agrega lo nuevo. “Reemplazar” primero quita todos los grupos, equipos, miembros y sus códigos.')}</p>
+      <div class="row" style="justify-content:space-between;flex-wrap:wrap">
+        <button class="btn ${CONFIRM === 'replace' ? 'danger' : 'ghost'}" data-act="importApply" data-mode="replace" ${BUSY ? 'disabled' : ''}>${CONFIRM === 'replace' ? L('Tap again to replace everything', 'Toca otra vez para reemplazar todo') : L('Replace', 'Reemplazar')}</button>
+        <button class="btn" data-act="importApply" data-mode="merge" ${BUSY ? 'disabled' : ''}>${L('Add and update', 'Agregar y actualizar')}</button></div>`;
   }
   return `<div class="overlay" data-act="overlay"><div class="sheet" role="dialog" aria-modal="true">${body}</div></div>`;
 }
@@ -541,7 +605,7 @@ app.addEventListener('click', async e => {
   const act = el.dataset.act;
   if (act === 'overlay' && e.target !== el) return;
   if (el.tagName === 'SELECT' || el.tagName === 'INPUT') return;
-  if (!['memberDelete', 'teamDelete', 'branchDelete', 'loadExample', 'startEmpty'].includes(act)) CONFIRM = null;
+  if (!['memberDelete', 'teamDelete', 'branchDelete', 'groupDelete', 'importApply', 'loadExample', 'startEmpty'].includes(act)) CONFIRM = null;
   switch (act) {
     case 'lang': LANG = el.dataset.l; try { localStorage.setItem('cs-lang', LANG); } catch (x) {} break;
     case 'logout': try { await api('POST', '/api/logout', {}); } catch (x) {} stopLive(); ACCESS = null; CODE_IN = ''; AUTH_ERR = ''; SCREEN = 'login'; history.replaceState(null, '', location.pathname); break;
@@ -606,17 +670,69 @@ app.addEventListener('click', async e => {
     }
     case 'addTeamOpen': SHEET = { type: 'addTeam' }; break;
     case 'teamAdd': {
-      const leader = val('nt-leader'), code = val('nt-code');
-      if (!leader) { toast(L('Enter the team leader’s name.', 'Escribe el nombre del líder.')); return; }
-      if (!/^\d{4,8}$/.test(code)) { toast(L('Give the team a code of 4 to 8 digits.', 'Dale al equipo un código de 4 a 8 dígitos.')); return; }
-      const num = TEAMS().reduce((a, t) => Math.max(a, t.num || 0), 0) + 1, id = uid('t');
+      const leader = val('nt-leader'), code = val('nt-code'), bid = TEAMS_BRANCH || BRANCHES()[0]?.id;
+      let groupId = document.getElementById('nt-group')?.value || '__new';
+      if (code && !/^\d{4,8}$/.test(code)) { toast(L('The code needs 4 to 8 digits.', 'El código necesita de 4 a 8 dígitos.')); return; }
+      if (groupId === '__new' && !val('nt-newgroup')) { toast(L('Write the new group’s name.', 'Escribe el nombre del grupo nuevo.')); return; }
       BUSY = true; render();
-      const ok = await save('teams', id, { name: val('nt-name'), num, leader, fruitGoal: Math.max(0, Math.round(+val('nt-fruit') || 0)), attTarget: 4, fruit: {} }, 'set');
-      if (ok) {
+      if (groupId === '__new') {
+        groupId = uid('g');
+        const order = groupsOfBranch(bid).reduce((a, g) => Math.max(a, g.order ?? 0), -1) + 1;
+        if (!await save('groups', groupId, { branchId: bid, name: val('nt-newgroup'), leader: '', order, future: false }, 'set')) { BUSY = false; render(); return; }
+      }
+      const num = TEAMS().filter(t => t.groupId === groupId).reduce((a, t) => Math.max(a, t.num || 0), 0) + 1, id = uid('t');
+      const ok = await save('teams', id, { branchId: bid, groupId, name: '', num, note: '', leader, fruitGoal: Math.max(0, Math.round(+val('nt-fruit') || 0)), attTarget: 4, fruit: {} }, 'set');
+      if (ok && code) {
         try { await api('POST', `/api/codes/team/${encodeURIComponent(id)}`, { code }); CODED.push(id); toast(L('Team added. Share its code with the team leader.', 'Equipo agregado. Comparte su código con el líder del equipo.')); }
         catch (x) { toast(L(`Team added, but the code wasn’t saved: ${x.message} Set it in Settings.`, `Equipo agregado, pero el código no se guardó: ${x.message} Ponlo en Ajustes.`)); }
-      }
+      } else if (ok) toast(L(`Team ${num} added.`, `Equipo ${num} agregado.`));
       BUSY = false; SHEET = null; render(); return;
+    }
+    case 'pickTeamsBranch': TEAMS_BRANCH = el.dataset.b; break;
+    case 'groupSettings': SHEET = { type: 'group', g: el.dataset.g }; break;
+    case 'groupSave': {
+      const id = SHEET.g, code = val('gs-code'), name = val('gs-name');
+      if (!name) { toast(L('Write the group’s name.', 'Escribe el nombre del grupo.')); return; }
+      if (code && !/^\d{4,8}$/.test(code)) { toast(L('The code needs 4 to 8 digits.', 'El código necesita de 4 a 8 dígitos.')); return; }
+      if (code) {
+        try { await api('POST', `/api/codes/group/${encodeURIComponent(id)}`, { code }); if (!CODED_G.includes(id)) CODED_G.push(id); }
+        catch (x) { toast(x.message); return; }
+      }
+      SHEET = null;
+      if (await save('groups', id, { name, leader: val('gs-leader'), future: !!document.getElementById('gs-future')?.checked })) toast(code ? L('Group saved. Share the new code with the group leader.', 'Grupo guardado. Comparte el nuevo código con el líder del grupo.') : L('Group saved.', 'Grupo guardado.'));
+      return;
+    }
+    case 'groupDelete': {
+      const key = 'g-' + SHEET.g;
+      if (CONFIRM !== key) { CONFIRM = key; break; }
+      const id = SHEET.g; SHEET = null; CONFIRM = null;
+      if (await save('groups', id, null, 'delete')) { await loadData(); toast(L('Group removed.', 'Grupo quitado.')); }
+      return;
+    }
+    case 'generateCodes': {
+      BUSY = true; render();
+      try { const out = await api('POST', '/api/codes/generate', {}); await loadData(); SHEET = { type: 'codes', codes: out.codes }; }
+      catch (x) { toast(x.message); }
+      BUSY = false; break;
+    }
+    case 'copyCodes': {
+      const ta = document.getElementById('codes-text');
+      try { await navigator.clipboard.writeText(ta.value); toast(L('Copied. Paste it into a document or message.', 'Copiado. Pégalo en un documento o mensaje.')); }
+      catch (x) { ta.select(); toast(L('Select the text below and copy it.', 'Selecciona el texto de abajo y cópialo.')); }
+      return;
+    }
+    case 'importApply': {
+      const mode = el.dataset.mode;
+      if (mode === 'replace' && CONFIRM !== 'replace') { CONFIRM = 'replace'; break; }
+      CONFIRM = null; BUSY = true; render();
+      try {
+        const out = await api('POST', '/api/import-excel', { file: SHEET.file, mode });
+        await loadData(); SHEET = null;
+        const st = out.stats;
+        toast(L(`Imported: ${st.groupsAdded} groups, ${st.teamsAdded} teams and ${st.membersAdded} people added.`, `Importado: ${st.groupsAdded} grupos, ${st.teamsAdded} equipos y ${st.membersAdded} personas agregadas.`));
+        location.hash = 'teams';
+      } catch (x) { toast(x.message); }
+      BUSY = false; break;
     }
     case 'branchDelete': {
       const key = 'b-' + el.dataset.b;
@@ -649,16 +765,23 @@ app.addEventListener('change', async e => {
   if (act === 'repMonth') { REPORT = { ...REPORT, month: el.value, draft: {} }; render(); }
   else if (act === 'fruitGoal') save('teams', el.dataset.t, { fruitGoal: Math.max(0, Math.round(+el.value || 0)) });
   else if (act === 'branchName') { const name = el.value.trim(); if (name && name !== S.branches[el.dataset.b]?.name) save('branches', el.dataset.b, { name }); else render(); }
-  else if (act === 'teamsBranch') {
-    await save('branches', el.dataset.b, { hasTeams: true });
-    for (const [id, b] of Object.entries(S.branches)) if (id !== el.dataset.b && b.hasTeams) S.branches[id] = { ...b, hasTeams: false };
-    render();
+  else if (act === 'excelPick') {
+    const file = el.files && el.files[0]; if (!file) return;
+    el.value = '';
+    if (file.size > 20e6) { toast(L('That file is too big (over 20 MB).', 'Ese archivo es muy grande (más de 20 MB).')); return; }
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+      const b64 = btoa(bin);
+      const preview = await api('POST', '/api/import-excel', { file: b64, mode: 'preview' });
+      SHEET = { type: 'import', file: b64, fileName: file.name, preview }; render();
+    } catch (x) { toast(x.message); }
   }
   else if (act === 'restore') {
     const file = el.files && el.files[0]; if (!file) return;
     try {
       const data = JSON.parse(await file.text());
-      await api('POST', '/api/import', { branches: data.branches, teams: data.teams, members: data.members });
+      await api('POST', '/api/import', { branches: data.branches, groups: data.groups || {}, teams: data.teams, members: data.members });
       await loadData(); render(); toast(L('Backup restored.', 'Copia restaurada.'));
     } catch (x) { toast(x instanceof SyntaxError ? L('That file isn’t a Church Status backup.', 'Ese archivo no es una copia de Church Status.') : x.message); }
     el.value = '';
@@ -704,11 +827,14 @@ app.addEventListener('submit', async e => {
     try { await api('POST', '/api/codes/main', { code: a }); document.getElementById('mc-new').value = ''; document.getElementById('mc-new2').value = ''; toast(L('App code changed.', 'Código de la app cambiado.')); }
     catch (x) { toast(x.message); }
   }
-  if (form === 'teamCode') {
-    const tid = e.target.dataset.t, inp = document.getElementById('tc-' + tid), code = inp.value.trim();
+  if (form === 'teamCode' || form === 'groupCode') {
+    const kind = form === 'teamCode' ? 'team' : 'group', id = e.target.dataset.id, inp = document.getElementById(`${kind}c-${id}`), code = inp.value.trim();
     if (!/^\d{4,8}$/.test(code)) { toast(L('The code needs 4 to 8 digits.', 'El código necesita de 4 a 8 dígitos.')); return; }
-    try { await api('POST', `/api/codes/team/${encodeURIComponent(tid)}`, { code }); inp.value = ''; if (!CODED.includes(tid)) CODED.push(tid); render(); toast(L('Team code saved. Share it with the team.', 'Código guardado. Compártelo con el equipo.')); }
-    catch (x) { toast(x.message); }
+    try {
+      await api('POST', `/api/codes/${kind}/${encodeURIComponent(id)}`, { code }); inp.value = '';
+      const list = kind === 'team' ? CODED : CODED_G; if (!list.includes(id)) list.push(id);
+      render(); toast(L('Code saved. Share it with the leader.', 'Código guardado. Compártelo con el líder.'));
+    } catch (x) { toast(x.message); }
   }
 });
 app.addEventListener('keydown', e => {
@@ -724,7 +850,7 @@ async function enterApp() {
   SCREEN = 'loading'; render();
   await loadData();
   SCREEN = 'app';
-  if (!location.hash) location.hash = isMain() ? 'region' : 'team-' + (ACCESS.teams[0] || '');
+  if (!location.hash) location.hash = isMain() ? 'region' : 'team-' + (openTeams()[0]?.id || '');
   startLive(); render();
 }
 (async () => {

@@ -35,7 +35,7 @@ test('app code, team codes and permissions', async t => {
   assert.equal((await main('POST', '/api/login', { code: '0000' })).status, 401);
   const login = await main('POST', '/api/login', { code: '1925' });
   assert.equal(login.status, 200);
-  assert.deepEqual(login.data.access, { main: true, teams: [] });
+  assert.deepEqual(login.data.access, { main: true, teams: [], groups: [] });
   let data = (await main('GET', '/api/data')).data;
   assert.equal(Object.keys(data.branches).length, 5);
   assert.equal(Object.keys(data.teams).length, 0);
@@ -61,7 +61,7 @@ test('app code, team codes and permissions', async t => {
   assert.equal((await main('POST', '/api/unlock', { teamId: 't3', code: '1111' })).status, 401);
   const un = await main('POST', '/api/unlock', { teamId: 't3', code: '3333' });
   assert.equal(un.status, 200);
-  assert.deepEqual(un.data.access, { main: true, teams: ['t3'] });
+  assert.deepEqual(un.data.access, { main: true, teams: ['t3'], groups: [] });
   data = (await main('GET', '/api/data')).data;
   const mine = Object.entries(data.members);
   assert.ok(mine.length === 8 && mine.every(([, m]) => m.teamId === 't3'));
@@ -71,7 +71,7 @@ test('app code, team codes and permissions', async t => {
   // A team code at the front door opens only that team (plus region results)
   const team = client(base);
   const tl = await team('POST', '/api/login', { code: '1111' });
-  assert.deepEqual(tl.data.access, { main: false, teams: ['t1'] });
+  assert.deepEqual(tl.data.access, { main: false, teams: ['t1'], groups: [] });
   const td = (await team('GET', '/api/data')).data;
   assert.ok(Object.values(td.members).every(m => m.teamId === 't1'));
   assert.equal(td.teamsWithCodes, undefined);
@@ -136,4 +136,79 @@ test('blocks cross-site writes and non-JSON posts', async t => {
   assert.equal(page.status, 200);
   assert.match(await page.text(), /Church Status/);
   assert.equal((await fetch(base + '/../package.json')).status, 404);
+});
+
+test('Excel import, group codes and generated codes', async t => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const { server, base } = await startServer();
+  t.after(() => server.close());
+  const main = client(base);
+  await main('POST', '/api/login', { code: '1925' });
+  const file = fs.readFileSync(path.join(__dirname, 'fixtures', 'directorio-ejemplo.xlsx')).toString('base64');
+
+  // Preview changes nothing and reports what it found
+  const pv = await main('POST', '/api/import-excel', { file, mode: 'preview' });
+  assert.equal(pv.status, 200);
+  assert.deepEqual(pv.data.summary.map(b => [b.name, b.groups, b.teams, b.members]), [['Santiago', 3, 6, 10], ['Moca', 1, 1, 1]]);
+  assert.deepEqual(pv.data.skipped.sort(), ['Comités', 'Resumen General']);
+  assert.ok(pv.data.warnings.some(w => /dos veces/.test(w)), 'duplicate name in one team is reported');
+  assert.ok(pv.data.warnings.some(w => /sin encabezado/.test(w)), 'column without EQUIPO header is reported');
+  assert.equal(Object.keys((await main('GET', '/api/data')).data.teams).length, 0);
+  assert.equal((await main('POST', '/api/import-excel', { file: 'bm90IGFuIGV4Y2Vs', mode: 'preview' })).status, 400);
+
+  // Merge imports groups, teams, members, tags and team leaders
+  const im = await main('POST', '/api/import-excel', { file, mode: 'merge' });
+  assert.deepEqual(im.data.stats, { branchesAdded: 0, groupsAdded: 4, teamsAdded: 7, membersAdded: 11, membersUpdated: 0 });
+  let d = (await main('GET', '/api/data')).data;
+  const groups = Object.entries(d.groups);
+  const ana = groups.find(([, g]) => g.name === 'Adultas · Ana Prueba');
+  const future = groups.find(([, g]) => g.future);
+  assert.equal(ana[1].leader, 'Ana Prueba');
+  assert.equal(future[1].name, 'Futuro Grupo · Adultas · Ana Prueba');
+  const anaTeams = Object.entries(d.teams).filter(([, tm]) => tm.groupId === ana[0]);
+  assert.equal(anaTeams.length, 3);
+  assert.equal(anaTeams.find(([, tm]) => tm.num === 1)[1].leader, 'Rosa Uno');
+  assert.equal(Object.values(d.teams).find(tm => tm.groupId === future[0]).num, 4);
+
+  // Importing again adds nothing twice; people added in the app stay
+  const team1 = anaTeams.find(([, tm]) => tm.num === 1)[0];
+  const gen = await main('POST', '/api/codes/generate', {});
+  assert.equal(gen.status, 200);
+  assert.equal(gen.data.codes.length, 4 + 7);
+  assert.ok(gen.data.codes.every(c => /^\d{4}$/.test(c.code)));
+  assert.equal(new Set(gen.data.codes.map(c => c.code)).size, gen.data.codes.length, 'codes are unique');
+  assert.equal((await main('POST', '/api/codes/generate', {})).data.codes.length, 0, 'nothing left without a code');
+  const groupCode = gen.data.codes.find(c => c.kind === 'group' && c.id === ana[0]).code;
+  const leader = client(base);
+  const gl = await leader('POST', '/api/login', { code: groupCode });
+  assert.deepEqual(gl.data.access, { main: false, teams: [], groups: [ana[0]] });
+  const ld = (await leader('GET', '/api/data')).data;
+  assert.equal(Object.keys(ld.members).length, 6, 'group code sees its 3 teams’ members');
+  assert.equal((await leader('POST', '/api/docs/members/new-1', { op: 'set', data: { teamId: team1, name: 'Persona Nueva', months: {} } })).status, 200);
+  const otherTeam = Object.entries(d.teams).find(([, tm]) => tm.groupId !== ana[0])[0];
+  assert.equal((await leader('POST', '/api/docs/members/new-2', { op: 'set', data: { teamId: otherTeam, name: 'X', months: {} } })).status, 403);
+  assert.equal((await leader('POST', '/api/docs/groups/' + ana[0], { op: 'update', data: { name: 'Mío' } })).status, 403);
+  const again = await main('POST', '/api/import-excel', { file, mode: 'merge' });
+  assert.deepEqual(again.data.stats, { branchesAdded: 0, groupsAdded: 0, teamsAdded: 0, membersAdded: 0, membersUpdated: 0 });
+  d = (await main('GET', '/api/data')).data;
+  assert.equal(d.teamsWithCodes.length, 7, 'codes survive a re-import');
+
+  // The app code opens a team with that group's code too
+  const un = await main('POST', '/api/unlock', { teamId: team1, code: groupCode });
+  assert.deepEqual(un.data.access.groups, [ana[0]]);
+  assert.ok(Object.values((await main('GET', '/api/data')).data.members).some(m => m.name === 'Persona Nueva'));
+
+  // Replace starts over: codes and app-added people are gone
+  const rep = await main('POST', '/api/import-excel', { file, mode: 'replace' });
+  assert.equal(rep.data.stats.membersAdded, 11);
+  d = (await main('GET', '/api/data')).data;
+  assert.equal(d.teamsWithCodes.length + d.groupsWithCodes.length, 0);
+  assert.equal((await client(base)('POST', '/api/login', { code: groupCode })).status, 401);
+
+  // Removing a group removes its teams and members
+  const g2 = Object.entries(d.groups).find(([, g]) => g.name === 'Adultas · Ana Prueba')[0];
+  assert.equal((await main('POST', '/api/docs/groups/' + g2, { op: 'delete' })).status, 200);
+  d = (await main('GET', '/api/data')).data;
+  assert.ok(!Object.values(d.teams).some(tm => tm.groupId === g2));
 });

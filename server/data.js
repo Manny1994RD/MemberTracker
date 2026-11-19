@@ -1,11 +1,13 @@
 'use strict';
 // What each record may contain, who may change it, and the starting data.
 
-const COLS = ['branches', 'teams', 'members'];
+// Branch (sucursal) → group (grupo) → team (equipo) → members.
+const COLS = ['branches', 'groups', 'teams', 'members'];
 const FIELDS = {
   branches: { name: 'str', order: 'num', hasTeams: 'bool', goals: 'nums', months: 'monthNums' },
-  teams: { name: 'str', num: 'num', leader: 'str', fruitGoal: 'num', attTarget: 'num', fruit: 'nums' },
-  members: { teamId: 'str', name: 'str', phone: 'str', notes: 'text', months: 'monthNums' },
+  groups: { branchId: 'str', name: 'str', leader: 'str', order: 'num', future: 'bool' },
+  teams: { branchId: 'str', groupId: 'str', name: 'str', num: 'num', note: 'str', leader: 'str', fruitGoal: 'num', attTarget: 'num', fruit: 'nums' },
+  members: { teamId: 'str', name: 'str', tag: 'str', phone: 'str', notes: 'text', months: 'monthNums' },
 };
 const LEADER_TEAM_FIELDS = ['name', 'attTarget', 'fruit'];
 const MONTH_KEY = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -75,21 +77,21 @@ function merge(base, patch) {
   return out;
 }
 
-// Who may write what. `access` is { main: bool, teams: [team ids opened with their code] }.
-// Returns an error message, or null when allowed.
+// Who may write what. `access` is { main: bool, opens(teamId): bool } — opens() is true for a team
+// opened with its own code or with its group's code. Returns an error message, or null when allowed.
 function denyReason(access, col, op, existing, next) {
-  if (col === 'branches') return access.main ? null : 'This needs the app code.';
+  if (col === 'branches' || col === 'groups') return access.main ? null : 'This needs the app code.';
   if (col === 'teams') {
     if (access.main) return null;
     if (op !== 'update' || !existing) return 'This needs the app code.';
-    if (!access.teams.includes(existing.__id)) return 'Enter this team’s code first.';
+    if (!access.opens(existing.__id)) return 'Enter this team’s code first.';
     if (Object.keys(next).some(k => !LEADER_TEAM_FIELDS.includes(k))) return 'Changing the fruit goal or the team leader needs the app code.';
     return null;
   }
   if (col === 'members') {
-    // Members always need the team's own code, even with the app code.
-    if (existing && !access.teams.includes(existing.teamId)) return 'Enter this team’s code first.';
-    if (next && next.teamId !== undefined && !access.teams.includes(next.teamId)) return 'Enter this team’s code first.';
+    // Members always need the team's (or its group's) code, even with the app code.
+    if (existing && !access.opens(existing.teamId)) return 'Enter this team’s code first.';
+    if (next && next.teamId !== undefined && !access.opens(next.teamId)) return 'Enter this team’s code first.';
     if (existing && next && next.teamId !== undefined && next.teamId !== existing.teamId) return 'A member can’t be moved to another team here.';
     return null;
   }
@@ -124,7 +126,7 @@ function emptyData() {
   BRANCHES.forEach(([id, name, hasTeams], order) => {
     branches[id] = { name, order, hasTeams, goals: { simple: 0, mean: 0, att: 0, tithe: 0, fruit: 0 }, months: {} };
   });
-  return { branches, teams: {}, members: {} };
+  return { branches, groups: {}, teams: {}, members: {} };
 }
 
 // Example data for trying the app. Deterministic, dated to the current year.
@@ -171,7 +173,7 @@ function exampleData(now = new Date()) {
   T.forEach(([id, name, num, leader, fruitGoal, perf, attTarget, done]) => {
     const fruit = {};
     [...months].sort(() => r() - .5).slice(0, done).forEach(m => { fruit[m] = (fruit[m] || 0) + 1; });
-    teams[id] = { name, num, leader, fruitGoal, attTarget, fruit };
+    teams[id] = { branchId: 'santiago', groupId: 'g-ejemplo', name, num, note: '', leader, fruitGoal, attTarget, fruit };
     perfs[id] = perf;
   });
   const names = ['Ana Rodríguez', 'María López', 'Sofía Ramírez', 'Miguel Torres', 'Lucía Fernández', 'José Martínez', 'Carlos Méndez', 'Daniel Pérez', 'Rosa Jiménez',
@@ -195,7 +197,8 @@ function exampleData(now = new Date()) {
   }
   // Example team codes: 1111, 2222, … 5555
   const teamCodes = Object.fromEntries(Object.entries(teams).map(([id, t]) => [id, String(t.num).repeat(4)]));
-  return { branches, teams, members, teamCodes };
+  const groups = { 'g-ejemplo': { branchId: 'santiago', name: 'Grupo de ejemplo', leader: '', order: 0, future: false } };
+  return { branches, groups, teams, members, teamCodes };
 }
 
 module.exports = { COLS, ID, BadRequest, clean, merge, denyReason, teamStats, emptyData, exampleData, isPlainObject };

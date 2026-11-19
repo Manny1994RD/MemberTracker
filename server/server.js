@@ -4,7 +4,8 @@
 //
 // Access works with codes, not personal accounts:
 //   - The app code (default 1925) opens the region results, monthly reports, the teams overview and settings.
-//   - Each team has its own code. A team's members and adjustments open only with that team's code.
+//   - Each team has its own code, and each group a code that opens all of its teams.
+//     A team's members and adjustments open only with the team's or its group's code.
 process.removeAllListeners('warning');
 process.on('warning', w => { if (w.name !== 'ExperimentalWarning') console.warn(w); });
 
@@ -15,6 +16,7 @@ const crypto = require('node:crypto');
 const { openDatabase } = require('./db');
 const { COLS, ID, BadRequest, clean, merge, denyReason, teamStats, emptyData, exampleData, isPlainObject } = require('./data');
 const { translate } = require('./i18n');
+const { readXlsx, parseDirectory, norm } = require('./excel');
 
 const VERSION = require('../package.json').version;
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -81,11 +83,16 @@ function createApp({ dbFile, secureCookies = false, mainCode = '1925', log = con
   if (!db.getSetting('main_code')) { checkCode(mainCode); db.putSetting('main_code', codeHash(mainCode)); }
   if (db.isEmpty() && !db.getSetting('seeded')) { seed(emptyData()); db.putSetting('seeded', '1'); }
 
-  function codeInUse(code, exceptTeam) {
+  // Team codes are stored under the team id, group codes under "g:<group id>".
+  function codeInUse(code, exceptKey) {
     const h = codeHash(code);
     if (h === db.getSetting('main_code')) return true;
-    const t = db.teamByCode(h);
-    return !!t && t !== exceptTeam;
+    const k = db.teamByCode(h);
+    return !!k && k !== exceptKey;
+  }
+  function opener(s) {
+    const teams = db.docs('teams');
+    return teamId => s.teams.includes(teamId) || (!!teams[teamId] && s.groups.includes(teams[teamId].groupId));
   }
 
   /* sessions */
@@ -94,8 +101,10 @@ function createApp({ dbFile, secureCookies = false, mainCode = '1925', log = con
     if (!token) return null;
     const s = db.session(sha256(token));
     if (!s || s.expires < Date.now()) return null;
-    const known = new Set(Object.keys(db.docs('teams')));
+    const known = new Set(Object.keys(db.docs('teams'))), knownGroups = new Set(Object.keys(db.docs('groups')));
     s.teams = s.teams.filter(t => known.has(t));
+    s.groups = s.groups.filter(g => knownGroups.has(g));
+    s.opens = opener(s);
     return s;
   }
   function startSession(res, access) {
@@ -104,7 +113,7 @@ function createApp({ dbFile, secureCookies = false, mainCode = '1925', log = con
     db.purgeSessions();
     res.setHeader('Set-Cookie', `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}${secureCookies ? '; Secure' : ''}`);
   }
-  const publicAccess = s => ({ main: s.main, teams: s.teams });
+  const publicAccess = s => ({ main: s.main, teams: s.teams, groups: s.groups });
 
   /* guessing limit for codes */
   function checkAttempts(req) {
@@ -122,13 +131,15 @@ function createApp({ dbFile, secureCookies = false, mainCode = '1925', log = con
   /* what a session may read */
   const currentMonth = () => monthKey(new Date());
   function visibleData(s) {
-    const teams = db.docs('teams'), members = db.docs('members');
+    const teams = db.docs('teams'), members = db.docs('members'), opens = opener(s);
     const visible = {};
-    for (const [id, m] of Object.entries(members)) if (s.teams.includes(m.teamId)) visible[id] = m;
+    for (const [id, m] of Object.entries(members)) if (opens(m.teamId)) visible[id] = m;
+    const coded = s.main ? db.teamsWithCodes() : [];
     return {
-      branches: db.docs('branches'), teams, members: visible,
+      branches: db.docs('branches'), groups: db.docs('groups'), teams, members: visible,
       teamStats: teamStats(teams, members, currentMonth()), month: currentMonth(),
-      teamsWithCodes: s.main ? db.teamsWithCodes() : undefined,
+      teamsWithCodes: s.main ? coded.filter(k => !k.startsWith('g:')) : undefined,
+      groupsWithCodes: s.main ? coded.filter(k => k.startsWith('g:')).map(k => k.slice(2)) : undefined,
     };
   }
 
@@ -142,7 +153,8 @@ function createApp({ dbFile, secureCookies = false, mainCode = '1925', log = con
   }
   function broadcast(col, id, before, after) {
     eachClient((c, s) => {
-      const see = d => d && (col !== 'members' || s.teams.includes(d.teamId));
+      const opens = opener(s);
+      const see = d => d && (col !== 'members' || opens(d.teamId));
       if (see(after)) c.res.write(`event: doc\ndata: ${JSON.stringify({ col, id, data: after })}\n\n`);
       else if (see(before)) c.res.write(`event: doc\ndata: ${JSON.stringify({ col, id, data: null })}\n\n`);
     });
@@ -165,9 +177,23 @@ function createApp({ dbFile, secureCookies = false, mainCode = '1925', log = con
       if (reason) throw fail(403, reason);
       db.transaction(() => {
         db.deleteDoc(col, id);
-        if (col === 'teams') {
-          for (const [mid, m] of Object.entries(db.docs('members'))) if (m.teamId === id) { db.deleteDoc('members', mid); broadcast('members', mid, m, null); }
-          db.deleteTeamCode(id);
+        const dropTeam = tid => {
+          const t = db.doc('teams', tid);
+          for (const [mid, m] of Object.entries(db.docs('members'))) if (m.teamId === tid) { db.deleteDoc('members', mid); broadcast('members', mid, m, null); }
+          db.deleteTeamCode(tid);
+          if (t && tid !== id) { db.deleteDoc('teams', tid); broadcast('teams', tid, t, null); }
+        };
+        const dropGroup = gid => {
+          const g = db.doc('groups', gid);
+          for (const [tid, t] of Object.entries(db.docs('teams'))) if (t.groupId === gid) dropTeam(tid);
+          db.deleteTeamCode('g:' + gid);
+          if (g && gid !== id) { db.deleteDoc('groups', gid); broadcast('groups', gid, g, null); }
+        };
+        if (col === 'teams') dropTeam(id);
+        if (col === 'groups') dropGroup(id);
+        if (col === 'branches') {
+          for (const [gid, g] of Object.entries(db.docs('groups'))) if (g.branchId === id) dropGroup(gid);
+          for (const [tid, t] of Object.entries(db.docs('teams'))) if (t.branchId === id) dropTeam(tid);
         }
       });
       broadcast(col, id, existing, null);
@@ -198,6 +224,7 @@ function createApp({ dbFile, secureCookies = false, mainCode = '1925', log = con
     });
   }
   function replaceAll(data) {
+    if (data.groups === undefined) data = { ...data, groups: {} };
     for (const col of COLS) if (!isPlainObject(data[col])) throw new BadRequest(`The backup is missing "${col}".`);
     const cleaned = {};
     for (const col of COLS) {
@@ -209,10 +236,78 @@ function createApp({ dbFile, secureCookies = false, mainCode = '1925', log = con
     }
     db.transaction(() => {
       for (const col of COLS) { db.deleteCol(col); for (const [id, doc] of Object.entries(cleaned[col])) db.putDoc(col, id, doc); }
-      // Team codes are kept for teams that still exist.
-      for (const tid of db.teamsWithCodes()) if (!cleaned.teams[tid]) db.deleteTeamCode(tid);
+      // Codes are kept for teams and groups that still exist.
+      for (const k of db.teamsWithCodes()) if (k.startsWith('g:') ? !cleaned.groups[k.slice(2)] : !cleaned.teams[k]) db.deleteTeamCode(k);
     });
     broadcastReload();
+  }
+
+  /* Excel import: branches → groups → teams → members.
+     mode "preview" only reads the file; "merge" adds and updates (keeps goals, codes and anyone
+     added in the app); "replace" first removes all groups, teams and members. */
+  function importExcel(body) {
+    if (typeof body.file !== 'string' || !body.file) throw new BadRequest('Choose an Excel file.');
+    let parsed;
+    try { parsed = parseDirectory(readXlsx(Buffer.from(body.file, 'base64'))); }
+    catch (e) { throw new BadRequest('That file couldn’t be read as an Excel (.xlsx) file.'); }
+    if (!parsed.branches.length) throw new BadRequest('No teams were found. Each team needs a heading like “EQUIPO 1”.');
+    const mode = ['merge', 'replace'].includes(body.mode) ? body.mode : 'preview';
+    const summary = parsed.branches.map(b => ({
+      name: b.name, groups: b.groups.length, teams: b.groups.reduce((a, g) => a + g.teams.length, 0),
+      members: b.groups.reduce((a, g) => a + g.teams.reduce((x, t) => x + t.members.length, 0), 0),
+    }));
+    if (mode === 'preview') return { summary, warnings: parsed.warnings, skipped: parsed.skipped };
+
+    const stats = { branchesAdded: 0, groupsAdded: 0, teamsAdded: 0, membersAdded: 0, membersUpdated: 0 };
+    db.transaction(() => {
+      if (mode === 'replace') {
+        for (const col of ['groups', 'teams', 'members']) db.deleteCol(col);
+        for (const k of db.teamsWithCodes()) db.deleteTeamCode(k);
+      }
+      const branches = db.docs('branches'), groups = db.docs('groups'), teams = db.docs('teams'), members = db.docs('members');
+      const used = new Set(Object.keys({ ...branches, ...groups, ...teams, ...members }));
+      const newId = base => { let id = base.slice(0, 60), n = 2; while (used.has(id)) id = `${base.slice(0, 56)}-${n++}`; used.add(id); return id; };
+      const slug = s => norm(s).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'x';
+      let order = Object.values(branches).reduce((a, b) => Math.max(a, b.order ?? 0), -1);
+      for (const b of parsed.branches) {
+        let branchId = Object.keys(branches).find(id => norm(branches[id].name) === norm(b.name));
+        if (!branchId) {
+          branchId = newId(slug(b.name));
+          branches[branchId] = { name: b.name, order: ++order, hasTeams: true, goals: { simple: 0, mean: 0, att: 0, tithe: 0, fruit: 0 }, months: {} };
+          db.putDoc('branches', branchId, branches[branchId]); stats.branchesAdded++;
+        }
+        b.groups.forEach((g, gi) => {
+          let groupId = Object.keys(groups).find(id => groups[id].branchId === branchId && norm(groups[id].name) === norm(g.name));
+          if (!groupId) { groupId = newId(`${branchId}-g${gi + 1}`); stats.groupsAdded++; }
+          groups[groupId] = { ...(groups[groupId] || {}), branchId, name: g.name, leader: groups[groupId]?.leader || g.leader, order: gi, future: !!g.future };
+          db.putDoc('groups', groupId, clean('groups', groups[groupId], false));
+          for (const t of g.teams) {
+            let teamId = Object.keys(teams).find(id => teams[id].groupId === groupId && teams[id].num === t.num);
+            const lead = t.members.find(m => m.leader);
+            if (!teamId) {
+              teamId = newId(`${groupId}-e${t.num}`); stats.teamsAdded++;
+              teams[teamId] = { branchId, groupId, name: '', num: t.num, note: t.note, leader: lead ? lead.name : '', fruitGoal: 0, attTarget: 4, fruit: {} };
+            } else {
+              teams[teamId] = { ...teams[teamId], branchId, groupId, note: t.note || teams[teamId].note || '', leader: teams[teamId].leader || (lead ? lead.name : '') };
+            }
+            db.putDoc('teams', teamId, clean('teams', teams[teamId], false));
+            for (const m of t.members) {
+              const existing = Object.keys(members).find(id => members[id].teamId === teamId && norm(members[id].name) === norm(m.name));
+              if (existing) {
+                if (m.tag && members[existing].tag !== m.tag) { members[existing] = { ...members[existing], tag: m.tag }; db.putDoc('members', existing, members[existing]); stats.membersUpdated++; }
+              } else {
+                const mid = newId(`m-${teamId}-${slug(m.name)}`.slice(0, 60));
+                members[mid] = { teamId, name: m.name, tag: m.tag, phone: '', notes: '', months: {} };
+                db.putDoc('members', mid, clean('members', members[mid], false)); stats.membersAdded++;
+              }
+            }
+          }
+        });
+      }
+    });
+    broadcastReload();
+    log(`Excel import (${mode}): ${JSON.stringify(stats)}`);
+    return { summary, warnings: parsed.warnings, skipped: parsed.skipped, stats };
   }
 
   /* routes */
@@ -227,8 +322,10 @@ function createApp({ dbFile, secureCookies = false, mainCode = '1925', log = con
     const code = typeof body.code === 'string' && /^\d{4,8}$/.test(body.code) ? body.code : null;
     const h = code && codeHash(code);
     let access = null;
-    if (h && h === db.getSetting('main_code')) access = { main: true, teams: [] };
-    else if (h && db.teamByCode(h)) access = { main: false, teams: [db.teamByCode(h)] };
+    const key = h && db.teamByCode(h);
+    if (h && h === db.getSetting('main_code')) access = { main: true, teams: [], groups: [] };
+    else if (key && key.startsWith('g:')) access = { main: false, teams: [], groups: [key.slice(2)] };
+    else if (key) access = { main: false, teams: [key], groups: [] };
     if (!access) await guard.wrong();
     guard.ok();
     startSession(res, access);
@@ -240,9 +337,12 @@ function createApp({ dbFile, secureCookies = false, mainCode = '1925', log = con
     const guard = checkAttempts(req);
     const teamId = String(body.teamId || '');
     const code = typeof body.code === 'string' && /^\d{4,8}$/.test(body.code) ? body.code : null;
-    if (!code || db.teamByCode(codeHash(code)) !== teamId) await guard.wrong();
+    const team = db.doc('teams', teamId);
+    const key = code && db.teamByCode(codeHash(code));
+    if (!team || !key || (key !== teamId && key !== 'g:' + team.groupId)) await guard.wrong();
     guard.ok();
-    if (!session.teams.includes(teamId)) session.teams.push(teamId);
+    if (key.startsWith('g:')) { if (!session.groups.includes(team.groupId)) session.groups.push(team.groupId); }
+    else if (!session.teams.includes(teamId)) session.teams.push(teamId);
     db.updateSession(session.tokenHash, session);
     return { access: publicAccess(session) };
   });
@@ -265,10 +365,31 @@ function createApp({ dbFile, secureCookies = false, mainCode = '1925', log = con
     db.putSetting('main_code', codeHash(body.code));
     return { ok: true };
   }, { main: true });
+  route('POST', '/api/codes/group/:id', ({ session, params, body }) => {
+    const groupId = params.id;
+    if (!db.doc('groups', groupId)) throw fail(404, 'That group doesn’t exist.');
+    if (!session.main && !session.groups.includes(groupId)) throw fail(403, 'This needs the app code.');
+    checkCode(body.code);
+    if (codeInUse(body.code, 'g:' + groupId)) throw fail(409, 'That code is already in use. Choose a different one.');
+    db.putTeamCode('g:' + groupId, codeHash(body.code));
+    return { ok: true };
+  });
+  // Gives a new random 4-digit code to every team and group that has none (or to all of them).
+  // This response is the only time the new codes can be seen, so the app shows them to print or copy.
+  route('POST', '/api/codes/generate', ({ body }) => {
+    const have = new Set(db.teamsWithCodes());
+    const out = [];
+    const make = () => { for (let i = 0; i < 500; i++) { const c = String(crypto.randomInt(1000, 10000)); if (!/^(\d)\1+$/.test(c) && !codeInUse(c)) return c; } throw fail(500, 'Could not find a free code.'); };
+    db.transaction(() => {
+      for (const [gid] of Object.entries(db.docs('groups'))) if (body.all || !have.has('g:' + gid)) { const c = make(); db.putTeamCode('g:' + gid, codeHash(c)); out.push({ kind: 'group', id: gid, code: c }); }
+      for (const [tid] of Object.entries(db.docs('teams'))) if (body.all || !have.has(tid)) { const c = make(); db.putTeamCode(tid, codeHash(c)); out.push({ kind: 'team', id: tid, code: c }); }
+    });
+    return { codes: out };
+  }, { main: true });
   route('POST', '/api/codes/team/:id', ({ session, params, body }) => {
     const teamId = params.id;
     if (!db.doc('teams', teamId)) throw fail(404, 'That team doesn’t exist.');
-    if (!session.main && !session.teams.includes(teamId)) throw fail(403, 'Enter this team’s code first.');
+    if (!session.main && !opener(session)(teamId)) throw fail(403, 'Enter this team’s code first.');
     checkCode(body.code);
     if (codeInUse(body.code, teamId)) throw fail(409, 'That code is already in use. Choose a different one.');
     db.putTeamCode(teamId, codeHash(body.code));
@@ -276,10 +397,11 @@ function createApp({ dbFile, secureCookies = false, mainCode = '1925', log = con
   });
 
   route('GET', '/api/export', ({ res }) => {
-    const data = { app: 'church-status', version: VERSION, exportedAt: new Date().toISOString(), branches: db.docs('branches'), teams: db.docs('teams'), members: db.docs('members') };
+    const data = { app: 'church-status', version: VERSION, exportedAt: new Date().toISOString(), branches: db.docs('branches'), groups: db.docs('groups'), teams: db.docs('teams'), members: db.docs('members') };
     send(res, 200, JSON.stringify(data, null, 2), { 'Content-Disposition': `attachment; filename="church-status-backup-${new Date().toISOString().slice(0, 10)}.json"` });
   }, { main: true, raw: true });
   route('POST', '/api/import', ({ body }) => { replaceAll(body); return { ok: true }; }, { main: true, limit: 20e6 });
+  route('POST', '/api/import-excel', ({ body }) => importExcel(body), { main: true, limit: 30e6 });
   route('POST', '/api/example', ({ body }) => {
     seed(body.empty ? emptyData() : exampleData());
     broadcastReload();

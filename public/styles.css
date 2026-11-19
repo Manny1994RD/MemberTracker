@@ -200,3 +200,8 @@ footer.wrap { padding-block: 0 40px; color: var(--muted); font-size: 12.5px; }
   .overlay { align-items: flex-end; }
   .sheet { border-radius: 16px 16px 12px 12px; }
 }
+
+/* Codes grouped by branch in Settings */
+details.codes-branch { border-top: 1px solid var(--line); padding: 8px 0; }
+details.codes-branch summary { cursor: pointer; padding: 6px 0; }
+details.codes-branch .list-row:first-of-type { border-top: 1px solid var(--line); }

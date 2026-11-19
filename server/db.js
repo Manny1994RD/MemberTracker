@@ -32,6 +32,9 @@ function openDatabase(file) {
     );
   `);
 
+  // Sessions opened with a group code (added later): keep older databases working.
+  try { db.exec("ALTER TABLE access_sessions ADD COLUMN groups TEXT NOT NULL DEFAULT '[]'"); } catch (e) { /* already there */ }
+
   const q = {
     getSetting: db.prepare('SELECT value FROM settings WHERE key = ?'),
     putSetting: db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value'),
@@ -40,9 +43,9 @@ function openDatabase(file) {
     putTeamCode: db.prepare('INSERT INTO team_codes (team_id, code_hash) VALUES (?, ?) ON CONFLICT (team_id) DO UPDATE SET code_hash = excluded.code_hash'),
     deleteTeamCode: db.prepare('DELETE FROM team_codes WHERE team_id = ?'),
     clearTeamCodes: db.prepare('DELETE FROM team_codes'),
-    insertSession: db.prepare('INSERT INTO access_sessions (token_hash, main, teams, expires) VALUES (?, ?, ?, ?)'),
+    insertSession: db.prepare('INSERT INTO access_sessions (token_hash, main, teams, groups, expires) VALUES (?, ?, ?, ?, ?)'),
     session: db.prepare('SELECT * FROM access_sessions WHERE token_hash = ?'),
-    updateSession: db.prepare('UPDATE access_sessions SET main = ?, teams = ? WHERE token_hash = ?'),
+    updateSession: db.prepare('UPDATE access_sessions SET main = ?, teams = ?, groups = ? WHERE token_hash = ?'),
     deleteSession: db.prepare('DELETE FROM access_sessions WHERE token_hash = ?'),
     purgeSessions: db.prepare('DELETE FROM access_sessions WHERE expires < ?'),
     docsByCol: db.prepare('SELECT id, data FROM docs WHERE col = ?'),
@@ -53,7 +56,7 @@ function openDatabase(file) {
     countDocs: db.prepare('SELECT COUNT(*) AS n FROM docs'),
   };
 
-  const parseSession = row => row && { tokenHash: row.token_hash, main: !!row.main, teams: JSON.parse(row.teams), expires: row.expires };
+  const parseSession = row => row && { tokenHash: row.token_hash, main: !!row.main, teams: JSON.parse(row.teams), groups: JSON.parse(row.groups || '[]'), expires: row.expires };
 
   return {
     getSetting: key => q.getSetting.get(key)?.value ?? null,
@@ -63,9 +66,9 @@ function openDatabase(file) {
     putTeamCode: (teamId, hash) => q.putTeamCode.run(teamId, hash),
     deleteTeamCode: teamId => q.deleteTeamCode.run(teamId),
     clearTeamCodes: () => q.clearTeamCodes.run(),
-    insertSession: (hash, s, expires) => q.insertSession.run(hash, s.main ? 1 : 0, JSON.stringify(s.teams), expires),
+    insertSession: (hash, s, expires) => q.insertSession.run(hash, s.main ? 1 : 0, JSON.stringify(s.teams), JSON.stringify(s.groups || []), expires),
     session: hash => parseSession(q.session.get(hash)),
-    updateSession: (hash, s) => q.updateSession.run(s.main ? 1 : 0, JSON.stringify(s.teams), hash),
+    updateSession: (hash, s) => q.updateSession.run(s.main ? 1 : 0, JSON.stringify(s.teams), JSON.stringify(s.groups || []), hash),
     deleteSession: hash => q.deleteSession.run(hash),
     purgeSessions: () => q.purgeSessions.run(Date.now()),
     docs(col) {

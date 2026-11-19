@@ -1,9 +1,13 @@
 # Church Status
 
-Monthly goals dashboard for the **Santiago region** and its teams, in Spanish and English, with the Clean design.
+Monthly goals dashboard for the **Santiago region**, in Spanish and English, with the Clean design.
+
+Every branch (Santiago, La Vega, Moca, Jarabacoa, Puerto Plata) is organized as **branch → group → team → members**. The teams and members can be imported from the church directory in Excel.
 
 - **App code (1925 to start):** opens the region results, the monthly reports, the teams overview and settings.
-- **Team codes:** each Santiago team has its own code. A team's members and adjustments open only with that team's code.
+- **Group codes:** each group has a code that opens all of its teams, so the group leader can update any of them.
+- **Team codes:** each team has its own code that opens just that team.
+- A team's members and adjustments only open with its team code or its group code.
 - Codes are typed on a number keypad. There are no usernames or passwords.
 - Members and branch leaders don't use the app.
 - Changes show up live on everyone's screen.
@@ -69,23 +73,33 @@ The workflow in `.github/workflows/docker-publish.yml` tests the app, then build
 
 | Who | What they see |
 |---|---|
-| App code | **Región** (results by month, quarter or year), **Reporte mensual**, **Equipos** (overview; each team opens with its code), **Ajustes** |
-| Team code | That team's page (members' 7 goals, fruit, adjustments) and **Región** (view only) |
+| App code | **Región** (results by month, quarter or year), **Reporte mensual**, **Equipos** (by branch and group; each team opens with its code), **Ajustes** |
+| Group code | Every team in that group (members' 7 goals, fruit, adjustments) and **Región** (view only) |
+| Team code | That team's page and **Región** (view only) |
 
 - **Branches and goals:** Santiago, La Vega, Moca, Puerto Plata and Jarabacoa are created at setup. You can rename, add or remove branches in **Ajustes**.
-  - The branch marked **Equipos** reports through its teams, and its fruit adds up from the teams. The other branches get a monthly report.
+  - A branch's fruit adds up from its teams. A branch without teams enters its fruit in the monthly report.
   - Attendance and tithe goals are *people per month*. On the quarterly and yearly views they show the monthly average.
   - Preaching and fruit goals are *per year*. Each month's goal is one twelfth.
 - **The 7 monthly goals:** Attendance (the team picks 1–4 times), Tithe, EduLMS, GA Signature, Online Mission (3x), Preached (3x) and Preparation Day.
+- **Importing from Excel** (**Ajustes → Importar equipos desde Excel**):
+  - **File layout:** one sheet per branch, named like the branch. Inside it, a group title such as `ADULTAS · ROSA GUZMÁN`, then a row of `EQUIPO 1`, `EQUIPO 2`… headings with each team's members listed below. A count like `6 integrantes` ends a column.
+  - **Santiago's planned groups:** columns under `PLANIFICACIÓN DE FUTUROS GRUPOS` / `FUTURO GRUPO · …` become future groups, marked "Futuro grupo".
+  - **Notes beside names:** text in parentheses becomes a label, for example `(Ayudante)`. A `(Tl…)` label also marks that person as the team leader.
+  - **Ignored:** sheets without `EQUIPO n` headings, like "Resumen General" and "Comités".
+  - **Preview first:** you see a summary per branch and anything to check in the Excel (a name twice in one team, a column without a heading) before anything changes.
+  - **Agregar y actualizar** adds what's new and keeps everything already in the app: goals, codes, and people added in the app. Import an updated Excel this way whenever the directory changes.
+  - **Reemplazar** removes all groups, teams, members and their codes first.
 - **Codes:**
   - **App code:** opens everything except team members. Change it in **Ajustes → Código de la app**. To start with a different code than 1925 on a new install, set `APP_CODE` in the compose file.
-  - **Team codes:** opening a team from **Equipos** asks for that team's code, even with the app code. A team leader can also type their team code on the first screen to go straight to their team. They then see only their team and the region results.
-  - A team gets its code when it's added. To replace a code, use **Ajustes → Códigos de equipo**, or **Ajustes del equipo** on the team's page.
+  - **Group and team codes:** opening a team from **Equipos** asks for the team's code or its group's code, even with the app code. A leader can also type their code on the first screen to go straight to their teams. They then see only those teams and the region results.
+  - **Crear los códigos que faltan** (in **Ajustes → Códigos de grupo y de equipo**) gives every group and team without a code a random 4-digit code, and shows the full list once to copy or write down.
+  - **Replacing a code:** use the same Ajustes section, **Grupo** on a group in **Equipos**, or **Ajustes del equipo** on a team's page.
   - Every code is 4 to 8 digits and must be different from all the others.
   - After 8 wrong codes from one device, or 40 in total, entering a code pauses for 15 minutes.
   - Codes are stored scrambled, so they can be replaced but never shown.
   - **Cerrar** (top right) locks the app again on that device.
-- **Backups:** in **Ajustes → Copia de seguridad**, download a JSON file of all reports, teams and members, or restore one. Codes aren't included. You can also copy `/DATA/AppData/church-status` while the app is stopped.
+- **Backups:** in **Ajustes → Copia de seguridad**, download a JSON file of all reports, groups, teams and members, or restore one. Codes aren't included. You can also copy `/DATA/AppData/church-status` while the app is stopped.
 
 ---
 
