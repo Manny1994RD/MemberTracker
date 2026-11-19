@@ -188,6 +188,11 @@ test('Excel import, group codes and generated codes', async t => {
   const otherTeam = Object.entries(d.teams).find(([, tm]) => tm.groupId !== ana[0])[0];
   assert.equal((await leader('POST', '/api/docs/members/new-2', { op: 'set', data: { teamId: otherTeam, name: 'X', months: {} } })).status, 403);
   assert.equal((await leader('POST', '/api/docs/groups/' + ana[0], { op: 'update', data: { name: 'Mío' } })).status, 403);
+  // Fruit goals are set per group, with the app code only
+  assert.equal((await leader('POST', '/api/docs/groups/' + ana[0], { op: 'update', data: { fruitGoal: 9 } })).status, 403);
+  const fg = await main('POST', '/api/docs/groups/' + ana[0], { op: 'update', data: { fruitGoal: 6 } });
+  assert.equal(fg.status, 200);
+  assert.equal(fg.data.data.fruitGoal, 6);
   const again = await main('POST', '/api/import-excel', { file, mode: 'merge' });
   assert.deepEqual(again.data.stats, { branchesAdded: 0, groupsAdded: 0, teamsAdded: 0, membersAdded: 0, membersUpdated: 0 });
   d = (await main('GET', '/api/data')).data;

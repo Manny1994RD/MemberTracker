@@ -5,7 +5,7 @@
 const COLS = ['branches', 'groups', 'teams', 'members'];
 const FIELDS = {
   branches: { name: 'str', order: 'num', hasTeams: 'bool', goals: 'nums', months: 'monthNums' },
-  groups: { branchId: 'str', name: 'str', leader: 'str', order: 'num', future: 'bool' },
+  groups: { branchId: 'str', name: 'str', leader: 'str', order: 'num', future: 'bool', fruitGoal: 'num' },
   teams: { branchId: 'str', groupId: 'str', name: 'str', num: 'num', note: 'str', leader: 'str', fruitGoal: 'num', attTarget: 'num', fruit: 'nums' },
   members: { teamId: 'str', name: 'str', tag: 'str', phone: 'str', notes: 'text', months: 'monthNums' },
 };

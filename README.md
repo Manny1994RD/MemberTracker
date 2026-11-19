@@ -77,6 +77,7 @@ The workflow in `.github/workflows/docker-publish.yml` tests the app, then build
 
 - **Branches and goals:** Santiago, La Vega, Moca, Puerto Plata and Jarabacoa are created at setup. You can rename, add or remove branches in **Ajustes**.
   - A branch's fruit adds up from its teams. A branch without teams enters its fruit in the monthly report.
+  - **Fruit goals by group:** in **Equipos**, pick a branch and split its yearly fruit goal between its groups. You can also set it under **Grupo**. Each group's fruit adds up from its teams, and every team page shows its group's progress.
   - Attendance and tithe goals are *people per month*. On the quarterly and yearly views they show the monthly average.
   - Preaching and fruit goals are *per year*. Each month's goal is one twelfth.
 - **The 7 monthly goals:** Attendance (the team picks 1–4 times), Tithe, EduLMS, GA Signature, Online Mission (3x), Preached (3x) and Preparation Day.

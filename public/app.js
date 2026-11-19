@@ -138,6 +138,8 @@ function stopLive() { if (ES) { ES.close(); ES = null; } LIVE = false; }
 
 /* Branch & team math */
 function teamFruit(t, months) { return months.reduce((a, m) => a + ((t.fruit || {})[m] || 0), 0); }
+// Fruit goals are set per group; a group's fruit adds up from its teams.
+function groupFruit(gid, months) { return TEAMS().filter(t => t.groupId === gid).reduce((a, t) => a + teamFruit(t, months), 0); }
 function branchVal(b, k) {
   const ms = periodMonths();
   if (k === 'fruit' && branchHasTeams(b)) return teamsOfBranch(b.id).reduce((a, t) => a + teamFruit(t, ms), 0);
@@ -337,15 +339,15 @@ function viewTeams() {
   if (!b) return `<div class="card empty"><div class="h">${L('No branches yet', 'Aún no hay sucursales')}</div></div>`;
   TEAMS_BRANCH = b.id;
   const ts = teamsOfBranch(b.id), gs = groupsOfBranch(b.id), yr = monthsToDate();
-  const assigned = ts.reduce((a, t) => a + (+t.fruitGoal || 0), 0), branchFruitGoal = +(b.goals || {}).fruit || 0;
+  const assigned = gs.reduce((a, g) => a + (+g.fruitGoal || 0), 0), branchFruitGoal = +(b.goals || {}).fruit || 0;
   const members = ts.reduce((a, t) => a + teamCount(t), 0);
-  const row = t => { const h = teamHealth(t), f = teamFruit(t, yr), g = +t.fruitGoal || 0; return `<tr class="click" data-act="openTeam" data-t="${esc(t.id)}" tabindex="0">
+  const row = t => { const h = teamHealth(t), f = teamFruit(t, yr); return `<tr class="click" data-act="openTeam" data-t="${esc(t.id)}" tabindex="0">
       <td><div class="who">${plant(pctStage(h), 28, h < 50)}<div><b>${esc(teamName(t))}</b><div class="small">${esc(t.note)}</div></div></div></td>
       <td>${esc(t.leader) || '<span class="muted">—</span>'}</td><td class="c num">${teamCount(t)}</td>
       <td><div class="mcell"><div class="nums">${h}%<span></span></div>${bar(h / 100)}</div></td>
-      <td><div class="mcell"><div class="nums">${f}<span>/ ${g}</span></div>${bar(ratio(f, g))}</div></td>
+      <td class="c num">${f}</td>
       <td><span class="btn ghost sm">${hasTeam(t.id) ? L('Open', 'Abrir') : `🔒 ${L('Open', 'Abrir')}`}</span></td></tr>`; };
-  const head = `<thead><tr><th>${L('Team', 'Equipo')}</th><th>${L('Leader', 'Líder')}</th><th class="c">${L('Members', 'Miembros')}</th><th>${L('7 goals this month', '7 metas este mes')}</th><th>${L('Fruit this year', 'Fruto este año')}</th><th></th></tr></thead>`;
+  const head = `<thead><tr><th>${L('Team', 'Equipo')}</th><th>${L('Leader', 'Líder')}</th><th class="c">${L('Members', 'Miembros')}</th><th>${L('7 goals this month', '7 metas este mes')}</th><th class="c">${L('Fruit this year', 'Fruto este año')}</th><th></th></tr></thead>`;
   const loose = ts.filter(t => !S.groups[t.groupId]);
   return `
   <div class="head"><div class="grow"><h1>${L('Teams', 'Equipos')}</h1><p>${L('Pick a branch. Opening a team asks for its group’s code.', 'Elige una sucursal. Abrir un equipo pide el código de su grupo.')}</p></div>
@@ -353,9 +355,10 @@ function viewTeams() {
   <div class="chips">${bs.map(x => `<button class="chip ${x.id === b.id ? 'on' : ''}" data-act="pickTeamsBranch" data-b="${esc(x.id)}">${esc(x.name)} <span class="muted">${teamsOfBranch(x.id).length}</span></button>`).join('')}</div>
   ${ts.length ? `<div class="grid split">
     <div class="grid">
-      ${gs.map(g => { const gt = ts.filter(t => t.groupId === g.id); return `<div class="card">
+      ${gs.map(g => { const gt = ts.filter(t => t.groupId === g.id), gf = groupFruit(g.id, yr), gg = +g.fruitGoal || 0; return `<div class="card">
         <div class="row" style="flex-wrap:wrap"><div class="grow"><div class="h">${esc(g.name)} ${g.future ? `<span class="tag warn">${L('Future group', 'Futuro grupo')}</span>` : ''}</div>
           <div class="small">${gt.length} ${L('teams', 'equipos')} · ${gt.reduce((a, t) => a + teamCount(t), 0)} ${L('members', 'miembros')}${g.leader ? ` · ${L('Leader', 'Líder')}: ${esc(g.leader)}` : ''} · ${CODED_G.includes(g.id) ? L('Group code set', 'Con código de grupo') : `<span style="color:var(--warn)">${L('No group code', 'Sin código de grupo')}</span>`}</div></div>
+          <div class="mcell" style="min-width:150px"><div class="nums">${icon('fruit', 14)} ${gf}<span>/ ${gg} ${L('fruit this year', 'fruto del año')}</span></div>${bar(ratio(gf, gg))}</div>
           <button class="btn ghost sm" data-act="groupSettings" data-g="${esc(g.id)}">${icon('gear', 14)}${L('Group', 'Grupo')}</button></div>
         <div class="tablewrap"><table>${head}<tbody>${gt.map(row).join('') || `<tr><td colspan="6" class="muted">${L('No teams in this group.', 'Este grupo no tiene equipos.')}</td></tr>`}</tbody></table></div>
       </div>`; }).join('')}
@@ -364,9 +367,9 @@ function viewTeams() {
     <div class="card">
       <div class="lbl">${L('Split the yearly fruit goal', 'Repartir la meta anual de fruto')} · ${esc(b.name)}</div>
       <div class="row" style="justify-content:space-between;margin:10px 0"><span>${L('Branch fruit goal', 'Meta de fruto de la sucursal')}</span><b class="num">${branchFruitGoal}</b></div>
-      ${ts.map(t => `<div class="list-row"><span class="grow">${esc(teamName(t))}<div class="small">${esc(groupName(t))}</div></span><input class="input num" style="width:80px" type="number" min="0" id="fg-${esc(t.id)}" value="${+t.fruitGoal || 0}" data-act="fruitGoal" data-t="${esc(t.id)}" aria-label="${L('Fruit goal', 'Meta de fruto')} ${esc(teamName(t))}"></div>`).join('')}
+      ${gs.map(g => `<div class="list-row"><span class="grow">${esc(g.name)}<div class="small">${ts.filter(t => t.groupId === g.id).length} ${L('teams', 'equipos')} · ${groupFruit(g.id, yr)} ${L('so far', 'hasta ahora')}</div></span><input class="input num" style="width:80px" type="number" min="0" id="fg-${esc(g.id)}" value="${+g.fruitGoal || 0}" data-act="groupFruitGoal" data-g="${esc(g.id)}" aria-label="${L('Fruit goal', 'Meta de fruto')} ${esc(g.name)}"></div>`).join('')}
       <div style="margin-top:12px"><span class="tag ${assigned === branchFruitGoal ? 'ok' : 'warn'}">${L(`Assigned ${assigned} of ${branchFruitGoal}`, `Asignado ${assigned} de ${branchFruitGoal}`)}</span></div>
-      <p class="small">${members} ${L('members in', 'miembros en')} ${ts.length} ${L('teams', 'equipos')}</p>
+      <p class="small">${members} ${L('members in', 'miembros en')} ${ts.length} ${L('teams', 'equipos')} · ${L('Each group’s fruit adds up from its teams.', 'El fruto de cada grupo se suma desde sus equipos.')}</p>
     </div>
   </div>` : `<div class="card empty">${plant(1, 60)}<div class="h">${L('No teams in this branch yet', 'Esta sucursal aún no tiene equipos')}</div><div class="small">${L('Import them from Excel in Settings, or add the first team here.', 'Impórtalos desde Excel en Ajustes, o agrega el primer equipo aquí.')}</div></div>`}`;
 }
@@ -381,7 +384,7 @@ function viewTeam() {
       ${isMain() ? `<a href="#teams" class="small" style="text-align:center;color:var(--accent);text-decoration:none">‹ ${L('All teams', 'Todos los equipos')}</a>` : ''}
     </form></div>`;
   const mo = TEAM_MONTH, ms = teamMembers(t.id), h = teamHealth(t, mo), yr = monthsToDate();
-  const fYear = teamFruit(t, yr), fMonth = (t.fruit || {})[mo] || 0, fg = +t.fruitGoal || 0;
+  const gYear = groupFruit(t.groupId, yr), fYear = teamFruit(t, yr), fMonth = (t.fruit || {})[mo] || 0, fg = +(S.groups[t.groupId]?.fruitGoal) || 0;
   const complete = ms.filter(m => mdone(m, t, mo) === 7).length;
   const follow = ms.filter(m => mdone(m, t, mo) <= 3);
   return `
@@ -395,7 +398,7 @@ function viewTeam() {
     <div class="card kpi"><div class="row"><div class="plantbox" style="padding:4px 8px 2px">${plant(pctStage(h), 34, h < 45)}</div><div><div class="lbl">${L('Team health', 'Salud del equipo')}</div><div class="v" style="margin:4px 0 0">${h}%</div></div></div></div>
     <div class="card kpi"><div class="row"><div class="ic">${icon('star', 22)}</div><div><div class="lbl">${L('All 7 reached', 'Las 7 logradas')}</div><div class="v" style="margin:4px 0 0">${complete} <small>/ ${ms.length}</small></div></div></div></div>
     <div class="card kpi"><div class="row"><div class="ic">${icon('hands', 22)}</div><div class="grow"><div class="lbl">${L('Need follow-up', 'Necesitan seguimiento')}</div><div class="v" style="margin:4px 0 0">${follow.length}</div></div></div><div class="small">${follow.map(m => esc(first(m.name))).join(', ') || L('Nobody right now', 'Nadie por ahora')}</div></div>
-    <div class="card kpi"><div class="row"><div class="ic">${icon('fruit', 22)}</div><div class="grow"><div class="lbl">${L('Fruit this year', 'Fruto este año')}</div><div class="v" style="margin:4px 0 0">${fYear} <small>/ ${fg}</small></div></div></div>
+    <div class="card kpi"><div class="row"><div class="ic">${icon('fruit', 22)}</div><div class="grow"><div class="lbl">${L('Group fruit this year', 'Fruto del grupo este año')}</div><div class="v" style="margin:4px 0 0">${gYear} <small>/ ${fg}</small></div><div class="small">${L('This team', 'Este equipo')}: ${fYear}</div></div></div>
       <div class="row" style="justify-content:space-between"><span class="small">${monthLabel(mo).split(' ')[0]}: <b>${fMonth}</b></span><div class="stepper" style="gap:6px"><button data-act="fruitDec" aria-label="−" style="width:30px;height:30px">−</button><button class="plus" data-act="fruitInc" aria-label="+" style="width:30px;height:30px">+</button></div></div></div>
   </div>
   <div class="card">
@@ -500,7 +503,7 @@ function sheet() {
     const t = { id: VIEW_TEAM, ...S.teams[VIEW_TEAM] };
     body = `<div class="row"><div class="h grow">${L('Team settings', 'Ajustes del equipo')}</div>${close}</div>
       ${field('ts-name', L('Team name (optional)', 'Nombre del equipo (opcional)'), `value="${esc(t.name)}" placeholder="${L('Team', 'Equipo')} ${t.num}" maxlength="120" autocomplete="off"`)}
-      ${isMain() ? field('ts-leader', L('Team leader', 'Líder del equipo'), `value="${esc(t.leader)}" maxlength="120" autocomplete="off"`) + field('ts-fruit', L('Yearly fruit goal', 'Meta anual de fruto'), `type="number" min="0" value="${+t.fruitGoal || 0}"`) : ''}
+      ${isMain() ? field('ts-leader', L('Team leader', 'Líder del equipo'), `value="${esc(t.leader)}" maxlength="120" autocomplete="off"`)  : ''}
       ${S.groups[t.groupId] ? field('ts-code', L('New code for the whole group (leave empty to keep it)', 'Nuevo código para todo el grupo (vacío para dejarlo igual)'), 'type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off"') : ''}
       <div class="small">${L('Attendance goal per month', 'Meta de asistencia por mes')}</div>
       <div class="seg">${[1, 2, 3, 4].map(n => `<button type="button" class="${(SHEET.att || t.attTarget || 4) === n ? 'on' : ''}" data-act="attTarget" data-n="${n}">${n}</button>`).join('')}</div>
@@ -513,7 +516,6 @@ function sheet() {
       <div class="field"><label for="nt-group">${L('Group', 'Grupo')}</label><select class="sel" id="nt-group">${gs.map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('')}<option value="__new">${L('New group…', 'Grupo nuevo…')}</option></select></div>
       ${field('nt-newgroup', L('New group name (only for a new group)', 'Nombre del grupo nuevo (solo si es nuevo)'), 'maxlength="120" autocomplete="off" placeholder="Adultas · Nombre del líder"')}
       ${field('nt-leader', L('Team leader’s full name (optional)', 'Nombre completo del líder (opcional)'), 'maxlength="120" autocomplete="off"')}
-      ${field('nt-fruit', L('Yearly fruit goal', 'Meta anual de fruto'), 'type="number" min="0" value="0"')}
       <div class="small">${L('The team gets the next number in its group and opens with its group’s code. A new group gets its code in Settings.', 'El equipo recibe el siguiente número de su grupo y se abre con el código de su grupo. Un grupo nuevo recibe su código en Ajustes.')}</div>
       <div class="row" style="justify-content:flex-end"><button class="btn" data-act="teamAdd" ${BUSY ? 'disabled' : ''}>${L('Add team', 'Agregar equipo')}</button></div>`;
   }
@@ -522,6 +524,7 @@ function sheet() {
     body = `<div class="row"><div class="h grow">${L('Group settings', 'Ajustes del grupo')}</div>${close}</div>
       ${field('gs-name', L('Group name', 'Nombre del grupo'), `value="${esc(g.name)}" maxlength="120" autocomplete="off"`)}
       ${field('gs-leader', L('Group leader', 'Líder del grupo'), `value="${esc(g.leader)}" maxlength="120" autocomplete="off"`)}
+      ${field('gs-fruit', L('Yearly fruit goal for the group', 'Meta anual de fruto del grupo'), `type="number" min="0" value="${+g.fruitGoal || 0}"`)}
       ${field('gs-code', L('New group code (leave empty to keep it)', 'Nuevo código del grupo (vacío para dejarlo igual)'), 'type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off"')}
       <label class="check"><input type="checkbox" id="gs-future" ${g.future ? 'checked' : ''}>${L('Future group (planned, not yet open)', 'Futuro grupo (planificado, aún no abierto)')}</label>
       <div class="row" style="justify-content:space-between">
@@ -650,7 +653,7 @@ app.addEventListener('click', async e => {
       if (code && !/^\d{4,8}$/.test(code)) { toast(L('The code needs 4 to 8 digits.', 'El código necesita de 4 a 8 dígitos.')); return; }
       const patch = { name: val('ts-name') };
       if (SHEET.att) patch.attTarget = SHEET.att;
-      if (isMain()) { if (val('ts-leader')) patch.leader = val('ts-leader'); patch.fruitGoal = Math.max(0, Math.round(+val('ts-fruit') || 0)); }
+      if (isMain() && val('ts-leader')) patch.leader = val('ts-leader');
       const id = VIEW_TEAM;
       if (code) {
         const gid = S.teams[id]?.groupId;
@@ -681,7 +684,7 @@ app.addEventListener('click', async e => {
         if (!await save('groups', groupId, { branchId: bid, name: val('nt-newgroup'), leader: '', order, future: false }, 'set')) { BUSY = false; render(); return; }
       }
       const num = TEAMS().filter(t => t.groupId === groupId).reduce((a, t) => Math.max(a, t.num || 0), 0) + 1, id = uid('t');
-      const ok = await save('teams', id, { branchId: bid, groupId, name: '', num, note: '', leader, fruitGoal: Math.max(0, Math.round(+val('nt-fruit') || 0)), attTarget: 4, fruit: {} }, 'set');
+      const ok = await save('teams', id, { branchId: bid, groupId, name: '', num, note: '', leader, fruitGoal: 0, attTarget: 4, fruit: {} }, 'set');
       if (ok && code) {
         try { await api('POST', `/api/codes/team/${encodeURIComponent(id)}`, { code }); CODED.push(id); toast(L('Team added. Share its code with the team leader.', 'Equipo agregado. Comparte su código con el líder del equipo.')); }
         catch (x) { toast(L(`Team added, but the code wasn’t saved: ${x.message} Set it in Settings.`, `Equipo agregado, pero el código no se guardó: ${x.message} Ponlo en Ajustes.`)); }
@@ -699,7 +702,7 @@ app.addEventListener('click', async e => {
         catch (x) { toast(x.message); return; }
       }
       SHEET = null;
-      if (await save('groups', id, { name, leader: val('gs-leader'), future: !!document.getElementById('gs-future')?.checked })) toast(code ? L('Group saved. Share the new code with the group leader.', 'Grupo guardado. Comparte el nuevo código con el líder del grupo.') : L('Group saved.', 'Grupo guardado.'));
+      if (await save('groups', id, { name, leader: val('gs-leader'), fruitGoal: Math.max(0, Math.round(+val('gs-fruit') || 0)), future: !!document.getElementById('gs-future')?.checked })) toast(code ? L('Group saved. Share the new code with the group leader.', 'Grupo guardado. Comparte el nuevo código con el líder del grupo.') : L('Group saved.', 'Grupo guardado.'));
       return;
     }
     case 'groupDelete': {
@@ -763,7 +766,7 @@ app.addEventListener('click', async e => {
 app.addEventListener('change', async e => {
   const el = e.target, act = el.dataset.act;
   if (act === 'repMonth') { REPORT = { ...REPORT, month: el.value, draft: {} }; render(); }
-  else if (act === 'fruitGoal') save('teams', el.dataset.t, { fruitGoal: Math.max(0, Math.round(+el.value || 0)) });
+  else if (act === 'groupFruitGoal') save('groups', el.dataset.g, { fruitGoal: Math.max(0, Math.round(+el.value || 0)) });
   else if (act === 'branchName') { const name = el.value.trim(); if (name && name !== S.branches[el.dataset.b]?.name) save('branches', el.dataset.b, { name }); else render(); }
   else if (act === 'excelPick') {
     const file = el.files && el.files[0]; if (!file) return;
