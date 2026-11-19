@@ -221,7 +221,7 @@ function screenLogin() {
   return `<div class="auth"><form class="card pinpad" data-form="login">
     <div class="row" style="justify-content:space-between"><div class="brandmark">${icon('bible', 28)}Church Status</div>${langSeg()}</div>
     <h1>${L('Enter the code', 'Escribe el código')}</h1>
-    <p class="small" style="margin:0;text-align:center">${L('Use the app code, or your group’s or team’s code to go straight to your teams.', 'Usa el código de la app, o el código de tu grupo o equipo para ir directo a tus equipos.')}</p>
+    <p class="small" style="margin:0;text-align:center">${L('Use the app code, or your group’s code to go straight to your group’s teams.', 'Usa el código de la app, o el código de tu grupo para ir directo a los equipos de tu grupo.')}</p>
     ${codePad('login', L('Enter', 'Entrar'))}
   </form></div>`;
 }
@@ -340,7 +340,7 @@ function viewTeams() {
   const assigned = ts.reduce((a, t) => a + (+t.fruitGoal || 0), 0), branchFruitGoal = +(b.goals || {}).fruit || 0;
   const members = ts.reduce((a, t) => a + teamCount(t), 0);
   const row = t => { const h = teamHealth(t), f = teamFruit(t, yr), g = +t.fruitGoal || 0; return `<tr class="click" data-act="openTeam" data-t="${esc(t.id)}" tabindex="0">
-      <td><div class="who">${plant(pctStage(h), 28, h < 50)}<div><b>${esc(teamName(t))}</b><div class="small">${t.note ? esc(t.note) : CODED.includes(t.id) ? L('Has a code', 'Tiene código') : `<span style="color:var(--warn)">${L('No code yet', 'Sin código aún')}</span>`}</div></div></div></td>
+      <td><div class="who">${plant(pctStage(h), 28, h < 50)}<div><b>${esc(teamName(t))}</b><div class="small">${esc(t.note)}</div></div></div></td>
       <td>${esc(t.leader) || '<span class="muted">—</span>'}</td><td class="c num">${teamCount(t)}</td>
       <td><div class="mcell"><div class="nums">${h}%<span></span></div>${bar(h / 100)}</div></td>
       <td><div class="mcell"><div class="nums">${f}<span>/ ${g}</span></div>${bar(ratio(f, g))}</div></td>
@@ -348,7 +348,7 @@ function viewTeams() {
   const head = `<thead><tr><th>${L('Team', 'Equipo')}</th><th>${L('Leader', 'Líder')}</th><th class="c">${L('Members', 'Miembros')}</th><th>${L('7 goals this month', '7 metas este mes')}</th><th>${L('Fruit this year', 'Fruto este año')}</th><th></th></tr></thead>`;
   const loose = ts.filter(t => !S.groups[t.groupId]);
   return `
-  <div class="head"><div class="grow"><h1>${L('Teams', 'Equipos')}</h1><p>${L('Pick a branch. Opening a team asks for the team’s or its group’s code.', 'Elige una sucursal. Abrir un equipo pide el código del equipo o de su grupo.')}</p></div>
+  <div class="head"><div class="grow"><h1>${L('Teams', 'Equipos')}</h1><p>${L('Pick a branch. Opening a team asks for its group’s code.', 'Elige una sucursal. Abrir un equipo pide el código de su grupo.')}</p></div>
     <button class="btn" data-act="addTeamOpen">${icon('people', 16)}${L('Add team', 'Agregar equipo')}</button></div>
   <div class="chips">${bs.map(x => `<button class="chip ${x.id === b.id ? 'on' : ''}" data-act="pickTeamsBranch" data-b="${esc(x.id)}">${esc(x.name)} <span class="muted">${teamsOfBranch(x.id).length}</span></button>`).join('')}</div>
   ${ts.length ? `<div class="grid split">
@@ -376,7 +376,7 @@ function viewTeam() {
   if (!t) return `<div class="card empty"><div class="h">${L('That team no longer exists', 'Ese equipo ya no existe')}</div><a class="btn" href="#${isMain() ? 'teams' : 'region'}">${isMain() ? L('All teams', 'Todos los equipos') : L('See region', 'Ver región')}</a></div>`;
   if (!hasTeam(t.id)) return `<div class="auth" style="min-height:auto;padding:10px 0"><form class="card pinpad" data-form="unlock" data-t="${esc(t.id)}">
       <div class="row">${plant(pctStage(teamHealth(t)), 34)}<div><div class="h">${esc(teamName(t))}</div><div class="small">${esc(groupName(t))} · ${esc(S.branches[t.branchId]?.name || '')}</div></div></div>
-      <h1 style="font-size:19px">${L('Enter the team’s or the group’s code', 'Escribe el código del equipo o del grupo')}</h1>
+      <h1 style="font-size:19px">${L('Enter the group’s code', 'Escribe el código del grupo')}</h1>
       ${codePad('unlock', L('Open', 'Abrir'))}
       ${isMain() ? `<a href="#teams" class="small" style="text-align:center;color:var(--accent);text-decoration:none">‹ ${L('All teams', 'Todos los equipos')}</a>` : ''}
     </form></div>`;
@@ -418,7 +418,7 @@ function viewTeam() {
 
 function viewSettings() {
   const bs = BRANCHES();
-  const missing = Object.keys(S.teams).filter(t => !CODED.includes(t)).length + Object.keys(S.groups).filter(g => !CODED_G.includes(g)).length;
+  const missing = Object.keys(S.groups).filter(g => !CODED_G.includes(g)).length + Object.keys(S.teams).filter(t => !S.groups[S.teams[t].groupId] && !CODED.includes(t)).length;
   const codeRow = (kind, id, label, sub, has) => `<form class="list-row" data-form="${kind}Code" data-id="${esc(id)}"><div class="grow"><b>${esc(label)}</b><div class="small">${sub ? esc(sub) + ' · ' : ''}${has ? L('Has a code', 'Tiene código') : `<span style="color:var(--warn)">${L('No code yet', 'Sin código aún')}</span>`}</div></div>
       <input class="input num" style="width:110px" id="${kind}c-${esc(id)}" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" placeholder="${L('New', 'Nuevo')}" aria-label="${L('New code for', 'Nuevo código para')} ${esc(label)}"><button class="btn ghost sm" type="submit">${L('Save', 'Guardar')}</button></form>`;
   return `
@@ -439,11 +439,11 @@ function viewSettings() {
     </div>
   </div>
   <div class="card">
-    <div class="row" style="flex-wrap:wrap"><div class="grow"><div class="h">${L('Group and team codes', 'Códigos de grupo y de equipo')}</div>
-      <div class="small">${L('A group code opens all the teams in that group; a team code opens just that team. Codes are stored scrambled, so they can only be replaced, not shown.', 'Un código de grupo abre todos los equipos de ese grupo; un código de equipo abre solo ese equipo. Los códigos se guardan cifrados: solo se pueden reemplazar, no mostrar.')}</div></div>
+    <div class="row" style="flex-wrap:wrap"><div class="grow"><div class="h">${L('Group codes', 'Códigos de grupo')}</div>
+      <div class="small">${L('Each group has one code that opens all of its teams. Codes are stored scrambled, so they can only be replaced, not shown.', 'Cada grupo tiene un código que abre todos sus equipos. Los códigos se guardan cifrados: solo se pueden reemplazar, no mostrar.')}</div></div>
       <button class="btn" data-act="generateCodes" ${missing ? '' : 'disabled'}>${L(`Create the ${missing} missing codes`, `Crear los ${missing} códigos que faltan`)}</button></div>
     ${bs.map(b => { const gs = groupsOfBranch(b.id), ts = teamsOfBranch(b.id); if (!ts.length && !gs.length) return ''; return `<details class="codes-branch"><summary><b>${esc(b.name)}</b> <span class="muted">· ${gs.length} ${L('groups', 'grupos')} · ${ts.length} ${L('teams', 'equipos')}</span></summary>
-      ${gs.map(g => codeRow('group', g.id, `${L('Group', 'Grupo')}: ${g.name}`, '', CODED_G.includes(g.id)) + ts.filter(t => t.groupId === g.id).map(t => `<div style="padding-left:22px">${codeRow('team', t.id, teamName(t), g.name, CODED.includes(t.id))}</div>`).join('')).join('')}
+      ${gs.map(g => codeRow('group', g.id, g.name, `${ts.filter(t => t.groupId === g.id).length} ${L('teams', 'equipos')}`, CODED_G.includes(g.id))).join('')}
       ${ts.filter(t => !S.groups[t.groupId]).map(t => codeRow('team', t.id, teamName(t), '', CODED.includes(t.id))).join('')}
     </details>`; }).join('')}
   </div>
@@ -501,7 +501,7 @@ function sheet() {
     body = `<div class="row"><div class="h grow">${L('Team settings', 'Ajustes del equipo')}</div>${close}</div>
       ${field('ts-name', L('Team name (optional)', 'Nombre del equipo (opcional)'), `value="${esc(t.name)}" placeholder="${L('Team', 'Equipo')} ${t.num}" maxlength="120" autocomplete="off"`)}
       ${isMain() ? field('ts-leader', L('Team leader', 'Líder del equipo'), `value="${esc(t.leader)}" maxlength="120" autocomplete="off"`) + field('ts-fruit', L('Yearly fruit goal', 'Meta anual de fruto'), `type="number" min="0" value="${+t.fruitGoal || 0}"`) : ''}
-      ${field('ts-code', L('New team code (leave empty to keep it)', 'Nuevo código del equipo (vacío para dejarlo igual)'), 'type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off"')}
+      ${S.groups[t.groupId] ? field('ts-code', L('New code for the whole group (leave empty to keep it)', 'Nuevo código para todo el grupo (vacío para dejarlo igual)'), 'type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off"') : ''}
       <div class="small">${L('Attendance goal per month', 'Meta de asistencia por mes')}</div>
       <div class="seg">${[1, 2, 3, 4].map(n => `<button type="button" class="${(SHEET.att || t.attTarget || 4) === n ? 'on' : ''}" data-act="attTarget" data-n="${n}">${n}</button>`).join('')}</div>
       <div class="row" style="justify-content:space-between">
@@ -514,8 +514,7 @@ function sheet() {
       ${field('nt-newgroup', L('New group name (only for a new group)', 'Nombre del grupo nuevo (solo si es nuevo)'), 'maxlength="120" autocomplete="off" placeholder="Adultas · Nombre del líder"')}
       ${field('nt-leader', L('Team leader’s full name (optional)', 'Nombre completo del líder (opcional)'), 'maxlength="120" autocomplete="off"')}
       ${field('nt-fruit', L('Yearly fruit goal', 'Meta anual de fruto'), 'type="number" min="0" value="0"')}
-      ${field('nt-code', L('Team code, 4 to 8 digits (optional)', 'Código del equipo, de 4 a 8 dígitos (opcional)'), 'type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off"')}
-      <div class="small">${L('The team gets the next number in its group. Without a code, it opens with its group’s code, or create one later in Settings.', 'El equipo recibe el siguiente número de su grupo. Sin código, se abre con el código de su grupo, o créalo luego en Ajustes.')}</div>
+      <div class="small">${L('The team gets the next number in its group and opens with its group’s code. A new group gets its code in Settings.', 'El equipo recibe el siguiente número de su grupo y se abre con el código de su grupo. Un grupo nuevo recibe su código en Ajustes.')}</div>
       <div class="row" style="justify-content:flex-end"><button class="btn" data-act="teamAdd" ${BUSY ? 'disabled' : ''}>${L('Add team', 'Agregar equipo')}</button></div>`;
   }
   else if (SHEET.type === 'group') {
@@ -530,12 +529,12 @@ function sheet() {
         <button class="btn" data-act="groupSave">${icon('check', 14)}${L('Save', 'Guardar')}</button></div>`;
   } else if (SHEET.type === 'codes') {
     const rows = SHEET.codes.map(c => c.kind === 'group'
-      ? { branch: S.branches[S.groups[c.id]?.branchId]?.name || '', what: `${L('Group', 'Grupo')}: ${S.groups[c.id]?.name || ''}`, code: c.code, order: `${branchOrder(S.groups[c.id]?.branchId)}-${groupOrder(c.id)}-0` }
+      ? { branch: S.branches[S.groups[c.id]?.branchId]?.name || '', what: S.groups[c.id]?.name || '', code: c.code, order: `${branchOrder(S.groups[c.id]?.branchId)}-${groupOrder(c.id)}-0` }
       : { branch: S.branches[S.teams[c.id]?.branchId]?.name || '', what: `${groupName(S.teams[c.id] || {})} · ${teamName(S.teams[c.id] || {})}`, code: c.code, order: `${branchOrder(S.teams[c.id]?.branchId)}-${groupOrder(S.teams[c.id]?.groupId)}-${S.teams[c.id]?.num || 0}` })
       .sort((a, b) => a.order.localeCompare(b.order, undefined, { numeric: true }));
     body = `<div class="row"><div class="h grow">${L('New codes', 'Códigos nuevos')}</div>${close}</div>
-      <p class="small" style="margin:0"><b>${L('Write these down or copy them now: they can’t be shown again.', 'Anótalos o cópialos ahora: no se pueden volver a mostrar.')}</b> ${L('Give each group leader their group code, and each team leader their team code.', 'Dale a cada líder de grupo el código de su grupo, y a cada líder de equipo el de su equipo.')}</p>
-      <div class="tablewrap" style="max-height:50vh;overflow:auto"><table><thead><tr><th>${L('Branch', 'Sucursal')}</th><th>${L('Group / team', 'Grupo / equipo')}</th><th class="c">${L('Code', 'Código')}</th></tr></thead>
+      <p class="small" style="margin:0"><b>${L('Write these down or copy them now: they can’t be shown again.', 'Anótalos o cópialos ahora: no se pueden volver a mostrar.')}</b> ${L('Share each group’s code with its group leader and team leaders.', 'Comparte el código de cada grupo con su líder de grupo y sus líderes de equipo.')}</p>
+      <div class="tablewrap" style="max-height:50vh;overflow:auto"><table><thead><tr><th>${L('Branch', 'Sucursal')}</th><th>${L('Group', 'Grupo')}</th><th class="c">${L('Code', 'Código')}</th></tr></thead>
       <tbody>${rows.map(r => `<tr><td>${esc(r.branch)}</td><td>${esc(r.what)}</td><td class="c"><b class="num" style="font-size:16px">${esc(r.code)}</b></td></tr>`).join('')}</tbody></table></div>
       <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-act="copyCodes">${L('Copy list', 'Copiar lista')}</button><button class="btn" data-act="close">${L('Done', 'Listo')}</button></div>
       <textarea id="codes-text" class="input" rows="3" readonly style="font-size:12px">${esc(rows.map(r => `${r.branch}\t${r.what}\t${r.code}`).join('\n'))}</textarea>`;
@@ -654,11 +653,12 @@ app.addEventListener('click', async e => {
       if (isMain()) { if (val('ts-leader')) patch.leader = val('ts-leader'); patch.fruitGoal = Math.max(0, Math.round(+val('ts-fruit') || 0)); }
       const id = VIEW_TEAM;
       if (code) {
-        try { await api('POST', `/api/codes/team/${encodeURIComponent(id)}`, { code }); if (!CODED.includes(id)) CODED.push(id); }
+        const gid = S.teams[id]?.groupId;
+        try { await api('POST', `/api/codes/group/${encodeURIComponent(gid)}`, { code }); if (!CODED_G.includes(gid)) CODED_G.push(gid); }
         catch (x) { toast(x.message); return; }
       }
       SHEET = null;
-      if (await save('teams', id, patch)) toast(code ? L('Team saved. Share the new code with the team.', 'Equipo guardado. Comparte el nuevo código con el equipo.') : L('Team saved.', 'Equipo guardado.'));
+      if (await save('teams', id, patch)) toast(code ? L('Saved. Share the new group code with the whole group.', 'Guardado. Comparte el nuevo código con todo el grupo.') : L('Team saved.', 'Equipo guardado.'));
       return;
     }
     case 'teamDelete': {
@@ -670,7 +670,7 @@ app.addEventListener('click', async e => {
     }
     case 'addTeamOpen': SHEET = { type: 'addTeam' }; break;
     case 'teamAdd': {
-      const leader = val('nt-leader'), code = val('nt-code'), bid = TEAMS_BRANCH || BRANCHES()[0]?.id;
+      const leader = val('nt-leader'), code = '', bid = TEAMS_BRANCH || BRANCHES()[0]?.id;
       let groupId = document.getElementById('nt-group')?.value || '__new';
       if (code && !/^\d{4,8}$/.test(code)) { toast(L('The code needs 4 to 8 digits.', 'El código necesita de 4 a 8 dígitos.')); return; }
       if (groupId === '__new' && !val('nt-newgroup')) { toast(L('Write the new group’s name.', 'Escribe el nombre del grupo nuevo.')); return; }

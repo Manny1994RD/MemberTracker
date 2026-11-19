@@ -5,9 +5,8 @@ Monthly goals dashboard for the **Santiago region**, in Spanish and English, wit
 Every branch (Santiago, La Vega, Moca, Jarabacoa, Puerto Plata) is organized as **branch → group → team → members**. The teams and members can be imported from the church directory in Excel.
 
 - **App code (1925 to start):** opens the region results, the monthly reports, the teams overview and settings.
-- **Group codes:** each group has a code that opens all of its teams, so the group leader can update any of them.
-- **Team codes:** each team has its own code that opens just that team.
-- A team's members and adjustments only open with its team code or its group code.
+- **Group codes:** each group has one code that opens all of its teams. Its group leader and team leaders use it to update their teams.
+- A team's members and adjustments only open with its group's code.
 - Codes are typed on a number keypad. There are no usernames or passwords.
 - Members and branch leaders don't use the app.
 - Changes show up live on everyone's screen.
@@ -75,7 +74,6 @@ The workflow in `.github/workflows/docker-publish.yml` tests the app, then build
 |---|---|
 | App code | **Región** (results by month, quarter or year), **Reporte mensual**, **Equipos** (by branch and group; each team opens with its code), **Ajustes** |
 | Group code | Every team in that group (members' 7 goals, fruit, adjustments) and **Región** (view only) |
-| Team code | That team's page and **Región** (view only) |
 
 - **Branches and goals:** Santiago, La Vega, Moca, Puerto Plata and Jarabacoa are created at setup. You can rename, add or remove branches in **Ajustes**.
   - A branch's fruit adds up from its teams. A branch without teams enters its fruit in the monthly report.
@@ -86,15 +84,17 @@ The workflow in `.github/workflows/docker-publish.yml` tests the app, then build
   - **File layout:** one sheet per branch, named like the branch. Inside it, a group title such as `ADULTAS · ROSA GUZMÁN`, then a row of `EQUIPO 1`, `EQUIPO 2`… headings with each team's members listed below. A count like `6 integrantes` ends a column.
   - **Santiago's planned groups:** columns under `PLANIFICACIÓN DE FUTUROS GRUPOS` / `FUTURO GRUPO · …` become future groups, marked "Futuro grupo".
   - **Notes beside names:** text in parentheses becomes a label, for example `(Ayudante)`. A `(Tl…)` label also marks that person as the team leader.
+  - **Team leader listed twice:** if a team's first name appears twice in its list, that person is imported once, as the team leader.
+  - **Column without a heading:** if a column has names but no `EQUIPO n` heading and no count of its own, those names join the team on its left. If it has its own count, it becomes the next team.
   - **Ignored:** sheets without `EQUIPO n` headings, like "Resumen General" and "Comités".
   - **Preview first:** you see a summary per branch and anything to check in the Excel (a name twice in one team, a column without a heading) before anything changes.
   - **Agregar y actualizar** adds what's new and keeps everything already in the app: goals, codes, and people added in the app. Import an updated Excel this way whenever the directory changes.
   - **Reemplazar** removes all groups, teams, members and their codes first.
 - **Codes:**
   - **App code:** opens everything except team members. Change it in **Ajustes → Código de la app**. To start with a different code than 1925 on a new install, set `APP_CODE` in the compose file.
-  - **Group and team codes:** opening a team from **Equipos** asks for the team's code or its group's code, even with the app code. A leader can also type their code on the first screen to go straight to their teams. They then see only those teams and the region results.
-  - **Crear los códigos que faltan** (in **Ajustes → Códigos de grupo y de equipo**) gives every group and team without a code a random 4-digit code, and shows the full list once to copy or write down.
-  - **Replacing a code:** use the same Ajustes section, **Grupo** on a group in **Equipos**, or **Ajustes del equipo** on a team's page.
+  - **Group codes:** opening a team from **Equipos** asks for its group's code, even with the app code. A leader can also type the group code on the first screen to go straight to the group's teams. They then see only those teams and the region results.
+  - **Crear los códigos que faltan** (in **Ajustes → Códigos de grupo**) gives every group without a code a random 4-digit code, one per group, and shows the list once to copy or write down.
+  - **Replacing a code:** use the same Ajustes section, **Grupo** on a group in **Equipos**, or **Ajustes del equipo** on a team's page. The change applies to the whole group.
   - Every code is 4 to 8 digits and must be different from all the others.
   - After 8 wrong codes from one device, or 40 in total, entering a code pauses for 15 minutes.
   - Codes are stored scrambled, so they can be replaced but never shown.

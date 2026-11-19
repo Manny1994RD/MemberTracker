@@ -118,21 +118,35 @@ function parseDirectory(sheets) {
       // Every column with names in this block is a team; it should have an "EQUIPO n" header.
       const cols = new Set();
       for (const k of Object.keys(sh.cells)) { const [r, c] = k.split(',').map(Number); if (r >= hr && r <= end) cols.add(c); }
-      let lastNum = 0;
+      let lastNum = 0, lastTeam = null;
       for (const c of [...cols].sort((a, b) => a - b)) {
         const header = get(hr, c);
         const members = [], seen = new Set();
+        let hasCount = false;
         for (let r = hr + 1; r <= end; r++) {
           const v = get(r, c);
           if (!v) continue;
-          if (isCount(v)) break;
+          if (isCount(v)) { hasCount = true; break; }
           if (isTeamHeader(v)) break;
           const m = parseMember(v);
           if (!m.name) continue;
-          if (seen.has(norm(m.name))) { warn(`“${m.name}” aparece dos veces en el mismo equipo (columna ${colLetter(c)}); se importó una vez.`); continue; }
+          if (seen.has(norm(m.name))) {
+            // The first name repeated in its own team is the team leader, listed twice: keep one, mark as leader.
+            if (norm(members[0].name) === norm(m.name)) {
+              members[0].leader = true;
+              warn(`“${m.name}” aparece dos veces al inicio del equipo (columna ${colLetter(c)}); se importó una vez como líder del equipo.`);
+            } else warn(`“${m.name}” aparece dos veces en el mismo equipo (columna ${colLetter(c)}); se importó una vez.`);
+            continue;
+          }
           seen.add(norm(m.name)); members.push(m);
         }
         if (!isTeamHeader(header) && !members.length) continue;
+        // A column with names but no EQUIPO heading and no count of its own continues the team on its left.
+        if (!isTeamHeader(header) && !hasCount && lastTeam) {
+          for (const m of members) if (!lastTeam.members.some(x => norm(x.name) === norm(m.name))) lastTeam.members.push(m);
+          warn(`la columna ${colLetter(c)} de “${title}” tiene nombres sin encabezado EQUIPO ni conteo propio; se unieron al Equipo ${lastTeam.num}.`);
+          continue;
+        }
         let num, note = '';
         if (isTeamHeader(header)) {
           num = +(/equipo\s*(\d+)/i.exec(header)?.[1]) || lastNum + 1;
@@ -144,6 +158,7 @@ function parseDirectory(sheets) {
         }
         lastNum = Math.max(lastNum, num);
         const team = { num, note, members };
+        lastTeam = team;
         if (future && c >= futureCol) future.teams.push(team); else current.teams.push(team);
       }
       if (current.teams.length) branch.groups.push(current);

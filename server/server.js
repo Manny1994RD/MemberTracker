@@ -374,7 +374,8 @@ function createApp({ dbFile, secureCookies = false, mainCode = '1925', log = con
     db.putTeamCode('g:' + groupId, codeHash(body.code));
     return { ok: true };
   });
-  // Gives a new random 4-digit code to every team and group that has none (or to all of them).
+  // Gives a new random 4-digit code to every group that has none (or to all of them). All teams in a
+  // group share its code; teams outside any group get their own.
   // This response is the only time the new codes can be seen, so the app shows them to print or copy.
   route('POST', '/api/codes/generate', ({ body }) => {
     const have = new Set(db.teamsWithCodes());
@@ -382,7 +383,8 @@ function createApp({ dbFile, secureCookies = false, mainCode = '1925', log = con
     const make = () => { for (let i = 0; i < 500; i++) { const c = String(crypto.randomInt(1000, 10000)); if (!/^(\d)\1+$/.test(c) && !codeInUse(c)) return c; } throw fail(500, 'Could not find a free code.'); };
     db.transaction(() => {
       for (const [gid] of Object.entries(db.docs('groups'))) if (body.all || !have.has('g:' + gid)) { const c = make(); db.putTeamCode('g:' + gid, codeHash(c)); out.push({ kind: 'group', id: gid, code: c }); }
-      for (const [tid] of Object.entries(db.docs('teams'))) if (body.all || !have.has(tid)) { const c = make(); db.putTeamCode(tid, codeHash(c)); out.push({ kind: 'team', id: tid, code: c }); }
+      const groups = db.docs('groups');
+      for (const [tid, t] of Object.entries(db.docs('teams'))) if (!groups[t.groupId] && (body.all || !have.has(tid))) { const c = make(); db.putTeamCode(tid, codeHash(c)); out.push({ kind: 'team', id: tid, code: c }); }
     });
     return { codes: out };
   }, { main: true });
