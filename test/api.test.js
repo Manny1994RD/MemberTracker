@@ -150,7 +150,7 @@ test('Excel import, group codes and generated codes', async t => {
   // Preview changes nothing and reports what it found
   const pv = await main('POST', '/api/import-excel', { file, mode: 'preview' });
   assert.equal(pv.status, 200);
-  assert.deepEqual(pv.data.summary.map(b => [b.name, b.groups, b.teams, b.members]), [['Santiago', 3, 5, 10], ['Moca', 1, 1, 1]]);
+  assert.deepEqual(pv.data.summary.map(b => [b.name, b.groups, b.teams, b.members]), [['Santiago', 2, 5, 10], ['Moca', 1, 1, 1]]);
   assert.deepEqual(pv.data.skipped.sort(), ['Comités', 'Resumen General']);
   assert.ok(pv.data.warnings.some(w => /dos veces/.test(w)), 'duplicate name in one team is reported');
   assert.ok(pv.data.warnings.some(w => /se unieron al Equipo 1/.test(w)), 'a column without heading or count joins the team on its left');
@@ -159,23 +159,21 @@ test('Excel import, group codes and generated codes', async t => {
 
   // Merge imports groups, teams, members, tags and team leaders
   const im = await main('POST', '/api/import-excel', { file, mode: 'merge' });
-  assert.deepEqual(im.data.stats, { branchesAdded: 0, groupsAdded: 4, teamsAdded: 6, membersAdded: 11, membersUpdated: 0 });
+  assert.deepEqual(im.data.stats, { branchesAdded: 0, groupsAdded: 3, teamsAdded: 6, membersAdded: 11, membersUpdated: 0 });
   let d = (await main('GET', '/api/data')).data;
   const groups = Object.entries(d.groups);
   const ana = groups.find(([, g]) => g.name === 'Adultas · Ana Prueba');
-  const future = groups.find(([, g]) => g.future);
   assert.equal(ana[1].leader, 'Ana Prueba');
-  assert.equal(future[1].name, 'Futuro Grupo · Adultas · Ana Prueba');
+  assert.ok(!groups.some(([, g]) => /futuro/i.test(g.name)), 'planned teams join their group, no separate future group');
   const anaTeams = Object.entries(d.teams).filter(([, tm]) => tm.groupId === ana[0]);
-  assert.equal(anaTeams.length, 3);
+  assert.equal(anaTeams.length, 4, 'Equipo 4 from the planning columns is in the same group');
   assert.equal(anaTeams.find(([, tm]) => tm.num === 1)[1].leader, 'Rosa Uno');
-  assert.equal(Object.values(d.teams).find(tm => tm.groupId === future[0]).num, 4);
 
   // Importing again adds nothing twice; people added in the app stay
   const team1 = anaTeams.find(([, tm]) => tm.num === 1)[0];
   const gen = await main('POST', '/api/codes/generate', {});
   assert.equal(gen.status, 200);
-  assert.equal(gen.data.codes.length, 4, 'one code per group');
+  assert.equal(gen.data.codes.length, 3, 'one code per group');
   assert.ok(gen.data.codes.every(c => c.kind === 'group'));
   assert.ok(gen.data.codes.every(c => /^\d{4}$/.test(c.code)));
   assert.equal(new Set(gen.data.codes.map(c => c.code)).size, gen.data.codes.length, 'codes are unique');
@@ -185,7 +183,7 @@ test('Excel import, group codes and generated codes', async t => {
   const gl = await leader('POST', '/api/login', { code: groupCode });
   assert.deepEqual(gl.data.access, { main: false, teams: [], groups: [ana[0]] });
   const ld = (await leader('GET', '/api/data')).data;
-  assert.equal(Object.keys(ld.members).length, 6, 'group code sees its 3 teams’ members');
+  assert.equal(Object.keys(ld.members).length, 8, 'group code sees its 4 teams’ members');
   assert.equal((await leader('POST', '/api/docs/members/new-1', { op: 'set', data: { teamId: team1, name: 'Persona Nueva', months: {} } })).status, 200);
   const otherTeam = Object.entries(d.teams).find(([, tm]) => tm.groupId !== ana[0])[0];
   assert.equal((await leader('POST', '/api/docs/members/new-2', { op: 'set', data: { teamId: otherTeam, name: 'X', months: {} } })).status, 403);
@@ -193,7 +191,7 @@ test('Excel import, group codes and generated codes', async t => {
   const again = await main('POST', '/api/import-excel', { file, mode: 'merge' });
   assert.deepEqual(again.data.stats, { branchesAdded: 0, groupsAdded: 0, teamsAdded: 0, membersAdded: 0, membersUpdated: 0 });
   d = (await main('GET', '/api/data')).data;
-  assert.equal(d.groupsWithCodes.length, 4, 'codes survive a re-import');
+  assert.equal(d.groupsWithCodes.length, 3, 'codes survive a re-import');
 
   // The app code opens a team with that group's code too
   const un = await main('POST', '/api/unlock', { teamId: team1, code: groupCode });

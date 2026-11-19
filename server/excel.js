@@ -101,9 +101,8 @@ function parseDirectory(sheets) {
     const rows = [...new Set(Object.keys(sh.cells).map(k => +k.split(',')[0]))].sort((a, b) => a - b);
     const headerRows = rows.filter(r => Object.entries(sh.cells).some(([k, v]) => +k.split(',')[0] === r && isTeamHeader(v)));
     if (!headerRows.length) { out.skipped.push(sh.name); continue; }
-    // Columns from the "PLANIFICACIÓN DE FUTUROS GRUPOS" heading onward hold future groups' teams.
-    let futureCol = Infinity;
-    for (const [k, v] of Object.entries(sh.cells)) if (/planificaci[oó]n de futuros grupos/i.test(v)) futureCol = Math.min(futureCol, +k.split(',')[1]);
+    // Teams under "PLANIFICACIÓN DE FUTUROS GRUPOS" / "FUTURO GRUPO · …" belong to the same group as the
+    // teams on their left (e.g. Equipo 4 and 5 of a group), so they are imported into that group.
     const branch = { sheet: sh.name, name: sh.name.trim(), groups: [] };
     const warn = msg => out.warnings.push(`${sh.name}: ${msg}`);
     headerRows.forEach((hr, i) => {
@@ -111,10 +110,7 @@ function parseDirectory(sheets) {
       // Group title: first text in column A above the EQUIPO row; a "FUTURO GRUPO" title may sit in another column.
       let titleRow = hr - 1; while (titleRow > 0 && !get(titleRow, 1)) titleRow--;
       const title = get(titleRow, 1) || `Grupo ${i + 1}`;
-      let futureTitle = '';
-      for (let c = 2; c <= 30; c++) if (/^futuro grupo/i.test(get(titleRow, c))) { futureTitle = get(titleRow, c); break; }
       const current = { ...parseGroup(title, branch.name), teams: [] };
-      const future = futureTitle ? { ...parseGroup(futureTitle, branch.name), teams: [] } : null;
       // Every column with names in this block is a team; it should have an "EQUIPO n" header.
       const cols = new Set();
       for (const k of Object.keys(sh.cells)) { const [r, c] = k.split(',').map(Number); if (r >= hr && r <= end) cols.add(c); }
@@ -159,10 +155,9 @@ function parseDirectory(sheets) {
         lastNum = Math.max(lastNum, num);
         const team = { num, note, members };
         lastTeam = team;
-        if (future && c >= futureCol) future.teams.push(team); else current.teams.push(team);
+        current.teams.push(team);
       }
       if (current.teams.length) branch.groups.push(current);
-      if (future && future.teams.length) branch.groups.push(future);
     });
     out.branches.push(branch);
   }

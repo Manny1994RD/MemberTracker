@@ -82,7 +82,7 @@ The workflow in `.github/workflows/docker-publish.yml` tests the app, then build
 - **The 7 monthly goals:** Attendance (the team picks 1–4 times), Tithe, EduLMS, GA Signature, Online Mission (3x), Preached (3x) and Preparation Day.
 - **Importing from Excel** (**Ajustes → Importar equipos desde Excel**):
   - **File layout:** one sheet per branch, named like the branch. Inside it, a group title such as `ADULTAS · ROSA GUZMÁN`, then a row of `EQUIPO 1`, `EQUIPO 2`… headings with each team's members listed below. A count like `6 integrantes` ends a column.
-  - **Santiago's planned groups:** columns under `PLANIFICACIÓN DE FUTUROS GRUPOS` / `FUTURO GRUPO · …` become future groups, marked "Futuro grupo".
+  - **Santiago's planned teams:** teams under `PLANIFICACIÓN DE FUTUROS GRUPOS` / `FUTURO GRUPO · …` join the group on their left. For example, Equipo 4 and 5 of Pamely Hernández's group are imported into that group.
   - **Notes beside names:** text in parentheses becomes a label, for example `(Ayudante)`. A `(Tl…)` label also marks that person as the team leader.
   - **Team leader listed twice:** if a team's first name appears twice in its list, that person is imported once, as the team leader.
   - **Column without a heading:** if a column has names but no `EQUIPO n` heading and no count of its own, those names join the team on its left. If it has its own count, it becomes the next team.
